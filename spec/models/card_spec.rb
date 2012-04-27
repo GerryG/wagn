@@ -44,11 +44,15 @@ describe Card do
     end
     
     it "gets needed methods with explicit pointer setting" do
-      Card.new(@c_args.merge(:type=>'Pointer')).respond_to?(:add_item).should be_true
+      Rails.logger.info "testing point"
+      Card.new(@c_args.merge(:type=>'Pointer')).
+               respond_to?(:add_item).should be_true
     end
     
     it "gets needed methods with implicit pointer setting (from template)" do
-      Card.new(@c_args).respond_to?(:add_item).should be_true
+      c=Card.new(@c_args)
+      Rails.logger.info "testing point #{c.inspect} N:#{c.name}"
+      c.respond_to?(:add_item).should be_true
     end
   end
 
@@ -57,8 +61,9 @@ describe Card do
     it "calls :after_create hooks" do
       # We disabled these for the most part, what replaces them?
       #[:before_save, :before_create, :after_save, :after_create].each do |hookname|
-      Wagn::Hook.should_receive(:call).with(:after_create, instance_of(Card))
-      User.as :wagbot do
+      pending "mock rr seems to be broken, maybe 'call' collides with internal methode"
+      mock(Wagn::Hook).call(:after_create, instance_of(Card))
+      Card.as(Card::WagbotID) do
         Card.create :name => "testit"
       end
     end
@@ -79,12 +84,12 @@ describe Card do
   
       it "c should have cardtype basic" do
         Rails.logger.info "testing point #{@c} #{@c.inspect}"
-        @c.typecode.should == 'Basic'
+        @c.typecode.should == 'basic'
       end
   
       it "d should have cardtype Date" do
         Rails.logger.info "testing point #{@d} #{@d.inspect}"
-        @d.typecode.should == 'Date'
+        @d.typecode.should == 'date'
       end
     end
 
@@ -96,7 +101,7 @@ describe Card do
                             
   describe "creation" do
     before(:each) do           
-      User.as :wagbot 
+      Card.as(Card::WagbotID) 
       @b = Card.create! :name=>"New Card", :content=>"Great Content"
       @c = Card.find(@b.id)
     end
@@ -119,7 +124,7 @@ describe Card do
 
   describe "attribute tracking for new card" do
     before(:each) do
-      User.as :wagbot 
+      Card.as(Card::WagbotID) 
       @c = Card.new :name=>"New Card", :content=>"Great Content"
     end
   
@@ -145,7 +150,7 @@ describe Card do
 
   describe "content change should create new revision" do
     before do
-      User.as :wagbot 
+      Card.as(Card::WagbotID) 
       @c = Card.find_by_name('basicname')
       @c.update_attributes! :content=>'foo'
     end
@@ -162,7 +167,7 @@ describe Card do
 
   describe "content change should create new revision" do
     before do
-      User.as :wagbot 
+      Card.as(Card::WagbotID) 
       @c = Card.find_by_name('basicname')
       @c.content = "foo"
       @c.save!

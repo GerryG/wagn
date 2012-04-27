@@ -5,7 +5,7 @@ describe Card do
     it "returns and caches existing cards" do
       Card.fetch("A").should be_instance_of(Card)
       Card.cache.read("a").should be_instance_of(Card)
-      Card.should_not_receive(:find_by_key)
+      mock.dont_allow(Card).find_by_key
       Card.fetch("A").should be_instance_of(Card)
     end
 
@@ -16,10 +16,10 @@ describe Card do
     end
 
     it "returns nil and caches trash cards" do
-      User.as(:wagbot)
+      Card.as(Card::WagbotID)
       Card.fetch("A").destroy!
       Card.fetch("A").should be_nil
-      Card.should_not_receive(:find_by_key)
+      mock.dont_allow(Card).find_by_key
       Card.fetch("A").should be_nil
     end
 
@@ -29,7 +29,7 @@ describe Card do
     end
 
     it "returns virtual cards and caches them as missing" do
-      User.as(:wagbot)
+      Card.as(Card::WagbotID)
       card = Card.fetch("Joe User+*email")
       card.should be_instance_of(Card)
       card.name.should == "Joe User+*email"
@@ -54,33 +54,33 @@ describe Card do
       Card.cache.reset_local
       Card.cache.local.keys.should == []
 
-      User.as :wagbot
+      Card.as(Card::WagbotID)
 
       a = Card.fetch("A")
       a.should be_instance_of(Card)
 
       # expires the saved card
-      Card.cache.should_receive(:delete).with('a')
+      mock(Card.cache).delete('a')
 
       # expires plus cards
-      Card.cache.should_receive(:delete).with('c+a')
-      Card.cache.should_receive(:delete).with('d+a')
-      Card.cache.should_receive(:delete).with('f+a')
-      Card.cache.should_receive(:delete).with('a+b')
-      Card.cache.should_receive(:delete).with('a+c')
-      Card.cache.should_receive(:delete).with('a+d')
-      Card.cache.should_receive(:delete).with('a+e')
-      Card.cache.should_receive(:delete).with('a+b+c')
+      mock(Card.cache).delete('c+a')
+      mock(Card.cache).delete('d+a')
+      mock(Card.cache).delete('f+a')
+      mock(Card.cache).delete('a+b')
+      mock(Card.cache).delete('a+c')
+      mock(Card.cache).delete('a+d')
+      mock(Card.cache).delete('a+e')
+      mock(Card.cache).delete('a+b+c')
 
       # expired including? cards
-      Card.cache.should_receive(:delete).with('x').twice
-      Card.cache.should_receive(:delete).with('y').twice
+      mock(Card.cache).delete('x').times(2)
+      mock(Card.cache).delete('y').times(2)
       a.save!
     end
 
     describe "preferences" do
       before do
-        User.as :wagbot
+        Card.as(Card::WagbotID)
       end
 
       it "prefers db cards to pattern virtual cards" do
@@ -88,7 +88,7 @@ describe Card do
         c2=Card.create!(:name => "a+y", :content => "DB Content")
         card = Card.fetch("a+y")
         card.virtual?.should be_false
-        card.rule('content').should == "Formatted Content"
+        card.rule(:content).should == "Formatted Content"
         card.content.should == "DB Content"
       end
 
@@ -106,6 +106,7 @@ describe Card do
         tc=Card.create!(:name => "y+*right+*content", :content => "Right Content")
         Rails.logger.info "testing point 0 #{tc.inspect}"
         card = Card.fetch("a+y")
+        Rails.logger.debug "failing 2"
         card.virtual?.should be_true
         card.content.should == "Right Content"
         Rails.logger.info "testing point 1 #{card.inspect}"
@@ -130,7 +131,7 @@ describe Card do
       it "should not hit the database for every fetch_virtual lookup" do
         Card.create!(:name => "y+*right+*content", :content => "Formatted Content")
         Card.fetch("a+y")
-        Card.should_not_receive(:find_by_key)
+        mock.dont_allow(Card).find_by_key
         Card.fetch("a+y")
       end
       
@@ -158,21 +159,21 @@ describe Card do
     it "takes a second hash of options as new card options" do
       new_card = Card.fetch_or_new("Never Before", :type => "Image")
       new_card.should be_instance_of(Card)
-      new_card.typecode.should == 'Image'
+      new_card.typecode.should == 'image'
       new_card.new_record?.should be_true
     end
   end
 
   describe "#fetch_virtual" do
-    before { User.as :joe_user }
+    before { Card.as :joe_user }
 
     it "should find cards with *right+*content specified" do
-      User.as :wagbot do
+      Card.as(Card::WagbotID) do
         Card.create! :name=>"testsearch+*right+*content", :content=>'{"plus":"_self"}', :type => 'Search'
       end
       c = Card.fetch("A+testsearch".to_cardname)
       assert c.virtual?
-      c.typecode.should == 'Search'
+      c.typecode.should == 'search'
       c.content.should ==  "{\"plus\":\"_self\"}"
     end
   end

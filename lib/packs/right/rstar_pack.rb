@@ -33,7 +33,7 @@ class Wagn::Renderer::Html
 
     if args=params[:card]
       current_rule = current_rule.refresh if current_rule.frozen?
-      args[:typecode] = Cardtype.classname_for(args.delete(:type)) if args[:type]
+      args[:type_id] = Card.type_id_from_name(args.delete(:type)) if args[:type]
       current_rule.assign_attributes args
       current_rule.reset_mods
       current_rule.include_set_modules
@@ -185,7 +185,7 @@ class Wagn::Renderer::Html
     # This generates a prototypical member of the POTENTIAL rule's set
     # and returns that member's ACTUAL rule for the POTENTIAL rule's setting
     set_prototype = Card.fetch( card.cardname.trunk_name ).prototype
-    rule_card = card.new_card? ? set_prototype.rule_card( card.cardname.tag_name ) : card
+    rule_card = card.new_card? ? Card.fetch_or_new(set_prototype.name + card.cardname.tag_name) : card
     [ rule_card, set_prototype ]
   end
 

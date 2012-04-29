@@ -3,7 +3,7 @@ module Wagn::Model::Attach
     c=if rev_id || self.new_card? || selected_rev_id==current_revision_id
         self.content
       else
-        Revision.find_by_id(selected_rev_id).content
+        Card::Revision.find_by_id(selected_rev_id).content
       end
     !c || c =~ /^\s*<img / ?  ['','',''] : c.split(/\n/) 
   end
@@ -78,9 +78,11 @@ module Wagn::Model::Attach
   end
 
   def before_post_attach
-    self.attach.instance_write :file_name, self.attach.original_filename
-    'Image' == (typecode || @type_args[:typecode] || Cardtype.classname_for( @type_args[:type] ) )
-    # returning true enables thumbnail creation
+    at=self.attach
+    at.instance_write :file_name, at.original_filename
+
+    Card::ImageID == (type_id || Card.type_id_from_name( @type_args[:type] ) )
+    # returning true enables thumnail creation
   end
 
 

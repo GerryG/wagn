@@ -8,18 +8,20 @@ module WagnTestHelper
   def setup_default_user
     User.cache.reset
     
-    # FIXME: should login as joe_user by default-- see what havoc it creates...
-    @user = User.current_user = User.find_by_login('wagbot')
+    user_card = Card['joe user'] #Card[Card::WagbotID]
+    user_card = Card[Card::WagbotID]
+    Card.user= Card::WagbotID
+    @user = Card.user
+    #STDERR << "user #{@user.inspect}\n"
 
     @user.update_attribute('crypted_password', '610bb7b564d468ad896e0fe4c3c5c919ea5cf16c')
-    @user.roles << Role.find_by_codename('admin')
+    #user_card.trait_card(:roles) << Card::AdminID
     
     # setup admin while we're at it
-    @admin = User[:wagbot]
+    #@admin_card = Card[Card::WagbotID]
 
-    @ra = Role.find_by_codename('admin')
-    @admin.roles << @ra
-    #User.current_user = User.find_by_login('joe_user')
+    #@admin_card.trait_card(:roles) << Card::AdminID
+    Card.user = 'joe_user'
   end
  
   def get_renderer()
@@ -27,7 +29,7 @@ module WagnTestHelper
   end
   
   def given_cards( *definitions )   
-    User.as(:wagbot) do 
+    Card.as(Card::WagbotID) do 
       Card.create_these *definitions
     end
   end
@@ -52,29 +54,31 @@ module WagnTestHelper
     assert_difference object, method, 0, &block
   end
   
+  USERS = {
+    'joe@user.com' => 'joe_pass',
+    'joe@admin.com' => 'joe_pass',
+    'u3@user.com' => 'u3_pass'
+  }
 
-  def integration_login_as(user)
+  def integration_login_as(user, functional=nil)
     User.cache.reset
     
-    case user.to_s 
-      when 'anon'; #do nothing
-      when 'joe_user'; login='joe@user.com'; pass='joe_pass'
-      when 'admin';    login='u3@user.com'; pass='u3_pass'
-      else raise "Don't know email & password for #{user}"
-    end
-    unless user==:anon
-      # FIXME- does setting controller here break anything else?
-      #tmp_controller = @controller
-      #@controller = AccountController.new
+    raise "Don't know email & password for #{user}" unless uc=Card[user] and
+        u=User.where(:card_id=>uc.id).first and
+        login = u.email and pass = USERS[login]
       
-      post '/account/signin', :login=>login, :password=>pass
-      assert_response :redirect
-      
-      #@controller = tmp_controller
+    if functional
+      #warn "functional login #{login}, #{pass}"
+      post :signin, :login=>login, :password=>pass, :controller=>:account
+    else
+      #warn "integration login #{login}, #{pass}"
+      post 'account/signin', :login=>login, :password=>pass, :controller=>:account
     end
+    assert_response :redirect
+      
     if block_given?
       yield
-      post "/account/signout",:controller=>'account'
+      post 'account/signout',:controller=>'account'
     end
   end
   

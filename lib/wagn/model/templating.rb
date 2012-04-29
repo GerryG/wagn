@@ -6,12 +6,12 @@ module Wagn::Model::Templating
   def type_template?()  template? && !!(name =~ /\+\*type\+/)  end
   def right_template?() template? && !!(name =~ /\+\*right\+/) end
 
-  def template(reset = false)
-    @template = reset ? get_template : (@template || get_template)
+  def template reset=false, skip_mods=false
+    @template = reset || !@template ? get_template( skip_mods ) : @template
   end
   
-  def get_template
-    t = rule_card('content','default')
+  def get_template(skip_modules=false)
+    t = rule_card(:content, :default, :skip_modules=>skip_modules)
     @virtual = (new_card? && t && t.hard_template?)
     t
   end
@@ -25,6 +25,7 @@ module Wagn::Model::Templating
   end
   
   def virtual?
+    return false unless new_card?
     if @virtual.nil?
       cardname.simple? ? @virtual=false : get_template
     end
@@ -33,7 +34,9 @@ module Wagn::Model::Templating
 
   def hard_templatee_names
     if wql = hard_templatee_wql(:name)
-      User.as(:wagbot)  {  Wql.new(wql).run  }
+      Card.as Card::WagbotID do
+        Wql.new(wql).run
+      end
     else
       []
     end
@@ -46,8 +49,8 @@ module Wagn::Model::Templating
   #
   # ps.  I think this code should be wiki references.
   def expire_templatee_references
-    if wql = hard_templatee_wql(:condition)
-      condition = User.as(:wagbot) { Wql::CardSpec.build(wql).to_sql }
+    if wql=hard_templatee_wql(:condition)
+      condition = Card.as(Card::WagbotID) { Wql::CardSpec.build(wql).to_sql }
       card_ids_to_update = connection.select_rows("select id from cards t where #{condition}").map(&:first)
       card_ids_to_update.each_slice(100) do |id_batch|
         connection.execute "update cards set references_expired=1 where id in (#{id_batch.join(',')})"

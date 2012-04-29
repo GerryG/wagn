@@ -7,13 +7,19 @@ gem 'rails', '~> 3.1'
 gem 'htmlentities', '~>4.3.0'
 gem 'uuid', '~>2.3.4'
 gem 'paperclip', '~>2.4'
+gem 'warden'
 gem 'rmagick', '~>2.13.1'
 gem "recaptcha", "~> 0.3.4"
+gem 'userstamp', '~> 2.0'
+gem 'xmlscan', '~>0.3.0'
 
 # DATABASE
 
 # need at least one of the following
 
+group :mysql2 do
+  gem "mysql2", "~> 0.3.11"
+end
 group :mysql do
   gem "mysql2", "~> 0.3.11"
   gem 'mysql', '~>2.8.1'
@@ -56,12 +62,14 @@ group :test do
   gem 'cucumber-rails', '~> 1.2.0'              # feature-driven-development suite
   gem 'launchy'                                # lets cucumber launch browser windows
   gem 'timecop'                                # not clear on use/need.  referred to in shared_data.rb
-  gem 'spork'                                  #
+  gem 'spork', '>=0.9'
                                                
+  gem 'rr'#, '=1.0.0'
+
   gem 'email_spec'                             # 
   gem 'database_cleaner', '~> 0.7.0'            # used by cucumber for db transactions
   
-  gem 'turn', "<0.8.3", :require => false      # Pretty printed test output.  (version constraint is to avoid minitest requirement)
+  gem 'turn', "~>0.8.3", :require => false      # Pretty printed test output.  (version constraint is to avoid minitest requirement)
   
   #windows stuff
   gem 'win32console', '~> 1.3.0', :platforms => ['mingw', 'mswin']
@@ -70,8 +78,8 @@ end
 
 group :debug do
   gem 'rdoc'
-  if RUBY_VERSION =~ /^1\.9\.3/
-    gem 'linecache19', '~>0.5'
+  if RUBY_VERSION =~ /^1\.9\.3-p0/
+    gem 'linecache19', '~>0.5.13'
     gem 'ruby-debug-base19x', '~> 0.11.30.pre4'
   end
   if RUBY_VERSION =~ /^1\.9/

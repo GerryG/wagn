@@ -17,7 +17,10 @@ class Wagn::Renderer
   define_view :name     do |args|  card.name                                                        end
   define_view :key      do |args|  card.key                                                         end
   define_view :linkname do |args|  card.cardname.to_url_key                                         end
-  define_view :link     do |args|  name=card.name; build_link(name, name, card.known?)              end
+  define_view :link do |args|
+    name=card.name
+    build_link(name, name, card.known?)
+  end
   define_view :url      do |args|  wagn_url _render_linkname                                        end
 
   define_view :open_content do |args|
@@ -53,14 +56,9 @@ class Wagn::Renderer
     %{ To tell us more and follow the fix, add a support ticket at http://wagn.org/new/Support_Ticket }
   end
 
-  define_view :denial do |args|
-    'Permission Denied'
-  end
-  
-  define_view :bad_address do |args|
-    %{ Bad Address }
-  end
-
+  define_view(:missing)     do |args| ''                  end
+  define_view(:denial)      do |args| 'Permission Denied' end
+  define_view(:bad_address) do |args| %{ Bad Address }    end
 
   # The below have HTML!?  should not be any html in the base renderer
 

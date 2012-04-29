@@ -36,12 +36,14 @@ class ApplicationController < ActionController::Base
       Wagn::Renderer.ajax_call = ajax?
       Wagn::Renderer.current_slot = nil
     
-      Wagn::Cache.re_initialize_for_new_request
+      Wagn::Cache.renew
     
-      User.current_user = current_user || User[:anon]
+      #warn "set curent_user (app-cont) #{self.session_user}, U.cu:#{Card.user_id}"
+      Card.user = session_user || Card::AnonID
+      #warn "set curent_user a #{session_user}, U.cu:#{Card.user_id}"
     
       # RECAPTCHA HACKS
-      Wagn::Conf[:recaptcha_on] = !User.logged_in? &&     # this too 
+      Wagn::Conf[:recaptcha_on] = !Card.logged_in? &&     # this too 
         !!( Wagn::Conf[:recaptcha_public_key] && Wagn::Conf[:recaptcha_private_key] )
       @recaptcha_count = 0
     
@@ -72,6 +74,7 @@ class ApplicationController < ActionController::Base
   def view_ok()    @card.ok?(:read)   || render_denied('view')    end
   def update_ok()  @card.ok?(:update) || render_denied('edit')    end
   def remove_ok()  @card.ok!(:delete) || render_denied('delete')  end
+    #warn "rok #{@card.ok?(:delete)}"
 
  #def create_ok
  #  @type = params[:type] || (params[:card] && params[:card][:type]) || 'Basic'
@@ -80,7 +83,6 @@ class ApplicationController < ActionController::Base
  #  t = Card.class_for(@type, :cardname) || Card::Basic
  #  t.create_ok? || render_denied('create')
  #end
-
 
   # ----------( rendering methods ) -------------
 
@@ -107,25 +109,25 @@ class ApplicationController < ActionController::Base
   end
 
   def render_show(view = nil, status = 200)
-#    ActiveSupport::Notifications.instrument 'wagn.render_show', :message=>"view: #{view}" do
-      extension = request.parameters[:format]
-      if FORMATS.split('|').member?( extension )
-        render(:status=>status, :text=> begin
-          respond_to do |format|
-            format.send(extension) do
-              renderer = Wagn::Renderer.new(@card, :format=>extension, :controller=>self)
-              renderer.render_show( :view=>view )
-            end
-          end
-        end)
-      elsif render_show_file
-      else
-        render :text=>"unknown format: #{extension}", :status=>404
+    name_ext = request.parameters[:format].sub(/^\./,'')
+    #warn "render_show #{FORMATS.inspect}, #{name_ext}"
+    if FORMATS.split('|').member?( name_ext )
+      #warn "render_sho1 #{name_ext}"
+      respond_to do |format|
+        format.send(name_ext) do
+          #warn "rendering #{params.inspect}"
+          render( :status=>status, :text=> Wagn::Renderer.new(@card,
+             :format=>name_ext, :controller=>self).render_show(:view=>view) )
+        end
       end
-#    end
+    elsif render_show_file
+    else
+      render :text=>"unknown format: #{name_ext}", :status=>404
+    end
   end
   
   def render_show_file
+    #warn "render_show_file #{@card}"
     return fast_404 if !@card
     @card.selected_rev_id = (@rev_id || @card.current_revision_id).to_i
   

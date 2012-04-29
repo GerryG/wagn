@@ -4,12 +4,11 @@ Wagn::Set::Self::Settings
 module Wagn::Model
   
   def self.included(base)
-    base.extend Wagn::Model::ModuleMethods
-    base.superclass.extend Wagn::Model::ActsAsCardExtension
     base.send :include, Wagn::Model::AttributeTracking
     base.send :include, Wagn::Model::Collection
     base.send :include, Wagn::Model::Exceptions
     base.send :include, Wagn::Model::Fetch
+    base.send :include, Wagn::Model::Traits
     base.send :include, Wagn::Model::Templating
     base.send :include, Wagn::Model::TrackedAttributes
     base.send :include, Wagn::Model::Permissions

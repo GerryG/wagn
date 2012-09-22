@@ -10,6 +10,8 @@ module Wagn
    
     RENDERERS = { #should be defined in renderer
       :html => :Html,
+      :json => :JsonRenderer,
+      :xml  => :Xml,
       :css  => :Text,
       :csv  => :Text,
       :txt  => :Text
@@ -137,6 +139,7 @@ module Wagn
       if respond_to? method
         send method, args
       else
+        Rails.logger.warn "bad view #{view.inspect}, #{self.class}"
         "<strong>unknown view: <em>#{view}</em></strong>"
       end
     end
@@ -555,13 +558,6 @@ module Wagn
     end
   end
 
-  # I was getting a load error from a non-wagn file when this was in its own file (renderer/json.rb).
-  class Renderer::Json < Renderer
-    define_view :name_complete do |args|
-      JSON( card.item_cards( :complete=>params['term'], :limit=>8, :sort=>'name', :return=>'name', :context=>'' ) )
-    end
-  end
-  
   # automate
   Wagn::Renderer::EmailHtml
   Wagn::Renderer::Html

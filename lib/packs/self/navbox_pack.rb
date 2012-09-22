@@ -8,7 +8,7 @@ class Wagn::Renderer::Html
   alias_view(:raw, {:name=>'navbox'}, :core)
 end
 
-class Wagn::Renderer::Json < Wagn::Renderer
+class Wagn::Renderer::JsonRenderer < Wagn::Renderer
   define_view :complete, :name=>:search do |args|
     term = params['_keyword']
     if term =~ /^\+/ && main = params['main']

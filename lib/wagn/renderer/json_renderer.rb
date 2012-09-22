@@ -1,11 +1,8 @@
 module Wagn
- class Renderer::Xml < Renderer
 
-  LAYOUTS = { 'default' => %{
-<carddoc>
-{{_main}}
-</carddoc>
-} }
+  LAYOUTS = { 'default' => %{{"status":"{{:status}}","result":{{_main}}}} }
+
+ class Renderer::JsonRenderer < Renderer
 
   cattr_accessor :set_actions
   attr_accessor  :options_need_save, :js_queue_initialized,
@@ -17,7 +14,7 @@ module Wagn
   end
 
   def set_action(key)
-    Renderer::Xml.actions[key] or super
+    Renderer::JsonRenderer.actions[key] or super
   end
 
   def initialize(card, opts=nil)
@@ -49,11 +46,11 @@ module Wagn
         href = full_uri Wagn::Conf[:root_path] + '/' +
           (known_card ? cardname.to_url_key : CGI.escape(cardname.escape))
 
-        return %{<cardlink class="#{
+        return %{{"cardlink":{"class":"#{
                     known_card ? 'known-card' : 'wanted-card'
-                  }" card="#{href}">#{text}</cardlink>}
+                  }", "url":"#{href}","text":"#{text}"}}}
       end
-    %{<link class="#{klass}" href="#{href}">#{text}</link>}
+    %{{"link":{"class":"#{klass}","url":"#{href}","text":"#{text}"}}}
   end   
           
   def wrap(view=nil, args = {})
@@ -74,7 +71,7 @@ module Wagn
     }
     [:style, :home_view, :item, :base].each { |key| attributes[key] = args[key] }
     
-    content_tag(:card, attributes ) { yield }
+    {card: { attributes: attributes, result: yield }}.to_json
   end
 
   def get_layout_content(args)
@@ -93,7 +90,8 @@ module Wagn
     case
       when lcard && lcard.ok?(:read)         ; lcard.content
       when hardcoded_layout = LAYOUTS[lname] ; hardcoded_layout
-      else  ; "<h1>Unknown layout: #{lname}</h1>Built-in Layouts: #{LAYOUTS.keys.join(', ')}"
+      else  ; %{{"error":"Unknown layout: #{lname}.  Built-in Layouts: #{LAYOUTS.keys.join(', ')}}}
+
     end
   end
 
@@ -107,6 +105,5 @@ module Wagn
       lo_card.ok?(:read)
     lo_card.content
   end
-
  end
 end

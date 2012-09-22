@@ -17,10 +17,6 @@ class Wagn::Renderer::Xml < Wagn::Renderer
     process_content(layout_content, args)
   end
 
-  define_view(:show) do
-    self.render_content #???
-  end
-
   define_view(:content) do |args|
     c = _render_core(args)
     c = "<span class=\"faint\">--</span>" if c.size < 10 && strip_tags(c).blank?

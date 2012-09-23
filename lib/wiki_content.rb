@@ -100,10 +100,6 @@ class WikiContent < String
     @not_rendered = String.new(self)
   end
 
-  def inspect
-    "<#{self.class}, s[#{to_s}] pr:#{@pre_rendered}, Cbid:#{@chunks_by_id.inspect}, R:#{@renderer},Cd #{@card && @card.name}>"
-  end
-
   def pre_render!
     unless @pre_rendered
       @pre_rendered = String.new(self)
@@ -114,16 +110,10 @@ class WikiContent < String
   def render_array(&block)
     pre_render!
     array = split(MASK_RE[ACTIVE_CHUNKS])
-    Rails.logger.warn "to_a #{@pre_rendered.class} :: #{@pre_rendered.to_s}, S:#{to_s}"
-    ot = array.inject([[], false]) do |i, next_chunk|
-      out, is_ch = i
-      is_ch ?
-        [out, false] :
-        next_chunk =~ /\D/ ?
-        [out << next_chunk, false] :
+    (array.inject([[], false]) do |i, next_chunk| out, is_ch = i
+      is_ch ?  [out, false] : next_chunk =~ /\D/ ?  [out << next_chunk, false] :
         [out << JSON.parse!(@chunks_by_id[next_chunk.to_i].unmask_text(&block)), true]
-    end
-    Rails.logger.warn "render arr: #{ot.inspect}"; ot[0]
+    end)[0]
   end
 
   def render!( revert = false, &block)
@@ -132,7 +122,6 @@ class WikiContent < String
        chunk = @chunks_by_id[$~[1].to_i]
        chunk.nil? ? $~[0] : ( revert ? chunk.revert : chunk.unmask_text(&block) )
       end)
-#Rails.logger.debug "wiki render! #{@card.name} #{self.slice(0,80)}\nTrace #{Kernel.caller.slice(0,5).join("\n")}" unless revert
     end
     self
   end

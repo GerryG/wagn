@@ -33,12 +33,12 @@ class Wagn::Renderer::JsonRenderer < Wagn::Renderer
 
   define_view(:open) do |args|
     @state = :view
-    wrap(:open, args) { _render_core_array(args) }
+    wrap(:open, args) { _render_core_array args }
   end
 
   define_view(:closed) do |args|
     @state = :line
-    wrap(:closed, args) { _render_line(args) }
+    wrap(:closed, args) { _render_line args }
   end
 
   [ :deny_view, :edit_auto, :too_slow, :too_deep, :open_missing, :closed_missing, :setting_missing, :missing ].each do |view|
@@ -46,5 +46,4 @@ class Wagn::Renderer::JsonRenderer < Wagn::Renderer
        %{{{"status":"no card"},{"view":"#{view.to_s.gsub('_',' ')}"},{"card":{"name":"#{card.name}"}}}}
     end
   end
-
 end

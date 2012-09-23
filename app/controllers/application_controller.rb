@@ -103,7 +103,6 @@ class ApplicationController < ActionController::Base
 
     case
     when known                # renderers can handle it
-      Rails.logger.warn "know ext #{ext} #{view}"
       renderer = Wagn::Renderer.new @card, :format=>ext, :controller=>self
       render :text=>renderer.render_show( :view => view ),
         :status=>(renderer.error_status || status)

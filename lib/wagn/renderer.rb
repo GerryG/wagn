@@ -139,7 +139,7 @@ module Wagn
       if respond_to? method
         send method, args
       else
-        Rails.logger.warn "bad view #{view.inspect}, #{self.class}"
+        #Rails.logger.warn "bad view #{view.inspect}, #{self.class}"
         "<strong>unknown view: <em>#{view}</em></strong>"
       end
     end
@@ -227,6 +227,19 @@ module Wagn
       self
     end
     
+    def content_array content=nil, opts={}
+      return String===content ? [content] : content unless card
+      content = card.content if content.blank?
+  
+      wiki_content = WikiContent.new(card, content, self)
+      update_references( wiki_content, true ) if card.references_expired
+  
+      Rails.logger.warn "ca #{wiki_content.class}, #{wiki_content.to_s}\nAC\n"
+      wiki_content.render_array do |opts|
+        expand_inclusion(opts) { yield }
+      end
+    end
+  
     
     def process_content content=nil, opts={}
       return content unless card

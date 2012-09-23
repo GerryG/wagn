@@ -4,11 +4,11 @@ require_dependency 'chunk_manager'
 
 class MissingChunk < StandardError; end
 
-class WikiContent < String    
+class WikiContent < String
   class << self
-  ## FIXME:  this is still not quite the right place for clean_html! 
+  ## FIXME:  this is still not quite the right place for clean_html!
   ##  but it's better than the general string extension library where it was before.
-   
+
   ## Dictionary describing allowable HTML
   ## tags and attributes.
     BASIC_TAGS = {
@@ -26,7 +26,7 @@ class WikiContent < String
       'sup' => [],
       'sub' => [],
       'del' => [],
-      'ol' => [],       
+      'ol' => [],
       'hr' => [],
       'ul' => [],
       'li' => [],
@@ -47,48 +47,48 @@ class WikiContent < String
       'tbody'=>[],
       'thead'=>[],
       'tfoot'=>[]
-    }                                             
-      
+    }
+
     BASIC_TAGS.each_key {|k| BASIC_TAGS[k] << 'class' }
-        
+
       ## Method which cleans the String of HTML tags
-      ## and attributes outside of the allowed list.          
-      
-      # this has been hacked for wagn to allow classes in spans if 
+      ## and attributes outside of the allowed list.
+
+      # this has been hacked for wagn to allow classes in spans if
       # the class begins with "w-"
     def clean_html!( string, tags = BASIC_TAGS )
       string.gsub!( /<(\/*)(\w+)([^>]*)>/ ) do
         raw = $~
         tag = raw[2].downcase
         if tags.has_key? tag
-          pcs = [tag]  
-          tags[tag].each do |prop| 
+          pcs = [tag]
+          tags[tag].each do |prop|
             ['"', "'", ''].each do |q|
               q2 = ( q != '' ? q : '\s' )
               if prop=='class'
-                if raw[3] =~ /#{prop}\s*=\s*#{q}(w-[^#{q2}]+)#{q}/i   
-                  pcs << "#{prop}=\"#{$1.gsub('"', '\\"')}\"" 
+                if raw[3] =~ /#{prop}\s*=\s*#{q}(w-[^#{q2}]+)#{q}/i
+                  pcs << "#{prop}=\"#{$1.gsub('"', '\\"')}\""
                   break
                 end
               elsif raw[3] =~ /#{prop}\s*=\s*#{q}([^#{q2}]+)#{q}/i
-                pcs << "#{prop}=\"#{$1.gsub('"', '\\"')}\"" 
+                pcs << "#{prop}=\"#{$1.gsub('"', '\\"')}\""
                 break
               end
             end
           end if tags[tag]
-          "<#{raw[1]}#{pcs.join " "}>" 
+          "<#{raw[1]}#{pcs.join " "}>"
         else
-          " " 
+          " "
         end
       end
       string.gsub!(/<\!--.*?-->/, '')
       string
     end
   end
-  
+
   include ChunkManager
   attr_reader :revision, :not_rendered, :pre_rendered, :renderer, :card
-  
+
   def initialize(card, content, renderer)
     @not_rendered = @pre_rendered = nil
     @renderer = renderer
@@ -100,28 +100,47 @@ class WikiContent < String
     @not_rendered = String.new(self)
   end
 
+  def inspect
+    "<#{self.class}, s[#{to_s}] pr:#{@pre_rendered}, Cbid:#{@chunks_by_id.inspect}, R:#{@renderer},Cd #{@card && @card.name}>"
+  end
+
   def pre_render!
     unless @pre_rendered
       @pre_rendered = String.new(self)
     end
-    @pre_rendered 
+    @pre_rendered
+  end
+
+  def render_array(&block)
+    pre_render!
+    array = split(MASK_RE[ACTIVE_CHUNKS])
+    Rails.logger.warn "to_a #{@pre_rendered.class} :: #{@pre_rendered.to_s}, S:#{to_s}"
+    ot = array.inject([[], false]) do |i, next_chunk|
+      out, is_ch = i
+      is_ch ?
+        [out, false] :
+        next_chunk =~ /\D/ ?
+        [out << next_chunk, false] :
+        [out << JSON.parse!(@chunks_by_id[next_chunk.to_i].unmask_text(&block)), true]
+    end
+    Rails.logger.warn "render arr: #{ot.inspect}"; ot[0]
   end
 
   def render!( revert = false, &block)
     pre_render!
-    while (gsub!(MASK_RE[ACTIVE_CHUNKS]) do 
+    while (gsub!(MASK_RE[ACTIVE_CHUNKS]) do
        chunk = @chunks_by_id[$~[1].to_i]
        chunk.nil? ? $~[0] : ( revert ? chunk.revert : chunk.unmask_text(&block) )
       end)
-    end
 #Rails.logger.debug "wiki render! #{@card.name} #{self.slice(0,80)}\nTrace #{Kernel.caller.slice(0,5).join("\n")}" unless revert
+    end
     self
-  end                    
-  
+  end
+
   def unrender!
     render!( revert = true )
   end
-  
+
 end
 
 

@@ -17,35 +17,23 @@ class Wagn::Renderer::JsonRenderer < Wagn::Renderer
     process_content(layout_content, args)
   end
 
+  define_view :core_array do |args|
+    content_array _render_raw
+  end
+
   # I was getting a load error from a non-wagn file when this was in its own file (renderer/json.rb).
   define_view :name_complete do |args|
-    res = card.item_cards( :complete=>params['term'], :limit=>8, :sort=>'name', :return=>'name', :context=>'' )
-    Rails.logger.warn "name_complete in json #{res.inspect}"
-    JSON( res )
+    JSON( card.item_cards( :complete=>params['term'], :limit=>8, :sort=>'name', :return=>'name', :context=>'' ) )
   end
   
-=begin
-  define_view(:show) do |args|
-    Rails.logger.warn "show in json #{args.inspect}"
-    self.render_content args
-  end
-
-  define_view(:content) do |args|
-    c = _render_core(args)
-    #c = "<span class=\"faint\">--</span>" if c.size < 10 && strip_tags(c).blank?
-    wrap(:content, args) { wrap_content(:content, c) }
-  end
-=end
-
   define_view(:content) do |args|
     @state = :view
-    Rails.logger.warn "view content #{@state} (json) #{self.class}, #{@card.name}, #{caller*"\n"}"
-    wrap(:content, args) { _render_core(args) }
+    wrap(:content, args) { _render_core_array args }
   end
 
   define_view(:open) do |args|
     @state = :view
-    wrap(:open, args) { _render_core(args) }
+    wrap(:open, args) { _render_core_array(args) }
   end
 
   define_view(:closed) do |args|

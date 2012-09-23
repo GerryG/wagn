@@ -64,7 +64,7 @@ module Wagn
     css_class << " view-#{view}" if view
     
     attributes = {
-      :name     => card.cardname.tag_name,
+      :name     => card.cardname.tag_name.to_s,
       :cardId   => (card && card.id),
       :type_id  => card.type_id,
       :class    => css_class,

@@ -1,4 +1,6 @@
 # -*- encoding : utf-8 -*-
+require 'xmlscan/processor'
+
 class CardController < ApplicationController
   helper :wagn
 
@@ -8,8 +10,75 @@ class CardController < ApplicationController
   before_filter :load_card
   before_filter :read_ok,   :only=> [ :read_file ]
 
+  # rest XML put/post
+  def read_xml(io)
+    pairs = XMLScan::XMLProcessor.process(io, {:key=>:name, :element=>:card,
+                      :substitute=>":transclude|{{:name}}", :extras=>[:type]})
+    return if pairs.empty?
+
+    main = pairs.shift
+    warn "main#{main.inspect}, #{pairs.empty?}"
+    main, content, type = main[0], main[1][0]*'', main[1][2]
+
+    data = { :name=>main }
+    data[:cards] = pairs.inject({}) { |hash,p| k,v = p
+         h = {:content => v[0]*''}
+         h[:type] = v[2] if v[2]
+         hash[k.to_cardname.to_absolute(v[1])] = h
+         hash } unless pairs.empty?
+    data[:content] = content unless content.blank?
+    data[:type] = type if type
+    data
+  end
+
+  def dump_pairs(pairs)
+    warn "Result
+#{    pairs.map do |p| n,o,c,t = p
+      "#{c&&c.size>0&&"#{c}::"||''}#{n}#{t&&"[#{t}]"}=>#{o*''}"
+    end * "\n"}
+Done"
+  end
+  # Need to split off envelope code somehome
+
+  def put
+    @card_name = Cardname.unescape(params['id'] || '')
+    raise("Need a card name to put") if (@card_name.nil? or @card_name.empty?)
+    @card = Card.fetch(@card_name)
+
+    #raise("PUT #{params.to_yaml}\n")
+    card_updates = xml_read request.body
+    if !card_updates.empty?
+      Card.update(@card.id, card_updates)
+      #@card.multi_save card_updates
+    end
+  end
+
+  def render_errors(options={})
+    warn "rest rnder errors #{options.inspect}, #{@card&&@card.errors.map{|k,v| "#{k}::#{v}"}*''}, #{response}"
+    render :text=>"<card status=#{response.status}>Error in card</card>"
+  end
+  def render_success
+    warn "rest rnder suc #{@card&&@card.errors}, #{response}"
+    render :text=>'<card status=200>Good card</card>'
+  end
 
   def create
+    Rails.logger.warn "create card #{params.inspect}"
+    if request.parameters['format'] == 'xml'
+      Rails.logger.warn (Rails.logger.debug "POST(rest)[#{params.inspect}] #{request.format}")
+      #return render(:action=>"missing", :format=>:xml)  unless params[:card]
+      if card_create = read_xml(request.body)
+        begin
+          @card = Card.new card_create 
+        #warn "POST creates are  #{card_create.inspect}"
+        rescue Exception => e
+          Rails.logger.warn "except #{e.inspect}, #{e.backtrace*"\n"}"
+        end
+      end
+
+      Rails.logger.warn "create card #{request.body.inspect}"
+    end
+
     if @card.save
       success
     else
@@ -18,11 +87,13 @@ class CardController < ApplicationController
   end
 
   def read
+    Rails.logger.warn "read card #{params.inspect}"
     save_location # should be an event!
     show
   end
 
   def update
+    Rails.logger.warn "update card #{params.inspect}"
     @card = @card.refresh if @card.frozen? # put in model
     case
     when @card.new_card?                          ;  create

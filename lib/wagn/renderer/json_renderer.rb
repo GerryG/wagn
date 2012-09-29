@@ -50,28 +50,29 @@ module Wagn
                     known_card ? 'known-card' : 'wanted-card'
                   }", "url":"#{href}","text":"#{text}"}}}
       end
-    %{{"link":{"class":"#{klass}","url":"#{href}","text":"#{text}"}}}
+    Rails.logger.warn "build_link H:#{href.class}, #{href} T:#{text.class}, #{text}"
+    if WikiContent===href and href.not_rendered
+      #href = WikiContent.new card, href, href.renderer
+      href.render!
+    end
+    if WikiContent===text and text.not_rendered
+      #text = WikiContent.new card, text, text.renderer
+      text.render!
+    end
+    { :link => { :class => "#{klass}", :url => "#{href}",:text => "#{text}"}} # return a Hash, not a string for json
   end   
           
   def wrap(view=nil, args = {})
-    css_class = case args[:action].to_s
-      when 'content'  ;  'transcluded'
-      when 'exception';  'exception'
-      when 'closed'   ;  'card-slot line'
-      else            ;  'card-slot paragraph'
-    end 
-    css_class << " " + card.css_names if card
-    css_class << " view-#{view}" if view
     
-    attributes = {
-      :name     => card.cardname.tag_name.to_s,
-      :cardId   => (card && card.id),
-      :type_id  => card.type_id,
-      :class    => css_class,
-    }
-    [:style, :home_view, :item, :base].each { |key| attributes[key] = args[key] }
+    attributes = card.nil? ? {} : {
+        :name     => card.cardname.tag_name.to_s,
+        :key      => card.key,
+        :cardId   => card.id,
+        :type     => card.type_name,
+      }
+    [:style, :home_view, :item, :base].each { |key| a = args[key] and attributes[key] = a }
     
-    {card: { attributes: attributes, result: yield }}.to_json
+    {card: { attributes: attributes, result: yield }} #.to_json
   end
 
   def get_layout_content(args)
@@ -105,5 +106,39 @@ module Wagn
       lo_card.ok?(:read)
     lo_card.content
   end
+
+  def process_inclusion tcard, options
+    sub = subrenderer( tcard, 
+      :item_view =>options[:item], 
+      :type      =>options[:type],
+      :size      =>options[:size],
+      :showname  =>(options[:showname] || tcard.name)
+    )
+    oldrenderer, Renderer.current_slot = Renderer.current_slot, sub
+    # don't like depending on this global var switch
+    # I think we can get rid of it as soon as we get rid of the remaining rails views?
+  
+    view = (options[:view] || :content).to_sym
+      
+    options[:home_view] = [:closed, :edit].member?(view) ? :open : view 
+    # FIXME: special views should be represented in view definitions
+      
+    if @@perms[view] != :none
+      view = case @mode
+        
+        when :closed;    !tcard.known?  ? :closed_missing : :closed_content
+        when :edit  ;    tcard.virtual? ? :edit_virtual   : :edit_in_form
+        # FIXME should be concerned about templateness, not virtualness per se
+        # needs to handle real cards that are hard templated much better               
+        else        ;    view
+        end
+    end
+      
+    result = sub.render(view, options)
+    Renderer.current_slot = oldrenderer
+    Rails.logger.warn "pi #{options.inspect}, R:#{result.class}, #{result.inspect}"
+    result
+  end
+  
  end
 end

@@ -94,6 +94,20 @@ Done"
 
   def update
     Rails.logger.warn "update card #{params.inspect}"
+    if request.parameters['format'] == 'xml'
+      Rails.logger.warn (Rails.logger.debug "POST(rest)[#{params.inspect}] #{request.format}")
+      #return render(:action=>"missing", :format=>:xml)  unless params[:card]
+      if main_card = read_xml(request.body)
+        begin
+          @card = Card.new card_create 
+        #warn "POST creates are  #{card_create.inspect}"
+        rescue Exception => e
+          Rails.logger.warn "except #{e.inspect}, #{e.backtrace*"\n"}"
+        end
+      end
+
+      Rails.logger.warn "create card #{request.body.inspect}"
+    end
     @card = @card.refresh if @card.frozen? # put in model
     case
     when @card.new_card?                          ;  create
@@ -247,12 +261,15 @@ Done"
 
 
   def load_card
+    # do content type processing, if it is an object, json or xml, parse that now and 
+    # params[:object] = parsed_object
+    # looking into json parsing (apparently it is deep in rails: params_parser.rb)
     @card = case params[:id]
       when '*previous'   ; return wagn_redirect( previous_location )  
       when /^\~(\d+)$/   ; Card.fetch $1.to_i
       when /^\:(\w+)$/   ; Card.fetch $1.to_sym
       else
-        opts = params[:card] ? params[:card].clone : {}
+        opts = params[:card] ? params[:card].clone : (obj = params[:object]) ? obj : {}
         opts[:type] ||= params[:type] # for /new/:type shortcut.  we should fix and deprecate this.
         name = params[:id] ? Wagn::Cardname.unescape( params[:id] ) : opts[:name]
         

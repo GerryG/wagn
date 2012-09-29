@@ -50,6 +50,11 @@ module Chunk
       @content.sub!(mask, unmask_text)
     end
 
+    def as_json_unmask
+      umt=unmask_text.to_json
+      Rails.logger.warn "as_j base #{umt.class}, #{umt}"; umt
+    end
+
     def rendered?
       @unmask_mode == :normal
     end

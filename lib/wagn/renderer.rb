@@ -224,6 +224,7 @@ module Wagn
       @depth += 1
       @item_view = @main_content = @showname = nil
       opts.each { |key, value| instance_variable_set "@#{key}", value }
+      Rails.logger.warn "subrenderer inited #{card && card.name} #{opts.inspect}, iv:#{@item_view}, #{@item}, #{@view}"
       self
     end
     

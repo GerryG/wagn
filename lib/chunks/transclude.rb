@@ -63,7 +63,14 @@ module Chunk
       if view = @options[:view]
         view = view.to_sym
       end
-      yield options
+      umt = yield options # this is not necessarily text, sometimes objects for json
+      Rails.logger.warn "umt trans #{umt.class}, #{umt}, opt:#{options.inspect}"; umt
+    end
+
+    def as_json_unmask(&block)
+      ut=unmask_text(&block) #.to_json
+      Rails.logger.warn "as_js_um #{ut.class}, <#{ut}>"; ut
+      #JSON.parse(ut)
     end
 
     def revert                             

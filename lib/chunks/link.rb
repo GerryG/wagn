@@ -24,7 +24,24 @@ module Chunk
     end
 
     def unmask_text
-      @unmask_text ||= render_link
+      @as_json_unmask.to_json
+    end
+
+    def as_json_unmask
+      @as_json_unmask ||= render_link
+      if Hash===@as_json_unmask
+        @as_json_unmask.each do |k, v|
+          if WikiContent===v
+            Rails.logger.warn "as_j link wiki? #{re.class}, #{v}"
+            #@as_json_unmask[k] = 
+              v.render!
+          end
+        end
+     # elsif WikiContent=== @as_json_unmask
+     #   Rails.logger.warn "as_j link wiki? #{re.class}, #{@as_json_unmask}"
+     #   @as_json_unmask.render!
+      end
+      Rails.logger.warn "as_j base #{@as_json_unmask.class}, #{@as_json_unmask.inspect}"; @as_json_unmask
     end
 
     def revert

@@ -108,12 +108,18 @@ class WikiContent < String
   end
 
   def render_array(&block)
+    raise "need black? " if block.nil?
     pre_render!
     array = split(MASK_RE[ACTIVE_CHUNKS])
-    (array.inject([[], false]) do |i, next_chunk| out, is_ch = i
-      is_ch ?  [out, false] : next_chunk =~ /\D/ ?  [out << next_chunk, false] :
-        [out << JSON.parse!(@chunks_by_id[next_chunk.to_i].unmask_text(&block)), true]
-    end)[0]
+    c=nil
+    r=(array.inject([[], false]) do |i, next_chunk| out, is_ch = i
+      nexti = (is_ch ?  [out, false] : (next_chunk =~ /\D/ ?  [out << next_chunk, false] :
+        [(out << (c=@chunks_by_id[next_chunk.to_i].as_json_unmask(&block))), true]))
+        #[out << JSON.parse!(@chunks_by_id[next_chunk.to_i].unmask_text(&block)), true]
+      Rails.logger.warn "ra Sk:#{is_ch}, #{next_chunk.class}, #{(next_chunk !~ /\D/) && @chunks_by_id[next_chunk.to_i].class.mask_string}, C:#{c.class}, #{c.inspect} l:#{out.length} next:#{nexti[0].length}, #{nexti[1]}"; nexti
+    end)
+    Rails.logger.warn "rend arr #{r.inspect}, 0>> #{r[0].inspect}"
+    r[0]
   end
 
   def render!( revert = false, &block)

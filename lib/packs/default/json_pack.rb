@@ -1,7 +1,7 @@
 Wagn::Renderer::JsonRenderer
 
 class Wagn::Renderer::JsonRenderer < Wagn::Renderer
-  define_view(:layout) do |args|
+  define_view :layout do |args|
     if @main_content = args.delete(:main_content)
       @card = Card.fetch_or_new('*placeholder',{},:skip_defaults=>true)
     else
@@ -18,7 +18,8 @@ class Wagn::Renderer::JsonRenderer < Wagn::Renderer
   end
 
   define_view :core_array do |args|
-    content_array _render_raw
+    r=content_array _render_raw
+    Rails.logger.warn "core ar #{r.class}, #{r}"; r
   end
 
   # I was getting a load error from a non-wagn file when this was in its own file (renderer/json.rb).
@@ -26,20 +27,34 @@ class Wagn::Renderer::JsonRenderer < Wagn::Renderer
     JSON( card.item_cards( :complete=>params['term'], :limit=>8, :sort=>'name', :return=>'name', :context=>'' ) )
   end
   
-  define_view(:content) do |args|
+  define_view :content do |args|
     @state = :view
     wrap(:content, args) { _render_core_array args }
   end
 
-  define_view(:open) do |args|
+  define_view :open do |args|
     @state = :view
-    wrap(:open, args) { _render_core_array args }
+    opvw = wrap(:open, args) { _render_core_array args }
+    Rails.logger.warn "json open view #{opvw.class}, #{opvw}"; opvw.to_json
   end
 
-  define_view(:closed) do |args|
+  define_view :closed do |args|
     @state = :line
     wrap(:closed, args) { _render_line args }
   end
+
+  define_view :array do |args|
+    Rails.logger.warn "json array Col:#{card.collection?}, #{args.inspect} #{caller[0..10]*"\n"}"
+    if card.collection?
+      card.item_cards(:limit=>0).map do |item_card|
+        sr_out = subrenderer(item_card, :view=>@item_view)._render_core_array
+        Rails.logger.warn "sub rend #{item_card.name}, #{sr_out.class} #{sr_out[0..10]}"; sr_out
+      end
+    else
+      [ _render_core(args) { yield } ]
+    end.inspect
+  end
+
 
   [ :deny_view, :edit_auto, :too_slow, :too_deep, :open_missing, :closed_missing, :setting_missing, :missing ].each do |view|
     define_view(view) do |args|

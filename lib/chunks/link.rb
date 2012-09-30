@@ -27,19 +27,22 @@ module Chunk
       @as_json_unmask.to_json
     end
 
+    def unmask_children(h)
+      h.each do |k, v|
+        if Hash===v
+          unmask_children(v)
+        elsif WikiContent===v or ObjectContent===v
+          Rails.logger.warn "as_j link wiki? #{v.class}, #{v}"
+          #@as_json_unmask[k] = 
+            v.render!
+        end
+      end
+    end
+
     def as_json_unmask
       @as_json_unmask ||= render_link
       if Hash===@as_json_unmask
-        @as_json_unmask.each do |k, v|
-          if WikiContent===v
-            Rails.logger.warn "as_j link wiki? #{re.class}, #{v}"
-            #@as_json_unmask[k] = 
-              v.render!
-          end
-        end
-     # elsif WikiContent=== @as_json_unmask
-     #   Rails.logger.warn "as_j link wiki? #{re.class}, #{@as_json_unmask}"
-     #   @as_json_unmask.render!
+        unmask_children(@as_json_unmask)
       end
       Rails.logger.warn "as_j base #{@as_json_unmask.class}, #{@as_json_unmask.inspect}"; @as_json_unmask
     end

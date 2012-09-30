@@ -85,15 +85,17 @@ class URIChunk < Chunk::Abstract
   attr_reader :user, :host, :port, :path, :query, :fragment, :link_text
   
   def self.apply_to(content)
-    content.gsub!( self.pattern ) do |matched_text|
-      chunk = self.new($~, content)                    
-      card = chunk.card
-      if chunk.avoid_autolinking? || (card && card.type_id==Card::HtmlID)
-        # do not substitute nor register the chunk
-        matched_text
-      else
-        content.add_chunk(chunk)
-        chunk.mask
+    content.each_str do |str|
+      str.gsub!( self.pattern ) do |matched_text|
+        chunk = self.new($~, content)                    
+        card = chunk.card
+        if chunk.avoid_autolinking? || (card && card.type_id==Card::HtmlID)
+          # do not substitute nor register the chunk
+          matched_text
+        else
+          content.add_chunk(chunk)
+          chunk.mask
+        end
       end
     end
   end

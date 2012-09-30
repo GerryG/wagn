@@ -50,6 +50,7 @@ module Wagn
                     known_card ? 'known-card' : 'wanted-card'
                   }", "url":"#{href}","text":"#{text}"}}}
       end
+=begin
     Rails.logger.warn "build_link H:#{href.class}, #{href} T:#{text.class}, #{text}"
     if WikiContent===href and href.not_rendered
       #href = WikiContent.new card, href, href.renderer
@@ -59,6 +60,7 @@ module Wagn
       #text = WikiContent.new card, text, text.renderer
       text.render!
     end
+=end
     { :link => { :class => "#{klass}", :url => "#{href}",:text => "#{text}"}} # return a Hash, not a string for json
   end   
           

@@ -17,10 +17,12 @@ class Wagn::Renderer::JsonRenderer < Wagn::Renderer
     process_content(layout_content, args)
   end
 
+=begin
   define_view :core_array do |args|
     r=content_array _render_raw
     Rails.logger.warn "core ar #{r.class}, #{r}"; r
   end
+=end
 
   # I was getting a load error from a non-wagn file when this was in its own file (renderer/json.rb).
   define_view :name_complete do |args|
@@ -29,12 +31,12 @@ class Wagn::Renderer::JsonRenderer < Wagn::Renderer
   
   define_view :content do |args|
     @state = :view
-    wrap(:content, args) { _render_core_array args }
+    wrap(:content, args) { _render_core args }
   end
 
   define_view :open do |args|
     @state = :view
-    opvw = wrap(:open, args) { _render_core_array args }
+    opvw = wrap(:open, args) { _render_core args }
     Rails.logger.warn "json open view #{opvw.class}, #{opvw}"; opvw.to_json
   end
 
@@ -47,7 +49,7 @@ class Wagn::Renderer::JsonRenderer < Wagn::Renderer
     Rails.logger.warn "json array Col:#{card.collection?}, #{args.inspect} #{caller[0..10]*"\n"}"
     if card.collection?
       card.item_cards(:limit=>0).map do |item_card|
-        sr_out = subrenderer(item_card, :view=>@item_view)._render_core_array
+        sr_out = subrenderer(item_card, :view=>@item_view)._render_core
         Rails.logger.warn "sub rend #{item_card.name}, #{sr_out.class} #{sr_out[0..10]}"; sr_out
       end
     else

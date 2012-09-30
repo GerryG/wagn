@@ -107,27 +107,18 @@ class WikiContent < String
     @pre_rendered
   end
 
-  def render_array(&block)
-    raise "need black? " if block.nil?
-    pre_render!
-    array = split(MASK_RE[ACTIVE_CHUNKS])
-    c=nil
-    r=(array.inject([[], false]) do |i, next_chunk| out, is_ch = i
-      nexti = (is_ch ?  [out, false] : (next_chunk =~ /\D/ ?  [out << next_chunk, false] :
-        [(out << (c=@chunks_by_id[next_chunk.to_i].as_json_unmask(&block))), true]))
-        #[out << JSON.parse!(@chunks_by_id[next_chunk.to_i].unmask_text(&block)), true]
-      Rails.logger.warn "ra Sk:#{is_ch}, #{next_chunk.class}, #{(next_chunk !~ /\D/) && @chunks_by_id[next_chunk.to_i].class.mask_string}, C:#{c.class}, #{c.inspect} l:#{out.length} next:#{nexti[0].length}, #{nexti[1]}"; nexti
-    end)
-    Rails.logger.warn "rend arr #{r.inspect}, 0>> #{r[0].inspect}"
-    r[0]
+  def each_str(&block)
+    yield self #.to_s
   end
 
   def render!( revert = false, &block)
     pre_render!
-    while (gsub!(MASK_RE[ACTIVE_CHUNKS]) do
-       chunk = @chunks_by_id[$~[1].to_i]
-       chunk.nil? ? $~[0] : ( revert ? chunk.revert : chunk.unmask_text(&block) )
-      end)
+    each_str do |str|
+      while (str.gsub!(MASK_RE[ACTIVE_CHUNKS]) do
+          chunk = @chunks_by_id[$~[1].to_i]
+          chunk.nil? ? $~[0] : ( revert ? chunk.revert : chunk.unmask_text(&block) )
+      end) do ; end
+      @obj
     end
     self
   end
@@ -135,7 +126,6 @@ class WikiContent < String
   def unrender!
     render!( revert = true )
   end
-
 end
 
 

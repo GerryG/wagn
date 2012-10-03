@@ -13,7 +13,6 @@ module Wagn
       :json => :JsonRenderer,
       :xml  => :Xml,
       :css  => :Text,
-      :csv  => :Text,
       :txt  => :Text
     }
 
@@ -374,15 +373,15 @@ module Wagn
       if @@perms[view] != :none
         view = case @mode
 
-          when :closed;    !tcard.known?  ? :closed_missing : :closed_content
-          when :edit  ;    tcard.virtual? ? :edit_virtual   : :edit_in_form
+          when :closed  ;  !tcard.known?  ? :closed_missing : :closed_content
+          when :edit    ;  tcard.virtual? ? :edit_virtual   : :edit_in_form
           # FIXME should be concerned about templateness, not virtualness per se
           # needs to handle real cards that are hard templated much better
-          else        ;    view
+          else          ;  view
           end
       end
 
-      result = raw( sub.render(view, options) )
+      result = raw sub.render( view, options )
       Renderer.current_slot = oldrenderer
       result
     end
@@ -556,6 +555,9 @@ module Wagn
          )
       end
     end
+  end
+
+  class Renderer::Csv < Renderer::Text
   end
 
   # automate

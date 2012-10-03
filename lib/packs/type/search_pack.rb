@@ -218,10 +218,14 @@ class Wagn::Renderer::JsonRenderer < Wagn::Renderer
     if args[:results].empty?
       'no results'
     else
-      args[:results].map do |c|
-        pi = process_inclusion c, :view=>@item_view
-        #Rails.logger.info "pi #{pi.class}, #{pi.to_s[0..40]}"; pi
-      end #.join "\n"
+      # simpler version gives [{'card':{the card stuff}, {'card' ...} vs.
+      #  args[:results].map do |c|  process_inclusion c, :view=>@item_view end
+      # This which converts to {'cards':[{the card suff}, {another card stuff} ...]} we may want to support both ...
+      {:cards => args[:results].map do |c|
+          inc=process_inclusion c, :view=>@item_view
+          inc.has_key?(:card) ? inc[:card] : inc
+        end
+      }
     end
   end
 end

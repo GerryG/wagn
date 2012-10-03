@@ -17,7 +17,7 @@ module Wagn::Set::Type::SearchType
   end
 
   def item_names params={}
-    ## FIXME - this should just alter the spec to have it return name rather than instantiating all the cards!!  
+    ## FIXME - this should just alter the spec to have it return name rather than instantiating all the cards!!
     ## (but need to handle prepend/append)
     #Rails.logger.debug "search item_names #{params.inspect}"
     Card.search(spec(params)).map(&:cardname)
@@ -49,9 +49,9 @@ module Wagn::Set::Type::SearchType
     spec[:context] ||= (cardname.junction? ? cardname.left_name : cardname)
     spec
   end
-  
+
   #def escape_content
   #  self.content = CGI.unescapeHTML( URI.unescape(content) )
   #end
-  
+
 end

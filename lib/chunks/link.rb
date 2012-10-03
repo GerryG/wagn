@@ -2,49 +2,27 @@ module Chunk
   class Link < Reference
     attr_accessor :link_text, :link_type
 
-#    unless defined? WIKI_LINK
-      word = /\s*([^\]\|]+)\s*/
-      WIKI_LINK = /\[\[#{word}(\|#{word})?\]\]|\[#{word}\]\[#{word}\]/
-#    end
+    word = /\s*([^\]\|]+)\s*/
+    # Groups: $1, [$2]: [[$1]] or [[$1|$2]] or $3, $4: [$3][$4] 
+    WIKI_LINK = /\[\[#{word}(?:\|#{word})?\]\]|\[#{word}\]\[#{word}\]/
 
     def self.pattern() WIKI_LINK end
 
-    def initialize(match_data, content)
+    def initialize(match, content, params)
       super
       link_type = :show
-      if name=match_data[1]
+      Rails.logger.warn "link #{match}, #{params.inspect}"
+      if name=params[0]
         self.cardname = name.to_cardname
-        # matched the [[..(|..)?]]  case, 1=first slot, 3=sencond
-        @link_text = match_data[  match_data[2] ? 3 : 1 ]
+        @link_text = params[1] || name
       else
-        # matched [..][..] case, 4=first slot, 5=second
-        @link_text, self.cardname = match_data[4], match_data[5].to_cardname #.gsub(/_/,' ')
+        @link_text = params[2]; self.cardname = params[3].to_cardname #.gsub(/_/,' ')
       end
       self
     end
 
     def unmask_text
-      @as_json_unmask.to_json
-    end
-
-    def unmask_children(h)
-      h.each do |k, v|
-        if Hash===v
-          unmask_children(v)
-        elsif WikiContent===v or ObjectContent===v
-          Rails.logger.warn "as_j link wiki? #{v.class}, #{v}"
-          #@as_json_unmask[k] = 
-            v.render!
-        end
-      end
-    end
-
-    def as_json_unmask
-      @as_json_unmask ||= render_link
-      if Hash===@as_json_unmask
-        unmask_children(@as_json_unmask)
-      end
-      Rails.logger.warn "as_j base #{@as_json_unmask.class}, #{@as_json_unmask.inspect}"; @as_json_unmask
+      @unmask_text ||= render_link
     end
 
     def revert

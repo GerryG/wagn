@@ -93,10 +93,14 @@ class WikiContent < String
     @not_rendered = @pre_rendered = nil
     @renderer = renderer
     @card = card or raise "No Card in Content!!"
+    Rails.logger.warn "wikicont init #{content} #{ACTIVE_CHUNKS.keys.inspect}"
     super(content)
     init_chunk_manager()
-    ACTIVE_CHUNKS.each{|chunk_type| chunk_type.apply_to(self)}
-#Rails.logger.debug "wiki content init #{card.name}, C:#{content}" #\nTrace #{Kernel.caller.slice(0,6).join("\n")}"
+    Rails.logger.warn "wikicont 2 #{content} #{ACTIVE_CHUNKS.keys.inspect}"
+    ACTIVE_CHUNKS.keys.each do |chunk_type|
+      Rails.logger.warn "ct #{chunk_type}, #{self}"
+      chunk_type.apply_to(self)
+    end
     @not_rendered = String.new(self)
   end
 

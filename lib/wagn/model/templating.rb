@@ -1,4 +1,4 @@
-module Wagn::Model::Templating  
+module Wagn::Model::Templating
 
   def template?()       cardname.template_name?                 end
   def hard_template?()  !!(name =~ /\+\*content$/)              end
@@ -30,7 +30,7 @@ module Wagn::Model::Templating
   def hard_template
     template if template && template.hard_template?
   end
-  
+
   def virtual?
     return false unless new_card?
     if @virtual.nil?
@@ -54,11 +54,11 @@ module Wagn::Model::Templating
     else
       []
     end
-  end    
+  end
 
   # FIXME: content settings -- do we really need the reference expiration system?
   #
-  # I kind of think so.  otherwise how do we handled patterned references in hard-templated cards?  
+  # I kind of think so.  otherwise how do we handled patterned references in hard-templated cards?
   # I'll leave the FIXME here until the need is well documented.  -efm
   #
   # ps.  I think this code should be wiki references.

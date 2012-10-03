@@ -2,7 +2,7 @@ require 'json'
 class Wagn::Renderer
   define_view :core, :type=>'setting' do |args|
     _render_closed_content(args) +
-    
+
     Wagn::Model::Pattern.subclasses.reverse.map do |set_class|
       wql = { :left  => {:type =>Card::SetID},
               :right => card.id,
@@ -14,12 +14,12 @@ class Wagn::Renderer
       search_card = Card.new :type =>Card::SearchTypeID, :content=>wql.to_json
       next if search_card.count == 0
 
-      content_tag( :h2, 
-        raw( (set_class.trunkless? ? '' : '+') + set_class.key_name), 
-        :class=>'values-for-setting') + 
+      content_tag( :h2,
+        raw( (set_class.trunkless? ? '' : '+') + set_class.key_name),
+        :class=>'values-for-setting') +
       raw( subrenderer(search_card).render_content )
     end.compact * "\n"
-  
+
   end
 
   define_view :closed_content, :type=>'setting' do |args|

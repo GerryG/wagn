@@ -6,14 +6,14 @@ class Wagn::Renderer::JsonRenderer < Wagn::Renderer
       @card = Card.fetch_or_new('*placeholder',{},:skip_defaults=>true)
     else
       @main_card = card
-    end  
+    end
 
     layout_content = get_layout_content(args)
-    
+
     args[:context] = self.context = "layout_0"
-    args[:action]="view"  
-    args[:relative_content] = args[:params] = params 
-    
+    args[:action]="view"
+    args[:relative_content] = args[:params] = params
+
     process_content(layout_content, args)
   end
 
@@ -28,7 +28,7 @@ class Wagn::Renderer::JsonRenderer < Wagn::Renderer
   define_view :name_complete do |args|
     JSON( card.item_cards( :complete=>params['term'], :limit=>8, :sort=>'name', :return=>'name', :context=>'' ) )
   end
-  
+
   define_view :content do |args|
     @state = :view
     wrap(:content, args) { _render_core args }
@@ -36,8 +36,10 @@ class Wagn::Renderer::JsonRenderer < Wagn::Renderer
 
   define_view :open do |args|
     @state = :view
-    opvw = wrap(:open, args) { _render_core args }
-    Rails.logger.warn "json open view #{opvw.class}, #{opvw}"; opvw.to_json
+    cr=nil
+    opvw = wrap(:open, args) { cr=_render_core(args) }
+    Rails.logger.warn "json open view #{cr.class}, #{cr}, #{opvw.class}, #{opvw.inspect}"
+    opvw
   end
 
   define_view :closed do |args|

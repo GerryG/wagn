@@ -38,7 +38,7 @@ module Wagn
           @parts = @s.split(/\s*#{Regexp.escape(JOINT)}\s*/)
           @parts << '' if @s.last == JOINT
           @simple = false
-          @parts.map{|p| p.to_cardname.key } * JOINT  
+          @parts.map{|p| p.to_cardname.key } * JOINT
         else
           @parts = [str]
           @simple = true
@@ -46,17 +46,17 @@ module Wagn
         end
       @@name2cardname[str] = self
     end
-    
+
     def generate_simple_key
       decode_html.underscore.gsub(/[^#{WORD_RE}\*]+/,'_').split(/_+/).reject(&:blank?).map(&:singularize)*'_'
     end
-    
+
     def decode_html
       @decoded ||= (s.index('&') ?  HTMLEntities.new.decode(s) : s)
     end
-    
+
     alias simple? simple
-    
+
     def inspect() "<CardName key=#{key}[#{self}, #{@parts ? @parts.size : 'no size?'}]>" end
 
     def self.unescape(uri) uri.gsub(' ','+').gsub('_',' ')             end
@@ -67,7 +67,7 @@ module Wagn
         str.gsub!(/\{(#{var})\}/) {|x| hash[var.to_sym]}
       end
       str
-    end   
+    end
 
     def ==(obj)
       obj.nil? ? false :
@@ -109,7 +109,7 @@ module Wagn
     alias particle_names parts
 
     def module_name()
-      r=s.gsub(/^\*/,'X_').gsub(/[\b\s]+/,'_').camelcase 
+      r=s.gsub(/^\*/,'X_').gsub(/[\b\s]+/,'_').camelcase
       #warn "mn #{inspect}: #{r}"; r
     end
     def css_name()      @css_name ||= key.gsub('*','X').gsub('+','-')      end

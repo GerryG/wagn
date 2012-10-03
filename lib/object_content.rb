@@ -16,8 +16,7 @@ class ObjectContent < Object
     @obj = content
     super()
     init_chunk_manager()
-    ACTIVE_CHUNKS.each{ |chunk_type| chunk_type.apply_to(self) }
-#Rails.logger.debug "wiki content init #{card.name}, C:#{content}" #\nTrace #{Kernel.caller.slice(0,6).join("\n")}"
+    @obj = ChunkManager.split_content(self)
     @not_rendered = String.new(content)
   end
 
@@ -28,27 +27,35 @@ class ObjectContent < Object
     @pre_rendered
   end
 
+  def to_s() @obj.to_s end
+  def inspect() @obj.inspect end
+  #def to_a() @obj.to_a end
+
   def each_str(&block)
-    Rails.logger.warn "each str #{@obj.class}, #{@obj}"
     case @obj
     when Hash
       @obj.each { |k,v| yield v } # add yield k if you want links/trasclusions on hash keys too
     when Array
       @obj.each { |e|   yield e }
-    when String
+    when Object
       yield @obj
-    else Rails.logger.warn "other type? #{@obj.class}"
+    else raise "unknown type? #{@obj.class}" # this is impossible, right?
     end
   end
 
   def render!( revert = false, &block)
     pre_render!
     each_str do |str|
+      next if str.nil?
+=begin
       while (str.gsub!(MASK_RE[ACTIVE_CHUNKS]) do
           chunk = @chunks_by_id[$~[1].to_i]
           chunk.nil? ? $~[0] : ( revert ? chunk.revert : chunk.unmask_text(&block) )
       end) do ; end
       @obj
+=end
+      Rails.logger.warn "rd str:#{str.class} #{str.inspect}"
+      str
     end
     self
   end

@@ -31,7 +31,7 @@
   destinations.  This identifying data can change, so the identity signatures
   recorded with flows represent the identity data at the time the flows
   were created.
-  
+
   Flows
 
   The extension adds controller actions to support the posting of flow
@@ -80,7 +80,7 @@
   The "general" parts of the card based extension are part of the card model,
   a proposed part of the extension API to be refactored into something even
   more general.  This is how a module would add an extension:
- 
+
 Module Sol
   def self.included(base)
     Card.register_trait('sol', :declare)
@@ -122,7 +122,7 @@ Rails.logger.info "after_declare #{card.name} C:#{card.solcard.content}"
     base.class_eval { attr_accessor :ctxsig, :attribute }
     base.send :before_save, :receive_breath
     #----------------( Posting Currencies to Cards )
-    # 
+    #
 Rails.logger.debug "Loading sol module ..."
   end
 

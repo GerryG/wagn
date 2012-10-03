@@ -6,7 +6,7 @@ require 'chunks/chunk'
 # and within HTML tags.
 module Literal
   class AbstractLiteral < Chunk::Abstract
-    def initialize(match_data, content)
+    def initialize(match, content, params)
       super
       @unmask_text = @text
     end
@@ -18,31 +18,12 @@ module Literal
     end
     def self.pattern() ESCAPE_PATTERN end
 
-    def initialize(match_data, content)
+    def initialize(match, content, params)
       super
-      first = match_data[2]
-      @unmask_text = "#{match_data[1].sub(first, "<span>#{first}</span>")}"
+      first = params[1]
+      @unmask_text = "#{params[0].sub(first, "<span>#{first}</span>")}"
     end
   end
-
-  # A literal chunk that protects 'code' and 'pre' tags from wiki rendering.
-  #class Pre < AbstractLiteral
-  #  unless defined? PRE_PATTERN
-  #    PRE_PATTERN = /\/\*(.*?)\*\//
-  #  end
-  #  def self.pattern() PRE_PATTERN end
-  #
-  #  def initialize(match_data, content)
-  #    super
-  #    @unmask_text = "<code>#{match_data[1]}</code>"
-  #  end
-
-
-#    unless defined? PRE_BLOCKS
-#      PRE_BLOCKS = "a|pre|code"
-#      PRE_PATTERN = Regexp.new('<('+PRE_BLOCKS+')\b[^>]*?>.*?</\1>', Regexp::MULTILINE)
-#    end
-#  end 
 
   # A literal chunk that protects HTML tags from wiki rendering.
   class Tags < AbstractLiteral

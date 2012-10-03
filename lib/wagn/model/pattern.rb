@@ -6,9 +6,9 @@ module Wagn::Model
     def self.register_class(klass) @@subclasses.unshift klass end
     def self.method_key(opts)
       @@subclasses.each do |pclass|
-        if !pclass.opt_keys.map(&opts.method(:has_key?)).member? false; 
+        if !pclass.opt_keys.map(&opts.method(:has_key?)).member? false;
           #warn "mk[#{pclass}] #{opts.inspect}"
-          return pclass.method_key_from_opts(opts) 
+          return pclass.method_key_from_opts(opts)
         end
       end
     end
@@ -107,8 +107,8 @@ module Wagn::Model
         opts.each { |key, val| self.send "#{key}=", val }
         #warn "reg K:#{self}[#{self.key}] OK:[#{opt_keys.inspect}] jo:#{junction_only.inspect}, mk:#{method_key.inspect}"
       end
-      
-      def method_key_from_opts opts            
+
+      def method_key_from_opts opts
         method_key || begin
           parts = opt_keys.map do |opt_key|
             opts[opt_key].to_s.gsub('+', '-')
@@ -116,7 +116,7 @@ module Wagn::Model
           parts.join '_'
         end
       end
-      
+
       def pattern_applies?(card)
         junction_only? ? card.cardname.junction? : true
       end
@@ -126,9 +126,9 @@ module Wagn::Model
       @trunk_name = self.class.trunk_name(card).to_cardname
       self
     end
-    
+
     def set_module
-      case 
+      case
       when  self.class.trunkless?    ; key.camelize
       when  opt_vals.member?( nil )  ; nil
       else  self.key.camelize + '::' + ( opt_vals.join('_').camelize )
@@ -138,7 +138,7 @@ module Wagn::Model
     def set_const
       (sm = set_module) ? BasePattern.find_module(sm) : nil
     end
-    
+
     def get_method_key()
       tkls_key = self.class.method_key
       #warn "tkls[#{@trunk_name}] #{tkls_key.inspect}" if tkls_key
@@ -154,7 +154,7 @@ module Wagn::Model
       r=self.class.method_key_from_opts opts
       #warn "gmkey[#{@trunk_name}] #{opt_keys.inspect}, #{opts.inspect}, R:#{r}";r
     end
-    
+
     def inspect()       "<#{self.class} #{to_s.to_cardname.inspect}>" end
 
     def opt_vals
@@ -171,7 +171,7 @@ module Wagn::Model
       k = self.class.key_name
       self.class.trunkless? ? k : "#{@trunk_name}+#{k}"
     end
-    
+
     def css_name()
       caps_part = self.class.key.gsub(' ','_').upcase
       self.class.trunkless? ? caps_part : "#{caps_part}-#{@trunk_name.css_name}"
@@ -229,7 +229,7 @@ module Wagn::Model
         %{All "+#{name.to_cardname.tag_name}" cards on "#{name.to_cardname.left_name}" cards}
       end
       def prototype_args base
-        { :name=>"*dummy+#{base.tag_name}", 
+        { :name=>"*dummy+#{base.tag_name}",
           :loaded_trunk=> Card.new( :name=>'*dummy', :type=>base.trunk_name )
         }
       end

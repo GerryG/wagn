@@ -40,6 +40,6 @@ module Wagn::Set::Type::Table
         cols
       end
     Kernel.Float( string )
-    valid    
+    valid
   end
 end

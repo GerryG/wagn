@@ -210,3 +210,19 @@ class Wagn::Renderer::Html
     end
   end
 end
+
+class Wagn::Renderer::JsonRenderer < Wagn::Renderer
+  define_view :card_list, :type=>:search_type do |args|
+    @item_view ||= card.spec[:view] || :name
+
+    if args[:results].empty?
+      'no results'
+    else
+      args[:results].map do |c|
+        pi = process_inclusion c, :view=>@item_view
+        #Rails.logger.info "pi #{pi.class}, #{pi.to_s[0..40]}"; pi
+      end #.join "\n"
+    end
+  end
+end
+

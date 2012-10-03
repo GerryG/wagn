@@ -93,10 +93,9 @@ module Chunk
       @unmask_mode == :escape
     end
 
-    def to_s
-      (rendered? ? (unmask_text { |args| args.inject({}) { |h,v| v[1].nil? or h[v[0]] = v[1]; h } }||'not rendered') : @text)
+    def as_json
+      unmask_text { |args| args.inject({}) { |h,v| v[1].nil? or h[v[0]] = v[1]; h } }
     end
-    alias inspect to_s
 
     def revert
       @text

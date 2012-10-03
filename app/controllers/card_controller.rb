@@ -74,7 +74,6 @@ Done"
   end
 
   def read
-    Rails.logger.warn "read card #{params.inspect}"
     save_location # should be an event!
     show
   end

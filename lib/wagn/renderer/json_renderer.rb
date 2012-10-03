@@ -1,6 +1,8 @@
 module Wagn
 
-  LAYOUTS = { 'default' => %{{"status":"{{:status}}","result":{{_main}}}} }
+  LAYOUTS = { 'default' => {:status => "{{:status}}",:result => "{{_main}}"},
+              'none' => "{{_main}}"
+            }
 
  class Renderer::JsonRenderer < Renderer
 
@@ -64,7 +66,7 @@ module Wagn
     [:style, :home_view, :item, :base].each { |key| a = args[key] and attributes[key] = a }
 
     cont = (Enumerable===(c=yield) ? c.to_a : c)
-    Rails.logger.info "wrap json #{cont.class}, #{cont}, I#{cont.inspect}"
+    #Rails.logger.info "wrap json #{cont.class}, #{cont}, I#{cont.inspect}"
     {card: { attributes: attributes, content: cont }} #.to_json
   end
 

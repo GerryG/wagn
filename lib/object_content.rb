@@ -27,8 +27,11 @@ class ObjectContent < Object
     @pre_rendered
   end
 
+  def crange(call) call[0..((i=call.index{|x|x=~/gerry/}).nil? ? 4 : i>50 ? 50 : i+5)] << " N: #{i} " end
+
   def to_s() @obj.to_s end
   def inspect() @obj.inspect end
+  def as_json(options={}) @obj end
 
   def each_str(&block)
     case @obj

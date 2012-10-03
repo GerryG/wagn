@@ -29,7 +29,6 @@ class ObjectContent < Object
 
   def to_s() @obj.to_s end
   def inspect() @obj.inspect end
-  #def to_a() @obj.to_a end
 
   def each_str(&block)
     case @obj
@@ -45,18 +44,7 @@ class ObjectContent < Object
 
   def render!( revert = false, &block)
     pre_render!
-    each_str do |str|
-      next if str.nil?
-=begin
-      while (str.gsub!(MASK_RE[ACTIVE_CHUNKS]) do
-          chunk = @chunks_by_id[$~[1].to_i]
-          chunk.nil? ? $~[0] : ( revert ? chunk.revert : chunk.unmask_text(&block) )
-      end) do ; end
-      @obj
-=end
-      Rails.logger.warn "rd str:#{str.class} #{str.inspect}"
-      str
-    end
+    each_str do |str| str end.compact
     self
   end
 

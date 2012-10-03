@@ -2,14 +2,12 @@ module ChunkTestHelper
   # This module is to be included in unit tests that involve matching chunks.
   # It provides a easy way to test whether a chunk matches a particular string
   # and any the values of any fields that should be set after a match.
-  #class ContentStub < Object
   class ContentStub < String
     attr_reader :renderer
     
     include ChunkManager
     def initialize(str)
-      #@obj = str
-      super #()
+      super
       @renderer = Wagn::Renderer::Html.new(nil)
       init_chunk_manager
     end             

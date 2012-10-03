@@ -228,21 +228,6 @@ module Wagn
       self
     end
 
-=begin
-    def content_array content=nil, opts={}
-      return String===content ? [content] : content unless card
-      content = card.content if content.blank?
-
-      wiki_content = ObjectContent.new(card, content, self)
-      update_references( wiki_content, true ) if card.references_expired
-
-      Rails.logger.warn "ca #{wiki_content.class}, #{wiki_content.to_s}\nAC\n"
-      wiki_content.render! do |opts|
-        expand_inclusion(opts) { yield }
-      end
-    end
-=end
-
     def process_content content=nil, opts={}
       return content unless card
       content = card.content if content.blank?

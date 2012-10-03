@@ -94,9 +94,7 @@ module Chunk
     end
 
     def to_s
-      #pre = "<pre #{rendered?} ? #{@unmask_text} : #{@text}>"
-      #pre +
-        (rendered? ? (unmask_text { |args| args.inject({}) { |h,v| v[1].nil? or h[v[0]] = v[1]; h } }||'not rendered') : @text)
+      (rendered? ? (unmask_text { |args| args.inject({}) { |h,v| v[1].nil? or h[v[0]] = v[1]; h } }||'not rendered') : @text)
     end
     alias inspect to_s
 
@@ -106,14 +104,4 @@ module Chunk
   end
 
 end
-
-=begin
-require_dependency 'chunks/uri'
-require_dependency 'chunks/literal'
-require_dependency 'chunks/reference'
-require_dependency 'chunks/link'
-require_dependency 'chunks/transclude'
-=end
-
-
 

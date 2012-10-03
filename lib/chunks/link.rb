@@ -11,7 +11,6 @@ module Chunk
     def initialize(match, content, params)
       super
       link_type = :show
-      Rails.logger.warn "link #{match}, #{params.inspect}"
       if name=params[0]
         self.cardname = name.to_cardname
         @link_text = params[1] || name

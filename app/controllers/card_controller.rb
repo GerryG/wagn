@@ -40,19 +40,6 @@ Done"
   end
   # Need to split off envelope code somehome
 
-  def put
-    @card_name = Cardname.unescape(params['id'] || '')
-    raise("Need a card name to put") if (@card_name.nil? or @card_name.empty?)
-    @card = Card.fetch(@card_name)
-
-    #raise("PUT #{params.to_yaml}\n")
-    card_updates = xml_read request.body
-    if !card_updates.empty?
-      Card.update(@card.id, card_updates)
-      #@card.multi_save card_updates
-    end
-  end
-
   def render_errors(options={})
     warn "rest rnder errors #{options.inspect}, #{@card&&@card.errors.map{|k,v| "#{k}::#{v}"}*''}, #{response}"
     render :text=>"<card status=#{response.status}>Error in card</card>"
@@ -69,7 +56,7 @@ Done"
       #return render(:action=>"missing", :format=>:xml)  unless params[:card]
       if card_create = read_xml(request.body)
         begin
-          @card = Card.new card_create 
+          @card = Card.new card_create
         #warn "POST creates are  #{card_create.inspect}"
         rescue Exception => e
           Rails.logger.warn "except #{e.inspect}, #{e.backtrace*"\n"}"
@@ -99,7 +86,7 @@ Done"
       #return render(:action=>"missing", :format=>:xml)  unless params[:card]
       if main_card = read_xml(request.body)
         begin
-          @card = Card.new card_create 
+          @card = Card.new card_create
         #warn "POST creates are  #{card_create.inspect}"
         rescue Exception => e
           Rails.logger.warn "except #{e.inspect}, #{e.backtrace*"\n"}"
@@ -127,7 +114,7 @@ Done"
 
     success 'REDIRECT: TO-PREVIOUS'
   end
-  
+
 
   def index
     read
@@ -137,7 +124,7 @@ Done"
   def read_file
     show_file
   end #FIXME!  move to pack
-  
+
 
 
 
@@ -163,7 +150,7 @@ Done"
         "#{session[:comment_author] = params[:card][:comment_author]} (Not signed in)" : "[[#{Session.user.name}]]"
     comment = params[:card][:comment].split(/\n/).map{|c| "<p>#{c.strip.empty? ? '&nbsp;' : c}</p>"} * "\n"
     @card.comment = "<hr>#{comment}<p><em>&nbsp;&nbsp;--#{author}.....#{Time.now}</em></p>"
-    
+
     if @card.save
       show
     else
@@ -200,7 +187,7 @@ Done"
     if params[:save_roles]
       role_card = @card.trait_card :roles
       role_card.ok! :update
-      
+
       role_hash = params[:user_roles] || {}
       role_card = role_card.refresh if role_card.frozen?
       role_card.items= role_hash.keys.map &:to_i
@@ -210,7 +197,7 @@ Done"
     if account and account_args = params[:account]
       unless Session.as_id == @card.id and !account_args[:blocked]
         @card.trait_card(:account).ok! :update
-      end 
+      end
       account.update_attributes account_args
     end
 
@@ -261,18 +248,18 @@ Done"
 
 
   def load_card
-    # do content type processing, if it is an object, json or xml, parse that now and 
+    # do content type processing, if it is an object, json or xml, parse that now and
     # params[:object] = parsed_object
     # looking into json parsing (apparently it is deep in rails: params_parser.rb)
     @card = case params[:id]
-      when '*previous'   ; return wagn_redirect( previous_location )  
+      when '*previous'   ; return wagn_redirect( previous_location )
       when /^\~(\d+)$/   ; Card.fetch $1.to_i
       when /^\:(\w+)$/   ; Card.fetch $1.to_sym
       else
         opts = params[:card] ? params[:card].clone : (obj = params[:object]) ? obj : {}
         opts[:type] ||= params[:type] # for /new/:type shortcut.  we should fix and deprecate this.
         name = params[:id] ? Wagn::Cardname.unescape( params[:id] ) : opts[:name]
-        
+
         if @action == 'create'
           # FIXME we currently need a "new" card to catch duplicates (otherwise #save will just act like a normal update)
           # I think we may need to create a "#create" instance method that handles this checking.
@@ -283,7 +270,7 @@ Done"
           Card.fetch_or_new name, opts
         end
       end
-      
+
     Wagn::Conf[:main_name] = params[:main] || (@card && @card.name) || ''
     true
   end

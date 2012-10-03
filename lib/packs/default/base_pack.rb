@@ -37,7 +37,6 @@ class Wagn::Renderer
 
 ###----------------( SPECIAL )
   define_view :array do |args|
-    Rails.logger.warn "default array Col:#{card.collection?}, #{args.inspect}"
     if card.collection?
       card.item_cards(:limit=>0).map do |item_card|
         subrenderer(item_card)._render_core

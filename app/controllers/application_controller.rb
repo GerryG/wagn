@@ -105,8 +105,8 @@ class ApplicationController < ActionController::Base
     when known                # renderers can handle it
       renderer = Wagn::Renderer.new @card, :format=>ext, :controller=>self
       if ext == 'json'
-        render :json=>renderer.render_show( :view => view ),
-          :status=>(renderer.error_status || status)
+        render_object = renderer.render_show( :view => view )
+        render :json=>render_object, :status=>(renderer.error_status || status)
       else
         render :text=>renderer.render_show( :view => view ),
           :status=>(renderer.error_status || status)

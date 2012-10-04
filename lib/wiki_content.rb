@@ -108,19 +108,13 @@ class WikiContent < String
     @pre_rendered
   end
 
-  def each_str(&block)
-    yield self #.to_s
-  end
-
   def render!( revert = false, &block)
     pre_render!
-    each_str do |str|
-      while (str.gsub!(MASK_RE[ACTIVE_CHUNKS]) do
+    while (gsub!(MASK_RE[ACTIVE_CHUNKS]) do
           chunk = @chunks_by_id[$~[1].to_i]
           chunk.nil? ? $~[0] : ( revert ? chunk.revert : chunk.unmask_text(&block) )
-      end) do ; end
-      @obj
-    end
+    end) do ; end
+    @obj
     self
   end
 

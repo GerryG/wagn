@@ -330,7 +330,7 @@ module Wagn
       included_card = Card.fetch_or_new fullname, ( @mode==:edit ? new_inclusion_card_args(opts) : {} )
 
       result = process_inclusion included_card, opts
-      @char_count += (result ? result.length : 0)
+      @char_count += (result ? result.length : 0) #FIXME: result.length isn't really right with objects
       result
     rescue Card::PermissionDenied
       ''

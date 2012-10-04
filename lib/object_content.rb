@@ -31,24 +31,22 @@ class ObjectContent < Object
 
   def to_s() @obj.to_s end
   def inspect() @obj.inspect end
-  def as_json(options={}) @obj end
+  def as_json(options={}) @obj.as_json end
 
-  def each_str(&block)
+  def each_chunk(&block)
     case @obj
     when Hash
-      @obj.each { |k,v| yield v } # add yield k if you want links/trasclusions on hash keys too
+      @obj.each { |k,v| yield v if Chunk::Abstract===v }
     when Array
-      @obj.each { |e|   yield e }
-    when Object
+      @obj.each { |e| yield e if Chunk::Abstract===e }
+    when   Chunk::Abstract
       yield @obj
-    else raise "unknown type? #{@obj.class}" # this is impossible, right?
     end
   end
 
   def render!( revert = false, &block)
     pre_render!
-    each_str do |str| str end.compact
-    self
+    each_chunk do |chnk| chnk.unmask_text(&block) end
   end
 
   def unrender!

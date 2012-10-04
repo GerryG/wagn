@@ -62,6 +62,7 @@ module Chunk
 
     def initialize match_string, content, params
       @text = match_string
+      @unmask_render = nil
       @content = content
       @unmask_mode = :normal
       @card = content.card
@@ -94,7 +95,7 @@ module Chunk
     end
 
     def as_json
-      unmask_text { |args| args.inject({}) { |h,v| v[1].nil? or h[v[0]] = v[1]; h } }
+      @unmask_text || @unmask_render|| "not rendered #{card and card.name}"
     end
 
     def revert

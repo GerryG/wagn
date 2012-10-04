@@ -106,11 +106,10 @@ module Wagn
     return content unless card
     content = card.content if content.blank?
 
-    #wiki_content = WikiContent.new(card, content, self)
-    wiki_content = ObjectContent.new(card, content, self)
-    update_references( wiki_content, true ) if card.references_expired
+    obj_content = ObjectContent.new(card, content, self)
+    update_references( obj_content, true ) if card.references_expired
 
-    wiki_content.render! do |opts|
+    obj_content.render! do |opts|
       expand_inclusion(opts) { yield }
     end
   end
@@ -144,7 +143,6 @@ module Wagn
 
     result = sub.render(view, options)
     Renderer.current_slot = oldrenderer
-    #Rails.logger.warn "pi #{options.inspect}, R:#{result.class}" #, #{result.inspect}"
     result
   end
 

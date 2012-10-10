@@ -258,7 +258,7 @@ class Wagn::Renderer::Html
   define_view :related do |args|
     sources = [card.type_name,nil]
     # FIXME codename *account
-    sources.unshift '*account' if [Card::WagnBotID, Card::AnonID].member?(card.id) || card.type_id=='User'
+    sources.unshift '*account' if [Card::WagnBotID, Card::AnonID].member?(card.id) || card.typecode==:user
     items = sources.map do |source|
       c = Card.fetch(source ? source.to_cardname.trait_name(:related) : Card::RelatedID)
       c && c.item_names
@@ -383,7 +383,7 @@ class Wagn::Renderer::Html
 
     %{#{ raw option_header( 'User Roles' ) }#{
        option(option_content, :name=>"roles",
-      :help=>%{ <span class="small">"#{ link_to_page 'Roles' }" determine which #{ Session.always_ok? ? link_to( 'global permissions', :controller=>'admin', :action=>'tasks') : 'global permissions'} a user has access to, as well as card-specific permissions like read, view, comment, and delete.  You can only change a user's roles if you have the global "assign user roles" permission. </span>}, #ENGLISH
+      :help=>%{ <span class="small">"#{ link_to_page 'Roles' }" are used to set user permissions</span>}, #ENGLISH
       :label=>"#{card.name}'s Roles",
       :editable=>card.trait_card(:roles).ok?(:update)
     )}}
@@ -597,7 +597,7 @@ class Wagn::Renderer::Html
 
   define_view :denial do |args|
     task = args[:denied_task] || params[:action]
-    if !main?
+    if !focal?
       %{<span class="denied"><!-- Sorry, you don't have permission to #{task} this card --></span>}
     else
       wrap :denial, args do #ENGLISH below

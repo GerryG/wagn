@@ -72,7 +72,7 @@ class Card < ActiveRecord::Base
           raise "Missing codename #{code} (#{const}) #{caller*"\n"}"
         end
       else
-        Rails.logger.warn "need to load #{const.inspect}?"
+        Rails.logger.debug "need to load #{const.inspect}?"
         super
       end
     end
@@ -348,9 +348,9 @@ class Card < ActiveRecord::Base
   def left()      Card.fetch cardname.left_name   end
   def right()     Card.fetch cardname.tag_name    end
 
-  def key
-    cardname.key
-  end
+#  def key
+#    cardname.key
+#  end
   # DISLIKE - how do we access db key?
 
   def dependents
@@ -415,7 +415,11 @@ class Card < ActiveRecord::Base
   # CONTENT / REVISIONS
 
   def content
-    new_card? ? template.content : current_revision.content
+    if new_card?
+      template ? template.content : ''
+    else
+      current_revision.content
+    end
   end
 
   def raw_content
@@ -499,7 +503,7 @@ class Card < ActiveRecord::Base
       else
         party_keys = ['in', Card::AnyoneID] + parties
         Session.as_bot do
-          Card.search(:right=>'*read', :refer_to=>{:id=>party_keys}, :return=>:id).map &:to_i
+          Card.search(:right=>{:codename=>'read'}, :refer_to=>{:id=>party_keys}, :return=>:id).map &:to_i
         end
       end
     end
@@ -573,21 +577,23 @@ class Card < ActiveRecord::Base
 
   # this method piggybacks on the name tracking method and
   # must therefore be defined after the #tracks call
-  alias cardname= name=
-  def name_with_cardname= newname
-    newname = newname.to_s
-    if name != newname
-      #warn "name_change (reset if rule) #{name_without_tracking}, #{newname}, #{inspect}" unless name_without_tracking.blank?
-      reset_patterns_if_rule() # reset the old name
 
-      @cardname = nil
-      updates.add :name, newname
+  def name_with_resets= newname
+    newkey = newname.to_cardname.key
+    if key != newkey
+      self.key = newkey
+      reset_patterns_if_rule # reset the old name - should be handled in tracked_attributes!!
       reset_patterns
     end
-    newname
+    @cardname = nil if name != newname.to_s
+    self.name_without_resets = newname.to_s
   end
-  alias_method_chain :name=, :cardname
-  def cardname() @cardname ||= name.to_cardname end
+  alias_method_chain :name=, :resets
+  alias cardname= name=
+
+  def cardname
+    @cardname ||= name.to_cardname
+  end
 
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   # VALIDATIONS

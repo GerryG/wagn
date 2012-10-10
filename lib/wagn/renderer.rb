@@ -282,7 +282,7 @@ module Wagn
       if view != original_view
         args[:denied_view] = original_view
 
-        if main? && error_code = @@error_codes[view]
+        if focal? && error_code = @@error_codes[view]
           root.error_status = error_code
         end
       end
@@ -409,7 +409,7 @@ module Wagn
       pcard = opts.delete(:card) || card
       base = action==:read ? '' : "/card/#{action}"
 
-      if pcard && !pcard.name.empty? && action != :create #might be some issues with new?
+      if pcard && !pcard.name.empty? && !opts.delete(:no_id) && action != :create #might be some issues with new?
         base += '/' + ( opts[:id] ? "~#{ opts.delete :id }" : pcard.cardname.to_url_key )
       end
       if attrib = opts.delete( :attrib )
@@ -439,7 +439,7 @@ module Wagn
     end
 
     def build_link href, text, known_card = nil
-      #Rails.logger.warn "bl #{href.inspect}, #{text.inspect}, #{known_card.inspect}"
+      #Rails.logger.info "bl #{href.inspect}, #{text.inspect}, #{known_card.inspect}"
       klass = case href.to_s
         when /^https?:/; 'external-link'
         when /^mailto:/; 'email-link'

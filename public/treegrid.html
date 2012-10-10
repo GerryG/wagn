@@ -19,13 +19,36 @@
         $("div#jstree").jstree({
           plugins: ["themes","json_data","grid","dnd"],
           json_data: {ajax:{
-            url: '/Cardtype+*type+by_name.json?view=open&item=open',
+            url: '/a_test_form.json?view=content',
             data: function(node) {
               eXportN = node;
               console.log('node in data '+node)
               },
             success: function (data) {
               eXportD = data; 
+              var attrs = data.card.attr,
+                  cardName = attrs.key,
+                  chldrn = data.card.content,
+                  modelHash = { };
+              chldrn.forEach(function (chld) {
+                if (typeof chld != 'string') {
+                  eXportR = chld
+                  console.log('card? '+chld)
+                  if (chld.card != null) { chld = chld.card; }
+                  console.log('each '+chld)
+                  eXportR = chld.attr
+                  modelHash[chld.attr.name] = chld.content
+                  chld.data = chld.attr.key;
+                  //chld.attr = 
+                }
+                })
+              eXportR = {
+                data: cardName,
+                state: 'closed',
+                attr: modelHash,
+              };
+              return eXportR;
+              /*
               var attrs = data.card.attr
               var chldrn = data.card.content.cards
               chldrn.forEach(function (chld) { chld.data = chld.attr.key; })
@@ -39,13 +62,17 @@
                 children: chldrn
               };
               return eXportR;
+              */
             }
           }},
           grid: {
             columns: [
-              {width: 110, header: "Nodes",title:"_DATA_"},
-              {cellClass: "col1", value: "name", width: 60, header: "Name", title: "name"},
-              {cellClass: "col2", value: "type", width: 60, header: "Cardtype", title: "cardtype"}
+              {width: 240, header: "Nodes",title:"_DATA_"},
+              {cellClass: "col1", value: "name", width: 200, header: "Full Name", title: "name"},
+              {cellClass: "col2", value: "address", width: 200, header: "Address", title: "address"},
+              {cellClass: "col3", value: "city", width: 100, header: "City", title: "city"},
+              {cellClass: "col4", value: "state", width: 30, header: "St", title: "state"},
+              {cellClass: "col5", value: "zip", width: 100, header: "Zipcode", title: "zipcode"}
             ],
             resizable:true
           },

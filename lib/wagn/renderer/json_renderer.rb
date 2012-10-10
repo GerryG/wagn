@@ -65,9 +65,9 @@ module Wagn
       }
     [:style, :home_view, :item, :base].each { |key| a = args[key] and attributes[key] = a }
 
-    cont = (Enumerable===(c=yield) ? c.to_a : c)
-    #Rails.logger.info "wrap json #{cont.class}, #{cont}, I#{cont.inspect}"
-    {card: { attributes: attributes, content: cont }} #.to_json
+    cont = yield  # (Enumerable===(c=yield) ? c.to_a : c)
+    #Rails.logger.info "wrap json #{cont.class}, I#{cont.inspect}"
+    {card: { attr: attributes, content: cont }} #.to_json
   end
 
   def get_layout_content(args)

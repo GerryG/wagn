@@ -94,7 +94,7 @@ module Chunk
       @unmask_mode == :escape
     end
 
-    def as_json
+    def as_json(options={})
       @unmask_text || @unmask_render|| "not rendered #{card and card.name}"
     end
 

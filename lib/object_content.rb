@@ -47,6 +47,7 @@ class ObjectContent < Object
   def render!( revert = false, &block)
     pre_render!
     each_chunk do |chnk| chnk.unmask_text(&block) end
+    self
   end
 
   def unrender!

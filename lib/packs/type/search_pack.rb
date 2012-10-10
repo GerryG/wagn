@@ -222,8 +222,8 @@ class Wagn::Renderer::JsonRenderer < Wagn::Renderer
       #  args[:results].map do |c|  process_inclusion c, :view=>@item_view end
       # This which converts to {'cards':[{the card suff}, {another card stuff} ...]} we may want to support both ...
       {:cards => args[:results].map do |c|
-          inc=process_inclusion c, :view=>@item_view
-          inc.has_key?(:card) ? inc[:card] : inc
+          inc = process_inclusion c, :view=>@item_view
+          (!(String===inc) and inc.has_key?(:card)) ? inc[:card] : inc
         end
       }
     end

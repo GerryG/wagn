@@ -54,7 +54,7 @@ module Chunk
         pindex = pend
         ch_class.pattern
       end * '|'
-      /^(.*?)(#{chunk_pattern})/
+      /(.*?)(#{chunk_pattern})/m
     end
 
     #attr_reader :text, :unmask_text, :unmask_mode

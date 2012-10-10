@@ -1,8 +1,6 @@
-require 'cgi'
+#require 'cgi'
 require_dependency 'chunks/chunk'
 require_dependency 'chunk_manager'
-
-class MissingChunk < StandardError; end
 
 class ObjectContent < Object
 
@@ -15,8 +13,8 @@ class ObjectContent < Object
     @card = card or raise "No Card in Content!!"
     @obj = content
     super()
-    init_chunk_manager()
-    @obj = ChunkManager.split_content(self)
+    split_content
+    #raise "error @obj is Content type" if ObjectContent===@obj
     @not_rendered = String.new(content)
   end
 
@@ -27,26 +25,24 @@ class ObjectContent < Object
     @pre_rendered
   end
 
-  def crange(call) call[0..((i=call.index{|x|x=~/gerry/}).nil? ? 4 : i>50 ? 50 : i+5)] << " N: #{i} " end
+  #def crange(call) call[0..((i=call.index{|x|x=~/gerry/}).nil? ? 4 : i>50 ? 50 : i+5)] << " N: #{i} " end # limited caller for debugging
 
-  def to_s() @obj.to_s end
+  def to_s() String===@obj ? @obj : @obj.to_s end
   def inspect() @obj.inspect end
   def as_json(options={}) @obj.as_json end
 
   def each_chunk(&block)
     case @obj
-    when Hash
-      @obj.each { |k,v| yield v if Chunk::Abstract===v }
-    when Array
-      @obj.each { |e| yield e if Chunk::Abstract===e }
-    when   Chunk::Abstract
-      yield @obj
+    when Hash;   @obj.each { |k,v| yield v if Chunk::Abstract===v }
+    when Array;  @obj.each { |e|   yield e if Chunk::Abstract===e }
+    when String; return # strings are all parsed in @obj, so no chunks in a String
+    else raise "error @obj is unrecognized type #{@obj.class}" # probably a warning when this is stable
     end
   end
 
   def render!( revert = false, &block)
     pre_render!
-    each_chunk do |chnk| chnk.unmask_text(&block) end
+    each_chunk { |chnk| chnk.unmask_text(&block) }
     self
   end
 
@@ -54,6 +50,6 @@ class ObjectContent < Object
     render!( revert = true )
   end
 
+  protected
+  def object() @obj end
 end
-
-

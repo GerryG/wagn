@@ -21,7 +21,9 @@ class Wagn::Renderer::JsonRenderer < Wagn::Renderer
 
   # I was getting a load error from a non-wagn file when this was in its own file (renderer/json.rb).
   define_view :name_complete do |args|
-    JSON( card.item_cards( :complete=>params['term'], :limit=>8, :sort=>'name', :return=>'name', :context=>'' ) )
+    #JSON( card.item_cards( :complete=>params['term'], :limit=>8, :sort=>'name', :return=>'name', :context=>'' ) )
+    # need to test this, I think it should be objects here and follow the common json path now
+    card.item_cards( :complete=>params['term'], :limit=>8, :sort=>'name', :return=>'name', :context=>'' )
   end
 
   define_view :content do |args|
@@ -31,7 +33,7 @@ class Wagn::Renderer::JsonRenderer < Wagn::Renderer
 
   define_view :open do |args|
     @state = :view
-    wrap(:open, args) { _render_core(args) }
+    wrap(:open, args) { _render_core args }
   end
 
   define_view :closed do |args|

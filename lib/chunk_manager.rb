@@ -11,7 +11,6 @@ module ChunkManager
   unless defined? ACTIVE_CHUNKS
     # value is number of paren groups in the SCAN_RE
     ACTIVE_CHUNKS = {
-#      Literal::Pre,
       Literal::Escape => 1,
       Chunk::Transclude => 3,
       Chunk::Link => 4,
@@ -19,18 +18,13 @@ module ChunkManager
       LocalURIChunk  => 1,
     }
 
-    # will we maybe need this again or should we simplify this now?
-#    HIDE_CHUNKS = [ Literal::Pre, Literal::Tags ]
-
     MASK_RE = {
-#      HIDE_CHUNKS => Chunk::Abstract.mask_re(HIDE_CHUNKS),
       ACTIVE_CHUNKS => Chunk::Abstract.mask_re(ACTIVE_CHUNKS.keys)
     }
 
     SCAN_RE = {
        ACTIVE_CHUNKS => Chunk::Abstract.unmask_re(ACTIVE_CHUNKS)
     }
-
   end
 
   def init_chunk_manager
@@ -44,18 +38,19 @@ module ChunkManager
   end
 
   # for objet_content, it uses this instead of the apply_to by chunk type
-  def self.split_content(content)
-    #Rails.logger.info "split_content S: #{SCAN_RE[ACTIVE_CHUNKS].inspect}, #{content.class} #{content.to_s[0..20]}" #unless String===content
-    #SCAN_RE[ACTIVE_CHUNKS].match(content) do |m|
-    arr = content.to_s.scan SCAN_RE[ACTIVE_CHUNKS]
-    arr = arr.map do |match_arr|
-      pre_chunk = match_arr.shift; match = match_arr.shift
-      match_index = match_arr.index {|x| !x.nil? }
-      chunk_class, range = Chunk::Abstract.re_class(match_index)
-      chunk_params = match_arr[range]
-      [pre_chunk, chunk_class.new(match, content, chunk_params) ]
-    end.flatten.compact
-    #Rails.logger.info "split_content R:#{arr.class} #{arr.to_s[0..20]}"; arr
+  def split_content
+    if String===@obj
+      return if (arr = @obj.to_s.scan SCAN_RE[ACTIVE_CHUNKS]).empty?
+      #Rails.logger.warn "scan arr: #{arr.size}, #{arr.map(&:size)*', '}, AR:#{arr.inspect}"
+      @obj = arr.map do |match_arr|
+          pre_chunk = match_arr.shift; match = match_arr.shift
+          match_index = match_arr.index {|x| !x.nil? }
+          chunk_class, range = Chunk::Abstract.re_class(match_index)
+          chunk_params = match_arr[range]
+          [pre_chunk, chunk_class.new(match, self, chunk_params) ]
+        end.flatten.compact
+    else @obj end
+    #Rails.logger.info "split_content R:#{@obj.class} #{@obj.to_s[0..60]}"; @obj
   end
 
   def add_chunk(c)

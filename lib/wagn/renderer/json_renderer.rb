@@ -67,7 +67,7 @@ module Wagn
 
     cont = yield  # (Enumerable===(c=yield) ? c.to_a : c)
     #Rails.logger.info "wrap json #{cont.class}, I#{cont.inspect}"
-    {card: { attr: attributes, content: cont }} #.to_json
+    {card: { attr: attributes, content: cont }}
   end
 
   def get_layout_content(args)
@@ -103,11 +103,12 @@ module Wagn
   end
 
   def process_content content=nil, opts={}
+    Rails.logger.warn "process_content #{content.class}, #{content}, #{opts.inspect}, Cd:#{card&&card.content}"
     return content unless card
     content = card.content if content.blank?
 
-    obj_content = ObjectContent.new(card, content, self)
-    update_references( obj_content, true ) if card.references_expired
+    obj_content = ObjectContent===content ? content : ObjectContent.new(card, content, self)
+    #update_references( obj_content, true ) if card.references_expired # I thik we need this genralized
 
     obj_content.render! do |opts|
       expand_inclusion(opts) { yield }

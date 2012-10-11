@@ -9,12 +9,13 @@ module Chunk
     
     def self.pattern() TRANSCLUDE_PATTERN end
   
-    def initialize(match, content, params)
+    def initialize match, card_params, params
       super   
       #Rails.logger.warn "FOUND TRANSCLUDE #{match_data} #{content}"
       self.cardname, @options, @configs = a = self.class.parse(match, params)
       #Rails.logger.info "Chunk::transclude #{a.inspect}"
-      @base, @renderer = content.card, content.renderer
+      @base = card_params[:card]
+      @renderer = card_params[:renderer]
     end
   
     def self.parse(match, params)

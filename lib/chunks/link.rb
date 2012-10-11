@@ -8,7 +8,7 @@ module Chunk
 
     def self.pattern() WIKI_LINK end
 
-    def initialize(match, content, params)
+    def initialize match, card_params, params
       super
       link_type = :show
       if name=params[0]

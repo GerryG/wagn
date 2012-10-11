@@ -20,7 +20,7 @@ module Chunk
     end
 
     def render_link()
-      @content.renderer.build_link(refcardname, self.link_text)
+      renderer.build_link(refcardname, self.link_text)
     end
 
   end 

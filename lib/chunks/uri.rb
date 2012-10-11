@@ -87,7 +87,7 @@ class URIChunk < Chunk::Abstract
   def self.apply_to(content)
     content.to_s.gsub!( self.pattern ) do
       params = $~.to_a; match = params.shift
-      chunk = self.new(match, content, params)
+      chunk = self.new(match, {:card=>content.card, :renderer=>content.renderer}, params)
       card = chunk.card
       if chunk.avoid_autolinking? || (card && card.type_id==Card::HtmlID)
         # do not substitute nor register the chunk
@@ -99,13 +99,13 @@ class URIChunk < Chunk::Abstract
     end
   end
 
-  def initialize(match, content, params)
+  def initialize match, card_params, params
     super
     @link_text = match
     @suspicious_preceding_character = params[0]
     @original_scheme, @user, @host, @port, @path, @query, @fragment = params[1..-1]
     treat_trailing_character
-    @unmask_text = "#{@content.renderer.build_link(self.uri,@link_text)}#{@trailing_punctuation}"
+    @unmask_text = "#{renderer.build_link(self.uri,@link_text)}#{@trailing_punctuation}"
   end
 
   def avoid_autolinking?

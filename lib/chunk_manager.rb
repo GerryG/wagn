@@ -11,11 +11,11 @@ module ChunkManager
   unless defined? ACTIVE_CHUNKS
     # value is number of paren groups in the SCAN_RE
     ACTIVE_CHUNKS = {
-      Literal::Escape => 1,
+      Literal::Escape => 2,
       Chunk::Transclude => 3,
       Chunk::Link => 4,
       URIChunk => 1,
-      LocalURIChunk  => 1,
+      LocalURIChunk  => 18
     }
 
     MASK_RE = {
@@ -38,18 +38,20 @@ module ChunkManager
   end
 
   # for objet_content, it uses this instead of the apply_to by chunk type
-  def split_content
-    if String===@obj
-      return if (arr = @obj.to_s.scan SCAN_RE[ACTIVE_CHUNKS]).empty?
+  def self.split_content card_params, content
+    if String===content
+      return if (arr = content.to_s.scan SCAN_RE[ACTIVE_CHUNKS]).empty?
       #Rails.logger.warn "scan arr: #{arr.size}, #{arr.map(&:size)*', '}, AR:#{arr.inspect}"
-      @obj = arr.map do |match_arr|
+      content = arr.map do |match_arr|
           pre_chunk = match_arr.shift; match = match_arr.shift
           match_index = match_arr.index {|x| !x.nil? }
           chunk_class, range = Chunk::Abstract.re_class(match_index)
           chunk_params = match_arr[range]
-          [pre_chunk, chunk_class.new(match, self, chunk_params) ]
+          Rails.logger.warn "scan map #{match_index.inspect}, #{chunk_class}, #{chunk_params.inspect}"
+          newck = chunk_class.new match, card_params, chunk_params
+          pre_chunk.nil? || pre_chunk.blank? ? newck : [pre_chunk, newck]
         end.flatten.compact
-    else @obj end
+    else content end
     #Rails.logger.info "split_content R:#{@obj.class} #{@obj.to_s[0..60]}"; @obj
   end
 

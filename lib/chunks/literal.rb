@@ -6,7 +6,7 @@ require 'chunks/chunk'
 # and within HTML tags.
 module Literal
   class AbstractLiteral < Chunk::Abstract
-    def initialize(match, content, params)
+    def initialize match, card_params, params
       super
       @unmask_text = @text
     end
@@ -18,7 +18,7 @@ module Literal
     end
     def self.pattern() ESCAPE_PATTERN end
 
-    def initialize(match, content, params)
+    def initialize match, card_params, params
       super
       first = params[1]
       @unmask_text = "#{params[0].sub(first, "<span>#{first}</span>")}"

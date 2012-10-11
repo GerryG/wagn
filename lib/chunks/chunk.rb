@@ -39,6 +39,7 @@ module Chunk
           return chunk_class, range
         end
       end
+      raise "not found #{index}, #{@@paren_range.inspect}"
     end
 
     def Abstract::re_range(klass)
@@ -47,7 +48,7 @@ module Chunk
 
     def Abstract::unmask_re(chunk_types)
       @@paren_range = {}
-      pindex = 1
+      pindex = 0
       chunk_pattern = chunk_types.map do |ch_class, paren_cnt|
         pend = pindex + paren_cnt
         @@paren_range[ch_class] = pindex..pend-1
@@ -60,13 +61,16 @@ module Chunk
     #attr_reader :text, :unmask_text, :unmask_mode
     attr_accessor :text, :unmask_text, :unmask_mode, :revision, :card
 
-    def initialize match_string, content, params
+    def initialize match_string, card_params, params
       @text = match_string
       @unmask_render = nil
-      @content = content
+      #@content = content
       @unmask_mode = :normal
-      @card = content.card
+      @card_params = card_params
     end
+
+    def renderer() @card_params[:renderer] end
+    def card() @card_params[:card] end
 
     # Find all the chunks of the given type in content
     # Each time the pattern is matched, create a new
@@ -75,7 +79,7 @@ module Chunk
     def self.apply_to content
       content.gsub!( self.pattern ) do |match|
         chk_params = $~.to_a; mch = chk_params.shift
-        new_chunk = self.new(mch, content, chk_params)
+        new_chunk = self.new(mch, {:card=>content.card, :renderer=>content.renderer}, chk_params)
         content.add_chunk new_chunk
         new_chunk.mask
       end

@@ -17,7 +17,7 @@ class CardController < ApplicationController
     return if pairs.empty?
 
     main = pairs.shift
-    warn "main#{main.inspect}, #{pairs.empty?}"
+    #warn "main#{main.inspect}, #{pairs.empty?}"
     main, content, type = main[0], main[1][0]*'', main[1][2]
 
     data = { :name=>main }

@@ -14,8 +14,8 @@ module ChunkManager
       Literal::Escape => 2,
       Chunk::Transclude => 3,
       Chunk::Link => 4,
-      URIChunk => 1,
-      LocalURIChunk  => 18
+      URIChunk => 8,
+      LocalURIChunk  => 8
     }
 
     MASK_RE = {

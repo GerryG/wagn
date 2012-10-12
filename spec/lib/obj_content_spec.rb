@@ -6,18 +6,39 @@ CONTENT = {
   :two => %(Some Links and transcludes: [[the card|the text]], and {{This Card|Is Transcluded}}{{this too}}
          more formats for links and transcludes: [the card][the text],
          and [[http://external.wagn.org/path|link text]][This Card][Is linked]{{Transcluded|open}}),
-  :three => %(Some Links and transcludes: [[the card|the text]], and {{This Card|Is Transcluded}}{{this too}}
-         more formats for links and transcludes: [the card][the text],
-         and [[http://external.wagn.org/path|link text]][This Card][Is linked]{{Transcluded|open}})
+  :three => %(Some Literals: http://a.url.com
+        More urls: wagn.com/a/path/to.html
+        [ http://gerry.wagn.com/a/path ]
+        { https://brain/more?args }
+        http://localhost:2020/path?cgi=foo&bar=baz  [[http://brain/Home|extra]])
 }
 
 CLASSES = {
    :one => [String, Literal::Escape, String, Literal::Escape, String, Chunk::Transclude ],
    :two => [String, Chunk::Link, String, Chunk::Transclude, Chunk::Transclude, String, Chunk::Link, String, Chunk::Link, Chunk::Link, Chunk::Transclude ],
-   :three => [String, LocalURIChunk, String, LocalURIChunk, String, LocalURIChunk, String, LocalURIChunk, String, LocalURIChunk, Chunk::Transclude ]
+   :three => [String, URIChunk, String, URIChunk, String, URIChunk, String, LocalURIChunk, String, LocalURIChunk, Chunk::Link ]
+}
+
+RENDERED = {
+  :one => ['Some Literals: ', "[<span>{</span>I'm not| a link]}", ", and ", "<span>{</span>{This Card|Is not Transcluded}}", ", but ",
+            {:options => {:tname=>"this is",:unmask=>"this is",:style=>''}} ],
+  :two => ["Some Links and transcludes: ", "<a class=\"wanted-card\" href=\"/the_card\">the text</a>", #"[[the card|the text]]",
+     ", and ", {:options => {:tname=>"This Card", :view => "Is Transcluded",:unmask => "This Card|Is Transcluded",:style=>""}},{
+      :options=>{:tname=>"this too",:unmask=>"this too",:style=>""}},
+    "\n         more formats for links and transcludes: ","<a class=\"wanted-card\" href=\"/the_text\">the card</a>",
+    ",\n         and ","<a class=\"external-link\" href=\"http://external.wagn.org/path\">link text</a>",
+    "<a class=\"wanted-card\" href=\"/Is_linked\">This Card</a>",
+    {:options=>{:tname=>"Transcluded",:view=>"open",:unmask=>"Transcluded|open",:style=>""}}],
+  :three => ["Some Literals: ","<a class=\"external-link\" href=\"http://a.url.com\">http://a.url.com</a>","\n        More urls: ",
+    "<a class=\"external-link\" href=\"http://wagn.com/a/path/to.html\">wagn.com/a/path/to.html</a>",
+    "\n        [ ","<a class=\"external-link\" href=\"http://gerry.wagn.com/a/path\">http://gerry.wagn.com/a/path</a>",
+    " ]\n        { ","<a class=\"external-link\" href=\"https://brain/more?args\">https://brain/more?args</a>"," }\n        ",
+    "<a class=\"external-link\" href=\"http://localhost:2020/path?cgi=foo&bar=baz\">http://localhost:2020/path?cgi=foo&bar=baz</a>",
+    "<a class=\"external-link\" href=\"http://brain/Home\">extra</a>"]
 }
 
 describe ObjectContent do
+
   before do
     Session.user= :joe_user
     assert card = Card["One"]
@@ -25,12 +46,15 @@ describe ObjectContent do
       :card => card,
       :renderer => Wagn::Renderer.new(card)
     }
+
+    # non-nil valued opts only ...
+    @render_block =  Proc.new do |opts| {:options => opts.inject({}) {|i,v| !v[1].nil? && i[v[0]]=v[1]; i } } end
     @check_classes = Proc.new do |m, v|
-      if Array===m
-        v.should be_instance_of m[0]
-        m[0] != v.class ? false : m.size == 1 ? true : m[1..-1]
-      else false end
-    end
+        if Array===m
+          v.should be_instance_of m[0]
+          m[0] != v.class ? false : m.size == 1 ? true : m[1..-1]
+        else false end
+      end
   end
 
 
@@ -59,11 +83,7 @@ describe ObjectContent do
 
     it "should find uri chunks " do
       # tried some tougher cases that failed, don't know the spec, so hard to form better tests for URIs here
-      cobj = ObjectContent.new %(Some Literals: http://a.url.com
-        More urls: http://wagn.com/a/path/to.html
-        [ http://gerry.wagn.com/a/path ]
-        { https://another.wagn.org/more?args }
-        http://myhome.com/path?cgi=foo&bar=baz  {{extra|size:medium;view:open}}), @card_opts
+      cobj = ObjectContent.new CONTENT[:three], @card_opts
       cobj.delegate_class.should == Array
       cobj.inject(CLASSES[:three], &@check_classes).should == true
       clist = CLASSES[:three].find_all {|c| String != c }
@@ -75,10 +95,28 @@ describe ObjectContent do
   end
 
   describe "render" do
-    it "should render objects" do
-      pending "no test yet"
+    it "should render all transcludes" do
+      cobj = ObjectContent.new CONTENT[:one], @card_opts
+      cobj.as_json.to_s.should match /not rendered/
+      cobj.render!(&@render_block)
+      (rdr=cobj.as_json.to_json).should_not match /not rendered/
+      rdr.should == RENDERED[:one].to_json
+    end
+
+    it "should render links and transclusions" do
+      cobj = ObjectContent.new CONTENT[:two], @card_opts
+      cobj.render!(&@render_block)
+      (rdr=cobj.as_json.to_json).should_not match /not rendered/
+      rdr.should == RENDERED[:two].to_json
+    end
+
+    it "should not need rendering if no transclusions" do
+      cobj = ObjectContent.new CONTENT[:three], @card_opts
+      (rdr=cobj.as_json.to_json).should match /not rendered/ # links are rendered too, but not with a block
+      cobj.render! # shouldn't need a block, no transclusions
+      (rdr=cobj.as_json.to_json).should_not match /not rendered/
+      rdr.should == RENDERED[:three].to_json
     end
   end
-
 end
 

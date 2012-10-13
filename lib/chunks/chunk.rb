@@ -49,8 +49,8 @@ module Chunk
     def Abstract::unmask_re(chunk_types)
       @@paren_range = {}
       pindex = 0
-      chunk_pattern = chunk_types.map do |ch_class, paren_cnt|
-        pend = pindex + paren_cnt
+      chunk_pattern = chunk_types.map do |ch_class|
+        pend = pindex + ch_class.groups
         @@paren_range[ch_class] = pindex..pend-1
         pindex = pend
         ch_class.pattern
@@ -58,8 +58,7 @@ module Chunk
       /(.*?)(#{chunk_pattern})/m
     end
 
-    #attr_reader :text, :unmask_text, :unmask_mode
-    attr_accessor :text, :unmask_text, :unmask_mode, :revision, :card
+    attr_reader :text, :unmask_text, :unmask_mode
 
     def initialize match_string, card_params, params
       @text = match_string

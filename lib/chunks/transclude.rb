@@ -5,9 +5,11 @@ module Chunk
       #  {{+name|attr:val;attr:val;attr:val}}
       #  Groups: $1, everything (less {{}}), $2 name, $3 options
       TRANSCLUDE_PATTERN = /\{\{(([^\|]+?)\s*(?:\|([^\}]+?))?)\}\}/
+      TRANSCLUDE_GROUPS = 3
     end         
     
     def self.pattern() TRANSCLUDE_PATTERN end
+    def self.groups() TRANSCLUDE_GROUPS end
   
     def initialize match, card_params, params
       super   

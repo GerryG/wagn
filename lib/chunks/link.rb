@@ -5,8 +5,10 @@ module Chunk
     word = /\s*([^\]\|]+)\s*/
     # Groups: $1, [$2]: [[$1]] or [[$1|$2]] or $3, $4: [$3][$4] 
     WIKI_LINK = /\[\[#{word}(?:\|#{word})?\]\]|\[#{word}\]\[#{word}\]/
+    WIKI_LINK_GROUPS = 4
 
     def self.pattern() WIKI_LINK end
+    def self.groups() WIKI_LINK_GROUPS end
 
     def initialize match, card_params, params
       super

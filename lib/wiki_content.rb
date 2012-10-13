@@ -95,7 +95,7 @@ class WikiContent < String
     @card = card or raise "No Card in Content!!"
     super(content)
     init_chunk_manager()
-    ACTIVE_CHUNKS.keys.each do |chunk_type|
+    ACTIVE_CHUNKS.each do |chunk_type|
       chunk_type.apply_to(self)
     end
     @not_rendered = String.new(self)

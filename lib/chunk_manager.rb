@@ -10,26 +10,21 @@ module ChunkManager
   attr_reader :chunks_by_type, :chunks_by_id, :chunks, :chunk_id
   unless defined? ACTIVE_CHUNKS
     # value is number of paren groups in the SCAN_RE
-    ACTIVE_CHUNKS = {
-      Literal::Escape => 2,
-      Chunk::Transclude => 3,
-      Chunk::Link => 4,
-      URIChunk => 8,
-      LocalURIChunk  => 8
-    }
+    ACTIVE_CHUNKS =
+      [ Literal::Escape, Chunk::Transclude, Chunk::Link, URIChunk, LocalURIChunk ]
 
     MASK_RE = {
-      ACTIVE_CHUNKS => Chunk::Abstract.mask_re(ACTIVE_CHUNKS.keys)
+      ACTIVE_CHUNKS => Chunk::Abstract.mask_re(ACTIVE_CHUNKS)
     }
 
     SCAN_RE = {
-       ACTIVE_CHUNKS => Chunk::Abstract.unmask_re(ACTIVE_CHUNKS)
+      ACTIVE_CHUNKS => Chunk::Abstract.unmask_re(ACTIVE_CHUNKS)
     }
   end
 
   def init_chunk_manager
     @chunks_by_type = Hash.new
-    ACTIVE_CHUNKS.keys.each{|chunk_type|
+    ACTIVE_CHUNKS.each{|chunk_type|
       @chunks_by_type[chunk_type] = Array.new
     }
     @chunks_by_id = Hash.new

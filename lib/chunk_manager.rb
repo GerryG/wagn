@@ -42,37 +42,35 @@ module ChunkManager
           match_index = match_arr.index {|x| !x.nil? }
           chunk_class, range = Chunk::Abstract.re_class(match_index)
           chunk_params = match_arr[range]
-          Rails.logger.warn "scan map #{match_index.inspect}, #{chunk_class}, #{chunk_params.inspect}"
+          #Rails.logger.warn "scan map #{match_index.inspect}, #{chunk_class}, #{chunk_params.inspect}"
           newck = chunk_class.new match, card_params, chunk_params
-          pre_chunk.nil? || pre_chunk.blank? ? newck : [pre_chunk, newck]
+          pre_chunk.nil? || pre_chunk=='' ? newck : [pre_chunk, newck]
         end.flatten.compact
     else content end
-    #Rails.logger.info "split_content R:#{@obj.class} #{@obj.to_s[0..60]}"; @obj
   end
 
-  def add_chunk(c)
-    @chunks_by_type[c.class] << c
-    @chunks_by_id[c.object_id] = c
-    @chunks << c
+  def add_chunk chunk
+    @chunks_by_type[chunk.class] << chunk
+    @chunks_by_id[chunk.object_id] = chunk
+    @chunks << chunk
     @chunk_id += 1
   end
 
-  def delete_chunk(c)
-    @chunks_by_type[c.class].delete(c)
-    @chunks_by_id.delete(c.object_id)
-    @chunks.delete(c)
+  def delete_chunk chunk
+    @chunks_by_type[chunk.class].delete chunk
+    @chunks_by_id.delete chunk.object_id
+    @chunks.delete chunk
   end
 
-  def merge_chunks(other)
-    other.chunks.each{|c| add_chunk(c)}
+  def merge_chunks other
+    other.chunks.each{|chunk| add_chunk(chunk)}
   end
 
-  def scan_chunkid(text)
+  def scan_chunkid text
     text.scan(MASK_RE[ACTIVE_CHUNKS]){|a| yield a[0] }
   end
 
-  def find_chunks(chunk_type)
-    @chunks.select { |chunk| chunk.kind_of?(chunk_type) and chunk.rendered? }
+  def find_chunks chunk_type
+    each_chunk.select { |chunk| chunk.kind_of?(chunk_type) }
   end
-
 end

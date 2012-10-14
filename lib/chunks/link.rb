@@ -1,23 +1,24 @@
 module Chunk
   class Link < Reference
-    attr_accessor :link_text, :link_type
-
     word = /\s*([^\]\|]+)\s*/
-    # Groups: $1, [$2]: [[$1]] or [[$1|$2]] or $3, $4: [$3][$4] 
+    # Groups: $1, [$2]: [[$1]] or [[$1|$2]] or $3, $4: [$3][$4]
     WIKI_LINK = /\[\[#{word}(?:\|#{word})?\]\]|\[#{word}\]\[#{word}\]/
     WIKI_LINK_GROUPS = 4
 
     def self.pattern() WIKI_LINK end
     def self.groups() WIKI_LINK_GROUPS end
 
+    attr_accessor :link_text
+
     def initialize match, card_params, params
       super
-      link_type = :show
       if name=params[0]
         self.cardname = name.to_cardname
-        @link_text = params[1] || name
+        ltext=params[1]
+        self.link_text= ltext.nil? ? name :
+          ltext =~ /(^|[^\\]){{/ ? ObjectContent.new(ltext, @card_params) : ltext
       else
-        @link_text = params[2]; self.cardname = params[3].to_cardname #.gsub(/_/,' ')
+        self.link_text= params[2]; self.cardname = params[3].to_cardname #.gsub(/_/,' ')
       end
       self
     end
@@ -27,9 +28,20 @@ module Chunk
     end
 
     def revert
-      @text = cardname == link_text ? "[[#{cardname.to_s}]]" : "[[#{cardname.to_s}|#{link_text}]]"
+      @text = self.link_text.nil? || cardname == self.link_text ? "[[#{cardname.to_s}]]" : "[[#{cardname.to_s}|#{self.link_text}]]"
+      #Rails.logger.warn "revert link #{@text} #{cardname.to_s}, #{self.link_text}"
       super
     end
 
+    def replace_reference old_name, new_name
+      @cardname=@cardname.replace_part old_name, new_name if @cardname
+      case self.link_text
+        when ObjectContent, WikiContent
+              self.link_text.find_chunks(Chunk::Reference).each {|chunk| chunk.replace_reference old_name, new_name}
+        else
+          self.link_text = new_name if old_name == self.link_text
+      end
+      revert
+    end 
   end
 end

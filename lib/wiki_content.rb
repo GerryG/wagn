@@ -5,94 +5,13 @@ require_dependency 'chunk_manager'
 class MissingChunk < StandardError; end
 
 class WikiContent < String
-  class << self
-  ## FIXME:  this is still not quite the right place for clean_html!
-  ##  but it's better than the general string extension library where it was before.
-
-  ## Dictionary describing allowable HTML
-  ## tags and attributes.
-    BASIC_TAGS = {
-      'a' => ['href' ],
-      'img' => ['src', 'alt', 'title'],
-      'br' => [],
-      'i'  => [],
-      'b'  => [],
-      'pre'=> [],
-      'code' => ['lang'],
-      'cite'=> [],
-      'strong'=> [],
-      'em'  => [],
-      'ins' => [],
-      'sup' => [],
-      'sub' => [],
-      'del' => [],
-      'ol' => [],
-      'hr' => [],
-      'ul' => [],
-      'li' => [],
-      'p'  => [],
-      'div'=> [],
-      'h1' => [],
-      'h2' => [],
-      'h3' => [],
-      'h4' => [],
-      'h5' => [],
-      'h6' => [],
-      'blockquote' => ['cite'],
-      'span'=>[],
-      'table'=>[],
-      'tr'=>[],
-      'td'=>[],
-      'th'=>[],
-      'tbody'=>[],
-      'thead'=>[],
-      'tfoot'=>[]
-    }
-
-    BASIC_TAGS.each_key {|k| BASIC_TAGS[k] << 'class' }
-
-      ## Method which cleans the String of HTML tags
-      ## and attributes outside of the allowed list.
-
-      # this has been hacked for wagn to allow classes in spans if
-      # the class begins with "w-"
-    def clean_html!( string, tags = BASIC_TAGS )
-      string.gsub!( /<(\/*)(\w+)([^>]*)>/ ) do
-        raw = $~
-        tag = raw[2].downcase
-        if tags.has_key? tag
-          pcs = [tag]
-          tags[tag].each do |prop|
-            ['"', "'", ''].each do |q|
-              q2 = ( q != '' ? q : '\s' )
-              if prop=='class'
-                if raw[3] =~ /#{prop}\s*=\s*#{q}(w-[^#{q2}]+)#{q}/i
-                  pcs << "#{prop}=\"#{$1.gsub('"', '\\"')}\""
-                  break
-                end
-              elsif raw[3] =~ /#{prop}\s*=\s*#{q}([^#{q2}]+)#{q}/i
-                pcs << "#{prop}=\"#{$1.gsub('"', '\\"')}\""
-                break
-              end
-            end
-          end if tags[tag]
-          "<#{raw[1]}#{pcs.join " "}>"
-        else
-          " "
-        end
-      end
-      string.gsub!(/<\!--.*?-->/, '')
-      string
-    end
-  end
-
   include ChunkManager
   attr_reader :revision, :not_rendered, :pre_rendered, :renderer, :card
 
-  def initialize(card, content, renderer)
+  def initialize content, card_options
     @not_rendered = @pre_rendered = nil
-    @renderer = renderer
-    @card = card or raise "No Card in Content!!"
+    @renderer = card_options[:renderer]
+    @card = card_options[:card] or raise "No Card in Content!!"
     super(content)
     init_chunk_manager()
     ACTIVE_CHUNKS.each do |chunk_type|
@@ -112,15 +31,18 @@ class WikiContent < String
     pre_render!
     while (gsub!(MASK_RE[ACTIVE_CHUNKS]) do
           chunk = @chunks_by_id[$~[1].to_i]
-          chunk.nil? ? $~[0] : ( revert ? chunk.revert : chunk.unmask_text(&block) )
+          r=
+          (chunk.nil? ? $~[0] : ( revert ? chunk.revert : (r1=chunk.unmask_text(&block)) ))
+          Rails.logger.warn "r! #{chunk.class}, #{chunk}, r1:#{r1}, r:#{r}";r
     end) do ; end
-    @obj
     self
   end
 
   def unrender!
     render!( revert = true )
   end
+
+  def each_chunk() @chunks.enum_for(:each) end
 end
 
 

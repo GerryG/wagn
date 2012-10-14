@@ -16,7 +16,7 @@ CONTENT = {
 CLASSES = {
    :one => [String, Literal::Escape, String, Literal::Escape, String, Chunk::Transclude ],
    :two => [String, Chunk::Link, String, Chunk::Transclude, Chunk::Transclude, String, Chunk::Link, String, Chunk::Link, Chunk::Link, Chunk::Transclude ],
-   :three => [String, URIChunk, String, URIChunk, String, URIChunk, String, LocalURIChunk, String, LocalURIChunk, Chunk::Link ]
+   :three => [String, URIChunk, String, URIChunk, String, URIChunk, String, LocalURIChunk, String, LocalURIChunk, String, Chunk::Link ]
 }
 
 RENDERED = {
@@ -33,7 +33,7 @@ RENDERED = {
     "<a class=\"external-link\" href=\"http://wagn.com/a/path/to.html\">wagn.com/a/path/to.html</a>",
     "\n        [ ","<a class=\"external-link\" href=\"http://gerry.wagn.com/a/path\">http://gerry.wagn.com/a/path</a>",
     " ]\n        { ","<a class=\"external-link\" href=\"https://brain/more?args\">https://brain/more?args</a>"," }\n        ",
-    "<a class=\"external-link\" href=\"http://localhost:2020/path?cgi=foo&bar=baz\">http://localhost:2020/path?cgi=foo&bar=baz</a>",
+    "<a class=\"external-link\" href=\"http://localhost:2020/path?cgi=foo&bar=baz\">http://localhost:2020/path?cgi=foo&bar=baz</a>", "  ",
     "<a class=\"external-link\" href=\"http://brain/Home\">extra</a>"]
 }
 
@@ -62,7 +62,6 @@ describe ObjectContent do
     it "should find all the chunks and strings" do
       # note the mixed [} that are considered matching, needs some cleanup ...
       cobj = ObjectContent.new CONTENT[:one], @card_opts
-      cobj.delegate_class.should == Array
       cobj.inject(CLASSES[:one], &@check_classes).should == true
     end
 
@@ -77,14 +76,12 @@ describe ObjectContent do
 
     it "should find all the chunks links and trasclusions" do
       cobj = ObjectContent.new CONTENT[:two], @card_opts
-      cobj.delegate_class.should == Array
       cobj.inject(CLASSES[:two], &@check_classes).should == true
     end
 
     it "should find uri chunks " do
       # tried some tougher cases that failed, don't know the spec, so hard to form better tests for URIs here
       cobj = ObjectContent.new CONTENT[:three], @card_opts
-      cobj.delegate_class.should == Array
       cobj.inject(CLASSES[:three], &@check_classes).should == true
       clist = CLASSES[:three].find_all {|c| String != c }
       cobj.each_chunk do |chk|

@@ -231,12 +231,13 @@ module Wagn
       return content unless card
       content = card.content if content.blank?
 
-      wiki_content = WikiContent.new(card, content, self)
+      wiki_content = WikiContent.new(content, {:renderer=>self, :card=>card} )
       update_references( wiki_content, true ) if card.references_expired
 
-      wiki_content.render! do |opts|
+      r=wiki_content.render! do |opts|
         expand_inclusion(opts) { yield }
       end
+      #Rails.logger.warn "proc c #{wiki_content.class} #{wiki_content}, R:#{r}"; r
     end
 
 
@@ -506,24 +507,15 @@ module Wagn
 
      ### FIXME -- this should not be here!   probably in Card::Reference model?
     def replace_references old_name, new_name
-      #warn "replacing references...card name: #{card.name}, old name: #{old_name}, new_name: #{new_name}"
-      wiki_content = WikiContent.new(card, card.content, self)
+      #Rails.logger.warn "replacing references...card name: #{card.name}, old name: #{old_name}, new_name: #{new_name}"
+      wiki_content = ObjectContent.new(card.content, {:renderer=>self, :card=>card} )
 
-      wiki_content.find_chunks(Chunk::Link).each do |chunk|
-        if chunk.cardname
-          link_bound = chunk.cardname == chunk.link_text
-          chunk.cardname = chunk.cardname.replace_part(old_name, new_name)
-          chunk.link_text=chunk.cardname.to_s if link_bound
-          #Rails.logger.info "repl ref: #{chunk.cardname.to_s}, #{link_bound}, #{chunk.link_text}"
-        end
+      wiki_content.find_chunks(Chunk::Link).select do |chunk|
+        chunk.replace_reference old_name, new_name
       end
 
-      wiki_content.find_chunks(Chunk::Transclude).each do |chunk|
-        chunk.cardname =
-          chunk.cardname.replace_part(old_name, new_name) if chunk.cardname
-      end
-
-      String.new wiki_content.unrender!
+      wiki_content.unrender!
+      WikiContent===wiki_content ? String.new(wiki_content) : wiki_content.to_s
     end
 
     #FIXME -- should not be here.
@@ -532,7 +524,7 @@ module Wagn
       Card::Reference.delete_all ['card_id = ?', card.id]
       card.connection.execute("update cards set references_expired=NULL where id=#{card.id}")
       card.expire if refresh
-      rendering_result ||= WikiContent.new(card, _render_refs, self)
+      rendering_result ||= ObjectContent.new(_render_refs, {:renderer=>self, :card=>card} )
       rendering_result.find_chunks(Chunk::Reference).each do |chunk|
         reference_type =
           case chunk
@@ -540,6 +532,7 @@ module Wagn
             when Chunk::Transclude; chunk.refcard ? TRANSCLUSION : WANTED_TRANSCLUSION
             else raise "Unknown chunk reference class #{chunk.class}"
           end
+        Rails.logger.warn "update ref #{chunk}, #{card.name}, #{chunk.refcardname}, #{reference_type}"
 
         Card::Reference.create!( :card_id=>card.id,
           :referenced_name=> (rc=chunk.refcardname()) && rc.to_key() || '',

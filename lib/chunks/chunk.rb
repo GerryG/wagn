@@ -6,20 +6,6 @@ require 'uri/common'
 # Chunks are initalized by passing in the result of a
 # match by its pattern.
 
-=begin pattern summary:
-      # Groups[4] $1, [$2]: [[$1]] or [[$1|$2]] or $3, $4: [$3][$4]
-      WIKI_LINK = /\[\[#{word}(\|#{word})?\]\]|\[#{word}\]\[#{word}\]/
-      # Groups[1]: $1  (whole thing)
-      # \[[ ... ]] or \{{ .. }}
-      ESCAPE_PATTERN = /(\\((?:\[|\{){2}[^\]\}]*[\]\}]{2})/
-      #  {{+name|attr:val;attr:val;attr:val}}
-      #  Groups: $1, everything (less {{}}), $2 name, $3 options
-      TRANSCLUDE_PATTERN[3] = /\{\{(([^\|]+?)\s*(\|([^\}]+?))?)\}\}/
-
-    LOCAL_URI_REGEXP
-    INTERNET_URI_REGEXP
-=end
-
 module Chunk
   class Abstract
     # the class name part of the mask strings
@@ -58,18 +44,20 @@ module Chunk
       /(.*?)(#{chunk_pattern})/m
     end
 
-    attr_reader :text, :unmask_text, :unmask_mode
+    attr_reader :text, :unmask_text
 
     def initialize match_string, card_params, params
+      #Rails.logger.warn "chunk init M:#{match_string}, P:#{params.inspect}"
       @text = match_string
       @unmask_render = nil
-      #@content = content
-      @unmask_mode = :normal
       @card_params = card_params
     end
-
     def renderer() @card_params[:renderer] end
     def card() @card_params[:card] end
+
+    def to_s
+      @unmask_text || @unmask_render|| @text
+    end
 
     # Find all the chunks of the given type in content
     # Each time the pattern is matched, create a new
@@ -87,14 +75,6 @@ module Chunk
     # should contain only [a-z0-9]
     def mask
       @mask ||= "chunk#{self.object_id}#{self.class.mask_string}chunk"
-    end
-
-    def rendered?
-      @unmask_mode == :normal
-    end
-
-    def escaped?
-      @unmask_mode == :escape
     end
 
     def as_json(options={})

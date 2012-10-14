@@ -6,20 +6,18 @@ module Chunk
       #  Groups: $1, everything (less {{}}), $2 name, $3 options
       TRANSCLUDE_PATTERN = /\{\{(([^\|]+?)\s*(?:\|([^\}]+?))?)\}\}/
       TRANSCLUDE_GROUPS = 3
-    end         
-    
+    end
+
     def self.pattern() TRANSCLUDE_PATTERN end
     def self.groups() TRANSCLUDE_GROUPS end
-  
+
     def initialize match, card_params, params
-      super   
-      #Rails.logger.warn "FOUND TRANSCLUDE #{match_data} #{content}"
+      super
       self.cardname, @options, @configs = a = self.class.parse(match, params)
-      #Rails.logger.info "Chunk::transclude #{a.inspect}"
       @base = card_params[:card]
       @renderer = card_params[:renderer]
     end
-  
+
     def self.parse(match, params)
       name = params[1].strip
       case name
@@ -29,16 +27,16 @@ module Chunk
       end
       options = {
         :tname   =>name,  # this "t" is for transclusion.  should rename
-        
+
         :view  => nil,
         :item  => nil,
         :type  => nil,
         :size  => nil,
-        
+
         :hide  => nil,
         :show  => nil,
         :wild  => nil,
-        
+
         :unmask => params[0] # is this used? yes, by including this in an attrbute
                             # of an xml card, the xml parser can replace the subelements
                             # with the original transclusion notaion: {{options[:unmask]}}
@@ -62,9 +60,9 @@ module Chunk
         end
       end
       options[:style] = style.map{|k,v| CGI.escapeHTML("#{k}:#{v};")}.join
-      [name, options, configs]  
-    end                        
-    
+      [name, options, configs]
+    end
+
     def unmask_text(&block)
       return @unmask_text if @unmask_text
       comment = @options[:comment]
@@ -74,14 +72,19 @@ module Chunk
         view = view.to_sym
       end
       @unmask_render = yield options # this is not necessarily text, sometimes objects for json
+      #Rails.logger.warn "unmask txt #{@unmask_render}, #{options.inspect}"; @unmask_render
     end
 
-    def revert                             
-      configs = @configs.to_semicolon_attr_list;  
+    def revert
+      configs = @configs.to_semicolon_attr_list;
       configs = "|#{configs}" unless configs.blank?
       @text = "{{#{cardname.to_s}#{configs}}}"
       super
     end
-    
+
+    def replace_reference old_name, new_name
+      @cardname=@cardname.replace_part old_name, new_name
+      revert
+    end 
   end
 end

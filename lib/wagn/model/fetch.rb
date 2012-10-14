@@ -114,7 +114,6 @@ module Wagn::Model::Fetch
     end
 
     def set_members set_names, key
-
       #warn Rails.logger.warn("set_members #{set_names.inspect}, #{key}")
       set_names.compact.map(&:to_cardname).map(&:key).map do |set_key|
         skey = "$#{set_key}" # dollar sign avoids conflict with card keys
@@ -126,7 +125,6 @@ module Wagn::Model::Fetch
         end
         h = h.dup if h.frozen?
         h[key] = true
-        #warn Rails.logger.warn("set_members w #{h.inspect}, #{skey.inspect}")
         Card.cache.write skey, h
       end
     end
@@ -135,7 +133,6 @@ module Wagn::Model::Fetch
 
   def expire_pieces
     cardname.piece_names.each do |piece|
-      #warn "clearing for #{piece.inspect}"
       Card.expire piece
     end
   end

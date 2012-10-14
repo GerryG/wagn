@@ -28,10 +28,6 @@ module Chunk
       raise "not found #{index}, #{@@paren_range.inspect}"
     end
 
-    def Abstract::re_range(klass)
-      @@paran_range[klass]
-    end
-
     def Abstract::unmask_re(chunk_types)
       @@paren_range = {}
       pindex = 0
@@ -47,7 +43,7 @@ module Chunk
     attr_reader :text, :unmask_text
 
     def initialize match_string, card_params, params
-      #Rails.logger.warn "chunk init M:#{match_string}, P:#{params.inspect}"
+      #Rails.logger.warn "chunk init M:#{match_string}, C:#{card_params.inspect}, P:#{params.inspect}"
       @text = match_string
       @unmask_render = nil
       @card_params = card_params

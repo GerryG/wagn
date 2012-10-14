@@ -59,7 +59,6 @@ describe Card do
     end
     it "returns universal setting names for non-pointer set" do
       snbg = Card.fetch('*star').setting_names_by_group
-      #warn "snbg #{snbg.class} #{snbg.inspect}"
       snbg.keys.length.should == 4
       snbg.keys.first.should be_a Symbol
       snbg.keys.member?( :pointer ).should_not be_true
@@ -68,18 +67,13 @@ describe Card do
     it "returns pointer-specific setting names for pointer card (*type)" do
       # was this test wrong before?  What made Fruit a pointer without this?
       Session.as_bot do
-        Rails.logger.info "testing point 0"
-        c1=Card.create! :name=>'Fruit+*type+*default', :type=>'Pointer'
-        #warn (Rails.logger.info "testing point 1 #{c1.inspect}")
+        Card.create! :name=>'Fruit+*type+*default', :type=>'Pointer'
         Card.create! :name=>'Pointer+*type'
       end
       c2 = Card.fetch('Fruit+*type')
-      #warn(Rails.logger.info "testing point 2 #{c2.inspect}")
       snbg = c2.setting_names_by_group
-      #warn "snbg #{snbg.class}, #{snbg.inspect}"
       snbg[:pointer].map(&:to_s).should == @pointer_settings
       c3 = Card.fetch('Pointer+*type')
-      #warn(Rails.logger.info "testing point 3 #{c3.inspect}")
       snbg = c3.setting_names_by_group
       snbg[:pointer].map(&:to_s).should == @pointer_settings
     end
@@ -99,16 +93,12 @@ describe Card do
     end
 
     it "returns list of card names for search" do
-      c = Card.new( :name=>"foo", :type=>"Search", :content => %[{"name":"Z"}])
-      #warn "card is #{c.inspect}"
-      c.item_names.should == ["Z"]
+      Card.new( :name=>"foo", :type=>"Search", :content => %[{"name":"Z"}]).item_names.should == ["Z"]
     end
     
     it "handles searches relative to context card" do
       # note: A refers to 'Z'
-      c = Card.new :name=>"foo", :type=>"Search", :content => %[{"referred_to_by":"_self"}]
-      #warn "card is #{c.inspect}"
-      c.item_names( :context=>'A' ).should == ["Z"]
+      Card.new :name=>"foo", :type=>"Search", :content => %[{"referred_to_by":"_self"}].item_names( :context=>'A' ).should == ["Z"]
     end
   end
   

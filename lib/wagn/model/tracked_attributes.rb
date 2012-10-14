@@ -31,7 +31,7 @@ module Wagn::Model::TrackedAttributes
     reset_patterns_if_rule # reset the new name
 
     Card.expire cardname
-    Rails.logger.info "just expired #{cardname}"
+    #Rails.logger.info "just expired #{cardname}"
 
     if @cardname.junction?
       [:trunk, :tag].each do |side|
@@ -166,7 +166,7 @@ module Wagn::Model::TrackedAttributes
 
           ActiveRecord::Base.logger.debug "------------------ UPDATE REFERER #{card.name}  ------------------------"
           next if card.hard_template
-          card.content = Wagn::Renderer.new(card, :not_current=>true).replace_references( @old_name, name )
+          card.content = card.replace_references( @old_name, name )
           card.save! unless card==self
         end
       end

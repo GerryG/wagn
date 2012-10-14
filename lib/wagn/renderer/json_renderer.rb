@@ -103,7 +103,7 @@ module Wagn
   end
 
   def process_content content=nil, opts={}
-    Rails.logger.warn "process_content #{content.class}, #{content}, #{opts.inspect}, Cd:#{card&&card.content}"
+    #Rails.logger.warn "process_content #{content.class}, #{content}, #{opts.inspect}, Cd:#{card&&card.content}"
     return content unless card
     content = card.content if content.blank?
 

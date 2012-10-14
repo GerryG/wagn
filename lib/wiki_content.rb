@@ -31,9 +31,7 @@ class WikiContent < String
     pre_render!
     while (gsub!(MASK_RE[ACTIVE_CHUNKS]) do
           chunk = @chunks_by_id[$~[1].to_i]
-          r=
-          (chunk.nil? ? $~[0] : ( revert ? chunk.revert : (r1=chunk.unmask_text(&block)) ))
-          Rails.logger.warn "r! #{chunk.class}, #{chunk}, r1:#{r1}, r:#{r}";r
+          chunk.nil? ? $~[0] : ( revert ? chunk.revert : chunk.unmask_text(&block))
     end) do ; end
     self
   end

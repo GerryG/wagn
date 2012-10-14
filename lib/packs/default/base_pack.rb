@@ -4,10 +4,10 @@ class Wagn::Renderer
   # update_references based on _render_refs, which is the same as
   # _render_raw, except that you don't need to alias :refs as often
   # speeding up the process when there can't be any reference changes
-  # (builtins, etc.)
+  # (builtins, etc.) (moved update_references to a card model module, so this isn't needed now)
+  #define_view :refs     do |args|  card.respond_to?('references_expired') ? card.raw_content : ''   end
 
   define_view :raw      do |args|  card ? card.raw_content : _render_blank                          end
-  define_view :refs     do |args|  card.respond_to?('references_expired') ? card.raw_content : ''   end
   define_view :core     do |args|  process_content _render_raw                                      end
   define_view :content  do |args|  _render_core                                                     end
     # this should be done as an alias, but you can't make an alias with an unknown view,

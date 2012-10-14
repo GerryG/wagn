@@ -1,11 +1,9 @@
 # -*- encoding : utf-8 -*-
 module ReferenceTypes
-  unless defined? LINK
-    LINK = 'L'
-    WANTED_LINK = 'W'
-    TRANSCLUSION = 'T'
-    WANTED_TRANSCLUSION = 'M'
-  end
+  LINK = 'L'
+  WANTED_LINK = 'W'
+  TRANSCLUSION = 'T'
+  WANTED_TRANSCLUSION = 'M'
 end  
 
 

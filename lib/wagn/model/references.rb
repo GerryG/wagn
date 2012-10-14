@@ -1,4 +1,5 @@
 module Wagn::Model::References
+  include ReferenceTypes
 
   def name_referencers(rname = key)
     Card.find_by_sql(
@@ -11,29 +12,38 @@ module Wagn::Model::References
     (dependents + [self]).plot(:referencers).flatten.uniq
   end
 
-  protected
+  def replace_references old_name, new_name
+    #Rails.logger.warn "replacing references...card name: #{name}, old name: #{old_name}, new_name: #{new_name}"
+    wiki_content = ObjectContent.new(content, {:card=>self} )
 
-  def update_references_on_create
-    Card::Reference.update_on_create(self)
-
-    # FIXME: bogus blank default content is set on hard_templated cards...
-    Session.as_bot do
-      Wagn::Renderer.new(self, :not_current=>true).update_references
+    wiki_content.find_chunks(Chunk::Link).select do |chunk|
+      #Rails.logger.warn "rr... #{chunk}, old name: #{old_name}, new_name: #{new_name}"
+      chunk.replace_reference old_name, new_name
     end
-    expire_templatee_references
+
+    wiki_content.unrender!
+    WikiContent===wiki_content ? String.new(wiki_content) : wiki_content.to_s
   end
 
-  def update_references_on_update
-    Wagn::Renderer.new(self, :not_current=>true).update_references
-    expire_templatee_references
+  def update_references rendering_result = nil, refresh = false
+    return unless id
+    Card::Reference.delete_all ['card_id = ?', id]
+    connection.execute("update cards set references_expired=NULL where id=#{id}")
+    expire if refresh
+    content = respond_to?('references_expired') ? raw_content : ''
+    rendering_result ||= ObjectContent.new(content, {:card=>self} )
+    rendering_result.find_chunks(Chunk::Reference).each do |chunk|
+      reference_type =
+        case chunk
+          when Chunk::Link;       chunk.reference_card ? LINK : WANTED_LINK
+          when Chunk::Transclude; chunk.reference_card ? TRANSCLUSION : WANTED_TRANSCLUSION
+          else raise "Unknown chunk reference class #{chunk.class}"
+        end
+
+      Card::Reference.create!( :card_id=>id, :referenced_name=> chunk.reference_name,
+        :referenced_card_id=> chunk.reference_id, :link_type=>reference_type )
+    end
   end
-
-  def update_references_on_destroy
-    Card::Reference.update_on_destroy(self)
-    expire_templatee_references
-  end
-
-
 
   def self.included(base)
     super
@@ -56,6 +66,28 @@ module Wagn::Model::References
       after_update :update_references_on_update
 
     end
-
   end
+
+  protected
+
+  def update_references_on_create
+    Card::Reference.update_on_create(self)
+
+    # FIXME: bogus blank default content is set on hard_templated cards...
+    Session.as_bot do
+      self.update_references
+    end
+    expire_templatee_references
+  end
+
+  def update_references_on_update
+    self.update_references
+    expire_templatee_references
+  end
+
+  def update_references_on_destroy
+    Card::Reference.update_on_destroy(self)
+    expire_templatee_references
+  end
+
 end

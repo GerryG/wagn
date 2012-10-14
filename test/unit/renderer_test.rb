@@ -16,8 +16,7 @@ class Wagn::RendererTest < ActiveSupport::TestCase
 
   def test_replace_references_should_work_on_inclusions_inside_links       
     card = Card.create!(:name=>"test", :content=>"[[test_card|test{{test}}]]"  )    
-    # move to references: card.replace_references( "test", "best" ); assert_equal "[[test_card|test{{best}}]]", card.content
-    assert_equal "[[test_card|test{{best}}]]", Wagn::Renderer.new(card).replace_references( "test", "best" )
+    assert_equal "[[test_card|test{{best}}]]", card.replace_references( "test", "best" )
   end
 
   def controller

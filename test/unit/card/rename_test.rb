@@ -23,7 +23,6 @@ class Card::RenameTest < ActiveSupport::TestCase
       Card.create! :type=>"Cardtype", :name=>"Dairy", :content => "[[/new/{{_self|name}}|new]]"
 
       c3, c4 = Card["chuck_wagn+chuck"], Card["chuck"]
-      Rails.logger.info "testing point 0 #{c3.right}, #{c3}, #{c4}"
     end
     setup_default_user      
     super           

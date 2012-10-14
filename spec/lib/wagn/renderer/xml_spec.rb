@@ -427,17 +427,4 @@ describe Wagn::Renderer::Xml, "" do
       xml_render_content('{{+cardipoo|open}}').match(/\<no_card status=\"missing\"\>Tempo Rary 2\+cardipoo\<\/no_card\>/ ).should_not be_nil
     end
   end
-
-
-  context "replace refs" do
-    before do
-      Session.user= Card::WagnBotID
-    end
-  
-    it "replace references should work on inclusions inside links" do       
-      card = Card.create!(:name=>"test", :content=>"[[testcard|test{{test}}]]"  )    
-      assert_equal "[[testcard|test{{best}}]]", Wagn::Renderer::Xml.new(card).replace_references("test", "best" )
-    end                                                                                                
-  end
-
 end

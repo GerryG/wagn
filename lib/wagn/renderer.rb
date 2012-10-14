@@ -1,6 +1,5 @@
 module Wagn
   class Renderer
-    include ReferenceTypes
     include LocationHelper
 
     DEPRECATED_VIEWS = { :view=>:open, :card=>:open, :line=>:closed, :bare=>:core, :naked=>:core }
@@ -232,7 +231,7 @@ module Wagn
       content = card.content if content.blank?
 
       wiki_content = WikiContent.new(content, {:renderer=>self, :card=>card} )
-      update_references( wiki_content, true ) if card.references_expired
+      card.update_references( wiki_content, true )
 
       r=wiki_content.render! do |opts|
         expand_inclusion(opts) { yield }
@@ -502,44 +501,6 @@ module Wagn
 
     def page_icon cardname
       link_to_page '&nbsp;'.html_safe, cardname, {:class=>'page-icon', :title=>"Go to: #{cardname.to_s}"}
-    end
-
-
-     ### FIXME -- this should not be here!   probably in Card::Reference model?
-    def replace_references old_name, new_name
-      #Rails.logger.warn "replacing references...card name: #{card.name}, old name: #{old_name}, new_name: #{new_name}"
-      wiki_content = ObjectContent.new(card.content, {:renderer=>self, :card=>card} )
-
-      wiki_content.find_chunks(Chunk::Link).select do |chunk|
-        chunk.replace_reference old_name, new_name
-      end
-
-      wiki_content.unrender!
-      WikiContent===wiki_content ? String.new(wiki_content) : wiki_content.to_s
-    end
-
-    #FIXME -- should not be here.
-    def update_references rendering_result = nil, refresh = false
-      return unless card && card.id
-      Card::Reference.delete_all ['card_id = ?', card.id]
-      card.connection.execute("update cards set references_expired=NULL where id=#{card.id}")
-      card.expire if refresh
-      rendering_result ||= ObjectContent.new(_render_refs, {:renderer=>self, :card=>card} )
-      rendering_result.find_chunks(Chunk::Reference).each do |chunk|
-        reference_type =
-          case chunk
-            when Chunk::Link;       chunk.refcard ? LINK : WANTED_LINK
-            when Chunk::Transclude; chunk.refcard ? TRANSCLUSION : WANTED_TRANSCLUSION
-            else raise "Unknown chunk reference class #{chunk.class}"
-          end
-        Rails.logger.warn "update ref #{chunk}, #{card.name}, #{chunk.refcardname}, #{reference_type}"
-
-        Card::Reference.create!( :card_id=>card.id,
-          :referenced_name=> (rc=chunk.refcardname()) && rc.to_key() || '',
-          :referenced_card_id=> chunk.refcard ? chunk.refcard.id : nil,
-          :link_type=>reference_type
-         )
-      end
     end
   end
 

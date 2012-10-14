@@ -160,9 +160,10 @@ class Card < ActiveRecord::Base
   end
 
   def reset_mods
+    #does this really do anything if it doesn't reset @set_modules???  can we get rid of this?
     @set_mods_loaded=false
   end
-  
+
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   # STATES
 
@@ -186,7 +187,7 @@ class Card < ActiveRecord::Base
       args[:type_id] = Card.fetch_id( newtype )
     end
     reset_patterns
-    
+
     super args, options
   end
 
@@ -228,7 +229,7 @@ class Card < ActiveRecord::Base
 
   def base_before_save
     if self.respond_to?(:before_save) and self.before_save == false
-      errors.add(:save, "could not prepare card for destruction") #fixme - screwy error handling!!  
+      errors.add(:save, "could not prepare card for destruction") #fixme - screwy error handling!!
       return false
     end
   end
@@ -350,11 +351,6 @@ class Card < ActiveRecord::Base
   def left()      Card.fetch cardname.left_name   end
   def right()     Card.fetch cardname.tag_name    end
 
-#  def key
-#    cardname.key
-#  end
-  # DISLIKE - how do we access db key?
-
   def dependents
     return [] if new_card?
     Session.as_bot do
@@ -364,7 +360,7 @@ class Card < ActiveRecord::Base
     end
   end
 
-  def repair_key # this will not work unless we have access to the db key
+  def repair_key
     Session.as_bot do
       correct_key = cardname.to_key
       current_key = key
@@ -597,6 +593,14 @@ class Card < ActiveRecord::Base
     @cardname ||= name.to_cardname
   end
 
+  def autoname name
+    if Card.exists? name
+      autoname name.next
+    else
+      name
+    end
+  end
+
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   # VALIDATIONS
 
@@ -617,7 +621,7 @@ class Card < ActiveRecord::Base
       if autoname_card = rec.rule_card(:autoname)
         Session.as_bot do
           autoname_card = autoname_card.refresh if autoname_card.frozen?
-          value = rec.name = Card.autoname(autoname_card.content)
+          value = rec.name = rec.autoname( autoname_card.content )
           autoname_card.content = value  #fixme, should give placeholder on new, do next and save on create
           autoname_card.save!
         end
@@ -652,6 +656,7 @@ class Card < ActiveRecord::Base
       end
 
       # require confirmation for renaming multiple cards
+      # FIXME - none of this should happen in the model.
       if !rec.confirm_rename
         pass = true
         if !rec.dependents.empty?

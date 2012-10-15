@@ -102,50 +102,5 @@ module Wagn
     lo_card.content
   end
 
-  def process_content content=nil, opts={}
-    #Rails.logger.warn "process_content #{content.class}, #{content}, #{opts.inspect}, Cd:#{card&&card.content}"
-    return content unless card
-    content = card.content if content.blank?
-
-    obj_content = ObjectContent===content ? content : ObjectContent.new(content, {:card=>card, :renderer=>self})
-    update_references( obj_content, true ) if card.references_expired # I thik we need this genralized
-
-    obj_content.render! do |opts|
-      expand_inclusion(opts) { yield }
-    end
-  end
-
-  def process_inclusion tcard, options
-    sub = subrenderer( tcard,
-      :item_view =>options[:item],
-      :type      =>options[:type],
-      :size      =>options[:size],
-      :showname  =>(options[:showname] || tcard.name)
-    )
-    oldrenderer, Renderer.current_slot = Renderer.current_slot, sub
-    # don't like depending on this global var switch
-    # I think we can get rid of it as soon as we get rid of the remaining rails views?
-
-    view = (options[:view] || :content).to_sym
-
-    options[:home_view] = [:closed, :edit].member?(view) ? :open : view
-    # FIXME: special views should be represented in view definitions
-
-    if @@perms[view] != :none
-      view = case @mode
-
-        when :closed;    !tcard.known?  ? :closed_missing : :closed_content
-        when :edit  ;    tcard.virtual? ? :edit_virtual   : :edit_in_form
-        # FIXME should be concerned about templateness, not virtualness per se
-        # needs to handle real cards that are hard templated much better
-        else        ;    view
-        end
-    end
-
-    result = sub.render(view, options)
-    Renderer.current_slot = oldrenderer
-    result
-  end
-
  end
 end

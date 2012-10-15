@@ -1,7 +1,7 @@
 class Wagn::Renderer
   class Html
     define_view :core, :type=>'plain_text' do |args|
-      process_content( CGI.escapeHTML _render_raw )
+      process_content_s( CGI.escapeHTML _render_raw )
     end
   end
 

@@ -13,7 +13,6 @@ class ObjectContent < SimpleDelegator
   def initialize content, card_options
     @card_options = card_options
     @card_options[:card] or raise "No Card in Content!!"
-    raise "type #{content.class}" if ObjectContent===content
     super ChunkManager.split_content(card_options, content)
   end
 
@@ -31,9 +30,16 @@ class ObjectContent < SimpleDelegator
   end
 
   def to_s
-    case __getobj__
-    when Array; map(&:to_s)*''
-    else self.to_s
+    sz=''
+    Rails.logger.warn "OCont#to_s: #{__getobj__.class}"
+    s=case __getobj__
+    when Array;
+      sz="#{length}, #{map(&:class)*', '}"
+      map(&:to_s)*''
+    when String; sz=size; __getobj__
+    when NilClass; raise "Nil ObjContent"
+    else
+      __getobj__.to_s
     end
   end
 
@@ -42,6 +48,5 @@ class ObjectContent < SimpleDelegator
     self
   end
 
-  # do we use this in object_content?  Maybe not.
   def unrender!() ; end
 end

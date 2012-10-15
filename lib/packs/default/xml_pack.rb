@@ -14,7 +14,7 @@ class Wagn::Renderer::Xml < Wagn::Renderer
     args[:action]="view"
     args[:relative_content] = args[:params] = params
 
-    process_content(layout_content, args)
+    process_content layout_content, args
   end
 
   define_view(:content) do |args|

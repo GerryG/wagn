@@ -14,7 +14,7 @@ class Wagn::Renderer::JsonRenderer < Wagn::Renderer
     args[:action]="view"
     args[:relative_content] = args[:params] = params
 
-    process_content(layout_content, args)
+    process_content layout_content, args
   end
 
   define_view :show,     :perms=>:none  do |args| render( args[:view] || params[:view] || :core ) end

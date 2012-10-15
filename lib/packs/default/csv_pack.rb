@@ -12,7 +12,7 @@ class Wagn::Renderer::Csv
   
   define_view :csvrow do |args|
     _render_raw.scan( /{{[^}]*}}/ ).map do |inc|
-      process_content( inc ).strip
+      process_content_s( inc ).strip
     end.to_csv.chop
     #chop is because search already joins with newlines
   end

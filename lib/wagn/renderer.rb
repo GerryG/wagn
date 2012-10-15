@@ -226,17 +226,20 @@ module Wagn
       self
     end
 
+    def process_content_s content=nil, opts={}
+      process_content(content, opts).to_s
+    end
+
     def process_content content=nil, opts={}
       return content unless card
       content = card.content if content.blank?
 
-      wiki_content = WikiContent.new(content, {:renderer=>self, :card=>card} )
-      card.update_references( wiki_content, true )
+      obj_content = ObjectContent===content ? content : ObjectContent.new(content, {:card=>card, :renderer=>self})
+      card.update_references( obj_content, true ) if card.references_expired # I thik we need this genralized
 
-      r=wiki_content.render! do |opts|
+      obj_content.render! do |opts|
         expand_inclusion(opts) { yield }
       end
-      #Rails.logger.warn "proc c #{wiki_content.class} #{wiki_content}, R:#{r}"; r
     end
 
 
@@ -330,7 +333,8 @@ module Wagn
       included_card = Card.fetch_or_new fullname, ( @mode==:edit ? new_inclusion_card_args(opts) : {} )
 
       result = process_inclusion included_card, opts
-      @char_count += (result ? result.length : 0) #FIXME: result.length isn't really right with objects
+      raise "no result? " if result.nil?
+      #@char_count += (result.respond_to?(:size) ? result.length : 0) #FIXME: result.length isn't really right with objects
       result
     rescue Card::PermissionDenied
       ''
@@ -381,7 +385,7 @@ module Wagn
           end
       end
 
-      result = raw sub.render( view, options )
+      result = sub.render(view, options)
       Renderer.current_slot = oldrenderer
       result
     end

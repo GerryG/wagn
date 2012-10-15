@@ -34,15 +34,12 @@ module ChunkManager
 
   # for objet_content, it uses this instead of the apply_to by chunk type
   def self.split_content card_params, content
-    if String===content
-      return if (arr = content.to_s.scan SCAN_RE[ACTIVE_CHUNKS]).empty?
-      #Rails.logger.warn "scan arr: #{arr.size}, #{arr.map(&:size)*', '}, AR:#{arr.inspect}"
+    if String===content and !(arr = content.to_s.scan SCAN_RE[ACTIVE_CHUNKS]).empty?
       content = arr.map do |match_arr|
           pre_chunk = match_arr.shift; match = match_arr.shift
           match_index = match_arr.index {|x| !x.nil? }
           chunk_class, range = Chunk::Abstract.re_class(match_index)
           chunk_params = match_arr[range]
-          #Rails.logger.warn "scan map #{match_index.inspect}, #{chunk_class}, #{chunk_params.inspect}"
           newck = chunk_class.new match, card_params, chunk_params
           pre_chunk.nil? || pre_chunk=='' ? newck : [pre_chunk, newck]
         end.flatten.compact

@@ -35,11 +35,10 @@ module Chunk
 
     def replace_reference old_name, new_name
       @cardname=@cardname.replace_part old_name, new_name if @cardname
-      case self.link_text
-        when ObjectContent, WikiContent
-              self.link_text.find_chunks(Chunk::Reference).each {|chunk| chunk.replace_reference old_name, new_name}
-        else
-          self.link_text = new_name if old_name == self.link_text
+      if ObjectContent===self.link_text
+        self.link_text.find_chunks(Chunk::Reference).each {|chunk| chunk.replace_reference old_name, new_name}
+      else
+        self.link_text = new_name if old_name == self.link_text
       end
       revert
     end 

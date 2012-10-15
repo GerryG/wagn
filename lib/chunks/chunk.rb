@@ -43,7 +43,6 @@ module Chunk
     attr_reader :text, :unmask_text
 
     def initialize match_string, card_params, params
-      #Rails.logger.warn "chunk init M:#{match_string}, C:#{card_params.inspect}, P:#{params.inspect}"
       @text = match_string
       @unmask_render = nil
       @card_params = card_params

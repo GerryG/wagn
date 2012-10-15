@@ -66,7 +66,7 @@ module Chunk
     def unmask_text(&block)
       return @unmask_text if @unmask_text
       comment = @options[:comment]
-      return comment if comment
+      return @unmask_text=comment if comment
       refcardname
       if view = @options[:view]
         view = view.to_sym

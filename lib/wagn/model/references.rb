@@ -14,15 +14,15 @@ module Wagn::Model::References
 
   def replace_references old_name, new_name
     #Rails.logger.warn "replacing references...card name: #{name}, old name: #{old_name}, new_name: #{new_name}"
-    wiki_content = ObjectContent.new(content, {:card=>self} )
+    obj_content = ObjectContent.new(content, {:card=>self} )
 
-    wiki_content.find_chunks(Chunk::Link).select do |chunk|
+    obj_content.find_chunks(Chunk::Link).select do |chunk|
       #Rails.logger.warn "rr... #{chunk}, old name: #{old_name}, new_name: #{new_name}"
       chunk.replace_reference old_name, new_name
     end
 
-    wiki_content.unrender!
-    WikiContent===wiki_content ? String.new(wiki_content) : wiki_content.to_s
+    obj_content.unrender!
+    obj_content.to_s
   end
 
   def update_references rendering_result = nil, refresh = false

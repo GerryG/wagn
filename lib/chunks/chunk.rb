@@ -8,17 +8,6 @@ require 'uri/common'
 
 module Chunk
   class Abstract
-    # the class name part of the mask strings
-    def self.mask_string
-      self.to_s.delete(':').downcase
-    end
-
-    # a regexp that matches all chunk_types masks
-    def Abstract::mask_re chunk_types
-      chunk_classes = chunk_types.map(&:mask_string)*"|"
-      /chunk(-?\d+)(#{chunk_classes})chunk/
-    end
-
     def Abstract::re_class(index)
       @@paren_range.each do |chunk_class, range|
         if range.cover? index
@@ -52,24 +41,6 @@ module Chunk
 
     def to_s
       @unmask_text || @unmask_render|| @text
-    end
-
-    # Find all the chunks of the given type in content
-    # Each time the pattern is matched, create a new
-    # chunk for it, and replace the occurance of the chunk
-    # in this content with its mask.
-    def self.apply_to content
-      content.gsub!( self.pattern ) do |match|
-        chk_params = $~.to_a; mch = chk_params.shift
-        new_chunk = self.new(mch, {:card=>content.card, :renderer=>content.renderer}, chk_params)
-        content.add_chunk new_chunk
-        new_chunk.mask
-      end
-    end
-
-    # should contain only [a-z0-9]
-    def mask
-      @mask ||= "chunk#{self.object_id}#{self.class.mask_string}chunk"
     end
 
     def as_json(options={})

@@ -13,23 +13,9 @@ module ChunkManager
     ACTIVE_CHUNKS =
       [ Literal::Escape, Chunk::Transclude, Chunk::Link, URIChunk, LocalURIChunk ]
 
-    MASK_RE = {
-      ACTIVE_CHUNKS => Chunk::Abstract.mask_re(ACTIVE_CHUNKS)
-    }
-
     SCAN_RE = {
       ACTIVE_CHUNKS => Chunk::Abstract.unmask_re(ACTIVE_CHUNKS)
     }
-  end
-
-  def init_chunk_manager
-    @chunks_by_type = Hash.new
-    ACTIVE_CHUNKS.each{|chunk_type|
-      @chunks_by_type[chunk_type] = Array.new
-    }
-    @chunks_by_id = Hash.new
-    @chunks = []
-    @chunk_id = 0
   end
 
   # for objet_content, it uses this instead of the apply_to by chunk type
@@ -47,27 +33,6 @@ module ChunkManager
       content << remainder if remainder.to_s != ''
     end
     content
-  end
-
-  def add_chunk chunk
-    @chunks_by_type[chunk.class] << chunk
-    @chunks_by_id[chunk.object_id] = chunk
-    @chunks << chunk
-    @chunk_id += 1
-  end
-
-  def delete_chunk chunk
-    @chunks_by_type[chunk.class].delete chunk
-    @chunks_by_id.delete chunk.object_id
-    @chunks.delete chunk
-  end
-
-  def merge_chunks other
-    other.chunks.each{|chunk| add_chunk(chunk)}
-  end
-
-  def scan_chunkid text
-    text.scan(MASK_RE[ACTIVE_CHUNKS]){|a| yield a[0] }
   end
 
   def find_chunks chunk_type

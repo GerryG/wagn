@@ -9,7 +9,6 @@ module ChunkTestHelper
     def initialize(str)
       super
       @renderer = Wagn::Renderer::Html.new(nil)
-      init_chunk_manager
     end             
     
     def card

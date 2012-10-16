@@ -85,6 +85,6 @@ module Chunk
     def replace_reference old_name, new_name
       @cardname=@cardname.replace_part old_name, new_name
       revert
-    end 
+    end
   end
 end

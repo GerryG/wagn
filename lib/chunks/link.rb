@@ -41,6 +41,6 @@ module Chunk
         self.link_text = new_name if old_name == self.link_text
       end
       revert
-    end 
+    end
   end
 end

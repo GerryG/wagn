@@ -4,8 +4,8 @@ describe Card, "Case Variant" do
   before do
     Session.as :joe_user
     @c = Card.create! :name=>'chump'
-  end             
-  
+  end
+
   it "should be able to change to a capitalization" do
     @c.name = 'Chump'
     @c.save!
@@ -30,18 +30,18 @@ describe Wagn::Cardname, "changing from plus card to simple" do
     @c.name = 'nine'
     @c.confirm_rename = true
     @c.save
-  end  
-  
+  end
+
   it "should erase trunk and tag ids" do
     @c.trunk_id.should== nil
     @c.tag_id.should== nil
   end
-  
+
   describe "template_name?" do
     it "returns true for template" do
       "bazoinga+*right+*content".to_cardname.template_name?.should be_true
     end
-    
+
     it "returns false for non-template" do
       "bazoinga+*right+nontent".to_cardname.template_name?.should be_false
     end

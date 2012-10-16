@@ -21,7 +21,6 @@ module Wagn::Model::References
       chunk.replace_reference old_name, new_name
     end
 
-    obj_content.unrender!
     obj_content.to_s
   end
 

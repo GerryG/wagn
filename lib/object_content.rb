@@ -63,8 +63,8 @@ class ObjectContent < SimpleDelegator
     each_chunk.select { |chunk| chunk.kind_of?(chunk_type) }
   end
 
-  def render!( revert = false, &block)
-    each_chunk { |chunk| chunk.unmask_text(&block) }
+  def process_content &block
+    each_chunk { |chunk| chunk.unmask_text &block }
     self
   end
 

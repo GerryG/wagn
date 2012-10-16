@@ -27,12 +27,6 @@ module Chunk
       @unmask_text ||= render_link
     end
 
-    def revert
-      @text = self.link_text.nil? || cardname == self.link_text ? "[[#{cardname.to_s}]]" : "[[#{cardname.to_s}|#{self.link_text}]]"
-      #Rails.logger.warn "revert link #{@text} #{cardname.to_s}, #{self.link_text}"
-      super
-    end
-
     def replace_reference old_name, new_name
       @cardname=@cardname.replace_part old_name, new_name if @cardname
       if ObjectContent===self.link_text
@@ -40,7 +34,7 @@ module Chunk
       else
         self.link_text = new_name if old_name == self.link_text
       end
-      revert
+      @text = self.link_text.nil? || cardname == self.link_text ? "[[#{cardname.to_s}]]" : "[[#{cardname.to_s}|#{self.link_text}]]"
     end
   end
 end

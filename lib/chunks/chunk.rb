@@ -46,11 +46,5 @@ module Chunk
     def as_json(options={})
       @unmask_text || @unmask_render|| "not rendered #{self.class}, #{card and card.name}"
     end
-
-    def revert
-      @text
-    end
   end
-
 end
-

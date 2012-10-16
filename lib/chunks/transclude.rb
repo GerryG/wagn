@@ -75,16 +75,11 @@ module Chunk
       #Rails.logger.warn "unmask txt #{@unmask_render}, #{options.inspect}"; @unmask_render
     end
 
-    def revert
+    def replace_reference old_name, new_name
+      @cardname=@cardname.replace_part old_name, new_name
       configs = @configs.to_semicolon_attr_list;
       configs = "|#{configs}" unless configs.blank?
       @text = "{{#{cardname.to_s}#{configs}}}"
-      super
-    end
-
-    def replace_reference old_name, new_name
-      @cardname=@cardname.replace_part old_name, new_name
-      revert
     end
   end
 end

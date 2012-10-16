@@ -114,14 +114,14 @@ describe ObjectContent do
     it "should render all transcludes" do
       cobj = ObjectContent.new CONTENT[:one], @card_opts
       cobj.as_json.to_s.should match /not rendered/
-      cobj.render!(&@render_block)
+      cobj.process_content &@render_block
       (rdr=cobj.as_json.to_json).should_not match /not rendered/
       rdr.should == RENDERED[:one].to_json
     end
 
     it "should render links and transclusions" do
       cobj = ObjectContent.new CONTENT[:two], @card_opts
-      cobj.render!(&@render_block)
+      cobj.process_content &@render_block
       (rdr=cobj.as_json.to_json).should_not match /not rendered/
       rdr.should == RENDERED[:two].to_json
     end
@@ -129,7 +129,7 @@ describe ObjectContent do
     it "should not need rendering if no transclusions" do
       cobj = ObjectContent.new CONTENT[:three], @card_opts
       (rdr=cobj.as_json.to_json).should match /not rendered/ # links are rendered too, but not with a block
-      cobj.render! # shouldn't need a block, no transclusions
+      cobj.process_content &@render_block
       (rdr=cobj.as_json.to_json).should_not match /not rendered/
       rdr.should == RENDERED[:three].to_json
     end

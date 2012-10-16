@@ -237,7 +237,7 @@ module Wagn
       obj_content = ObjectContent===content ? content : ObjectContent.new(content, {:card=>card, :renderer=>self})
       card.update_references( obj_content, true ) if card.references_expired # I thik we need this genralized
 
-      obj_content.render! do |opts|
+      obj_content.process_content do |opts|
         expand_inclusion(opts) { yield }
       end
     end

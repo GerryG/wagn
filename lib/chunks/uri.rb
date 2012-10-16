@@ -88,7 +88,7 @@ class URIChunk < Chunk::Abstract
     super
     @link_text = match
     @suspicious_preceding_character = params[0]
-    @original_scheme, @user, @host, @port, @path, @query, @fragment = params[1..-1]
+    @original_scheme, @user, @host, @port, @path, @query, @fragment, rest = params[1..-1]
     treat_trailing_character
     @unmask_text = self.renderer ? "#{self.renderer.build_link(self.uri,@link_text)}#{@trailing_punctuation}" : @text
   end
@@ -138,7 +138,7 @@ class URIChunk < Chunk::Abstract
 
   def uri
     [scheme, scheme_delimiter, user, user_delimiter, host, port_delimiter, port, path,
-      query_delimiter, query, fragment].compact.join
+      query_delimiter, query, fragment] * ''
   end
 
 end

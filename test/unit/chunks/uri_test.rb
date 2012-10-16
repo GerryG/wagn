@@ -5,8 +5,8 @@ require 'chunks/uri'
 
 class URITest < ActiveSupport::TestCase
   def test_non_matches
-    assert_conversion_does_not_apply(URIChunk, 'There is no URI here')
-    assert_conversion_does_not_apply(URIChunk, 
+    no_match(URIChunk, 'There is no URI here')
+    no_match(URIChunk, 
         'One gemstone is the garnet:reddish in colour, like ruby') 
   end
 
@@ -144,12 +144,12 @@ class URITest < ActiveSupport::TestCase
   end
 
   def test_textile_image
-    assert_conversion_does_not_apply(URIChunk, 
+    no_match(URIChunk, 
              'This !http://hobix.com/sample.jpg! is a Textile image link.')
   end
 
   def test_textile_link
-    assert_conversion_does_not_apply(URIChunk, 
+    no_match(URIChunk, 
              'This "hobix (hobix)":http://hobix.com/sample.jpg is a Textile link.')
     # just to be sure ...
     match(URIChunk, 'This http://hobix.com/sample.jpg should match', 
@@ -157,24 +157,24 @@ class URITest < ActiveSupport::TestCase
   end
   
   def test_inline_html
-    assert_conversion_does_not_apply(URIChunk, '<IMG SRC="http://hobix.com/sample.jpg">')
-    assert_conversion_does_not_apply(URIChunk, "<img src='http://hobix.com/sample.jpg'/>")
+    no_match(URIChunk, '<IMG SRC="http://hobix.com/sample.jpg">')
+    no_match(URIChunk, "<img src='http://hobix.com/sample.jpg'/>")
   end
 
   def test_non_uri
     # "so" is a valid country code; "libproxy.so" is a valid url
     match(URIChunk, 'libproxy.so', :link_text => 'libproxy.so')
 
-    assert_conversion_does_not_apply URIChunk, 'httpd.conf'
+    no_match URIChunk, 'httpd.conf'
     # THIS ONE'S BUSTED.. Ethan fix??
-    #assert_conversion_does_not_apply URIChunk, 'ld.so.conf'
-    assert_conversion_does_not_apply URIChunk, 'index.jpeg'
-    assert_conversion_does_not_apply URIChunk, 'index.jpg'
-    assert_conversion_does_not_apply URIChunk, 'file.txt'
-    assert_conversion_does_not_apply URIChunk, 'file.doc'
-    assert_conversion_does_not_apply URIChunk, 'file.pdf'
-    assert_conversion_does_not_apply URIChunk, 'file.png'
-    assert_conversion_does_not_apply URIChunk, 'file.ps'
+    #no_match URIChunk, 'ld.so.conf'
+    no_match URIChunk, 'index.jpeg'
+    no_match URIChunk, 'index.jpg'
+    no_match URIChunk, 'file.txt'
+    no_match URIChunk, 'file.doc'
+    no_match URIChunk, 'file.pdf'
+    no_match URIChunk, 'file.png'
+    no_match URIChunk, 'file.ps'
   end
 
   def test_uri_in_text
@@ -186,7 +186,7 @@ class URITest < ActiveSupport::TestCase
     # check that trailing punctuation is not included in the hostname
     match(URIChunk, 'Hey dude, http://fake.link.com.', :scheme => 'http', :host => 'fake.link.com')
     # this is a textile link, no match please.
-    assert_conversion_does_not_apply(URIChunk, '"link":http://fake.link.com.')
+    no_match(URIChunk, '"link":http://fake.link.com.')
    end
 
   def test_uri_in_parentheses
@@ -235,20 +235,23 @@ class URITest < ActiveSupport::TestCase
 
   private
   # Asserts a number of tests for the given type and text.
-  def match(chunk_type, test_text, expected_chunk_state)
-    if chunk_type.respond_to? :pattern
-      assert_match(chunk_type.pattern, test_text)
-    end
+  def no_match(type, test_text)
+   assert type.respond_to? :pattern
+   assert_no_match(type.pattern, test_text)
+  end
 
-    content = ContentStub.new(test_text)
-      #chunk_type.apply_to(content) #FIXME: need ObjectContent version of these tests
-
+  def match(type, test_text, expected)
+    assert type.respond_to? :pattern
+    pattern = type.pattern
+    assert_match(pattern, test_text)
+    pattern =~ test_text   # Previous assertion guarantees match
+    params = $~.to_a; m = params.shift
+    chunk = type.new(m, {}, params)
+    assert chunk.kind_of?(type)
     # Test if requested parts are correct.
-    expected_chunk_state.each_pair do |a_method, expected_value|
-      assert content.chunks.last.kind_of?(chunk_type)
-      assert_respond_to(content.chunks.last, a_method)
-      assert_equal(expected_value, content.chunks.last.send(a_method.to_sym),
-        "Wrong #{a_method} value")
+    expected.each_pair do |method_sym, value|
+      assert_respond_to(chunk, method_sym)
+      assert_equal(value, chunk.method(method_sym).call, "Checking value of '#{method_sym}'")
     end
   end
 

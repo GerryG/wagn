@@ -6,10 +6,6 @@ require File.expand_path('../test_helper', File.dirname(__FILE__))
 # internal links expanded in html or xml style, and prety much ignores any other output.
 #
 class Wagn::RendererTest < ActiveSupport::TestCase
-  include ChunkTestHelper
-  
-  #attr_accessor :controller
-
   def setup
     setup_default_user     
   end

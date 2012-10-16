@@ -24,14 +24,14 @@ CLASSES = {
 
 RENDERED = {
   :one => ['Some Literals: ', "[<span>{</span>I'm not| a link]}", ", and ", "<span>{</span>{This Card|Is not Transcluded}}", ", but ",
-            {:options => {:tname=>"this is",:unmask=>"this is",:style=>''}}, ", and some tail" ],
+            {:options => {:tname=>"this is",:transclude=>"this is",:style=>''}}, ", and some tail" ],
   :two => ["Some Links and transcludes: ", "<a class=\"wanted-card\" href=\"/the_card\">the text</a>", #"[[the card|the text]]",
-     ", and ", {:options => {:tname=>"This Card", :view => "Is Transcluded",:unmask => "This Card|Is Transcluded",:style=>""}},{
-      :options=>{:tname=>"this too",:unmask=>"this too",:style=>""}},
+     ", and ", {:options => {:tname=>"This Card", :view => "Is Transcluded",:transclude => "This Card|Is Transcluded",:style=>""}},{
+      :options=>{:tname=>"this too",:transclude=>"this too",:style=>""}},
     "\n         more formats for links and transcludes: ","<a class=\"wanted-card\" href=\"/the_text\">the card</a>",
     ",\n         and ","<a class=\"external-link\" href=\"http://external.wagn.org/path\">link text</a>",
     "<a class=\"wanted-card\" href=\"/Is_linked\">This Card</a>",
-    {:options=>{:tname=>"Transcluded",:view=>"open",:unmask=>"Transcluded|open",:style=>""}}],
+    {:options=>{:tname=>"Transcluded",:view=>"open",:transclude=>"Transcluded|open",:style=>""}}],
   :three => ["Some Literals: ","<a class=\"external-link\" href=\"http://a.url.com\">http://a.url.com</a>","\n        More urls: ",
     "<a class=\"external-link\" href=\"http://wagn.com/a/path/to.html\">wagn.com/a/path/to.html</a>",
     "\n        [ ","<a class=\"external-link\" href=\"http://gerry.wagn.com/a/path\">http://gerry.wagn.com/a/path</a>",

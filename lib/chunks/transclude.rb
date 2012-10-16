@@ -35,7 +35,7 @@ module Chunk
         }
         @configs = Hash.new_from_semicolon_attr_list params[2]
         @options[:style] = @configs.inject({}) do |s, p|; key, value = p
-          @options.key? key.to_sym ? @options[key.to_sym] = value : s[key] = value
+          @options.key?(key.to_sym) ? @options[key.to_sym] = value : s[key] = value
           s
         end.map{|k,v| CGI.escapeHTML("#{k}:#{v};")} * ''
         [:hide, :show].each do |disp|

@@ -35,6 +35,7 @@ module ChunkManager
   # for objet_content, it uses this instead of the apply_to by chunk type
   def self.split_content card_params, content
     if String===content and !(arr = content.to_s.scan SCAN_RE[ACTIVE_CHUNKS]).empty?
+      remainder = $'
       content = arr.map do |match_arr|
           pre_chunk = match_arr.shift; match = match_arr.shift
           match_index = match_arr.index {|x| !x.nil? }
@@ -43,7 +44,9 @@ module ChunkManager
           newck = chunk_class.new match, card_params, chunk_params
           pre_chunk.nil? || pre_chunk=='' ? newck : [pre_chunk, newck]
         end.flatten.compact
-    else content end
+      content << remainder if remainder.to_s != ''
+    end
+    content
   end
 
   def add_chunk chunk

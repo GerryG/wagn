@@ -30,16 +30,11 @@ class ObjectContent < SimpleDelegator
   end
 
   def to_s
-    sz=''
-    Rails.logger.warn "OCont#to_s: #{__getobj__.class}"
-    s=case __getobj__
-    when Array;
-      sz="#{length}, #{map(&:class)*', '}"
-      map(&:to_s)*''
-    when String; sz=size; __getobj__
+    case __getobj__
+    when Array;    map(&:to_s)*''
+    when String;   __getobj__
     when NilClass; raise "Nil ObjContent"
-    else
-      __getobj__.to_s
+    else           __getobj__.to_s
     end
   end
 

@@ -160,7 +160,7 @@ module Wagn
 
     def to_absolute(context, params=nil)
       context = context.to_cardname
-      r=parts.map do |part|
+      parts.map do |part|
         new_part = case part
           when /^_user$/i;            (user=Session.user_card) ? user.name : part
           when /^_main$/i;            Wagn::Conf[:main_name]
@@ -182,7 +182,6 @@ module Wagn
         #Rails.logger.warn "to_abs#{context}, #{part}, #{new_part}, #{new_part.blank? ? context.to_s : new_part}"
         new_part.blank? ? context.to_s : new_part
       end * JOINT
-      Rails.logger.warn "to_abs #{s}, #{r}"; r
     end
 
   end

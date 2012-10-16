@@ -13,60 +13,40 @@ module Chunk
 
     def initialize match, card_params, params
       super
-      self.cardname, @options, @configs = a = self.class.parse(match, params)
+      self.cardname = parse match, params
       @base = card_params[:card]
       @renderer = card_params[:renderer]
     end
 
-    def self.parse(match, params)
+    def parse(match, params)
       name = params[1].strip
       case name
-      when /^\#\#/; return [nil, {:comment=>''}] # invisible comment
-      when /^\#/||nil?||blank?  # visible comment
-        return [nil, {:comment=>"<!-- #{CGI.escapeHTML params[0]} -->"}]
-      end
-      options = {
-        :tname   =>name,  # this "t" is for transclusion.  should rename
-
-        :view  => nil,
-        :item  => nil,
-        :type  => nil,
-        :size  => nil,
-
-        :hide  => nil,
-        :show  => nil,
-        :wild  => nil,
-
-        :unmask => params[0] # is this used? yes, by including this in an attrbute
-                            # of an xml card, the xml parser can replace the subelements
-                            # with the original transclusion notaion: {{options[:unmask]}}
-        # looking at the code, it maybe could be used, but isn't.  The xmlparser looks for
-        # a 'transclude' attribute, which should be '{{options[:unmask]}}', but nothing
-        # does this yet.  The xmlparser falls back to {{name}} where name is the 'name'
-        # attribute value.
-      }
-      style = {}
-      configs = Hash.new_from_semicolon_attr_list params[2]
-      configs.each_pair do |key, value|
-        if options.key? key.to_sym
-          options[key.to_sym] = value
-        else
-          style[key] = value
+      when /^\#\#/; @unmask_text=''; nil # invisible comment
+      when /^\#/||nil?||blank?; @unmask_text = "<!-- #{CGI.escapeHTML params[0]} -->"; nil
+      else
+        @options = {
+          :tname   =>name,  # this "t" is for transclusion.  should rename
+          # it is sort of transclude, this is the name for the transclusion, should still rename
+          :view  => nil, :item  => nil, :type  => nil, :size  => nil,
+          :hide  => nil, :show  => nil, :wild  => nil, 
+          :transclude => params[0] # is this used? yes, by including this in an attrbute
+                              # of an xml card, the xml parser can replace the subelements
+                              # with the original transclusion notation: {{options[:transclude]}}
+        }
+        @configs = Hash.new_from_semicolon_attr_list params[2]
+        @options[:style] = @configs.inject({}) do |s, p|; key, value = p
+          @options.key? key.to_sym ? @options[key.to_sym] = value : s[key] = value
+          s
+        end.map{|k,v| CGI.escapeHTML("#{k}:#{v};")} * ''
+        [:hide, :show].each do |disp|
+          @options[disp] = @options[disp].split /[\s\,]+/ if @options[disp]
         end
+        name
       end
-      [:hide, :show].each do |disp|
-        if options[disp]
-          options[disp] = options[disp].split /[\s\,]+/
-        end
-      end
-      options[:style] = style.map{|k,v| CGI.escapeHTML("#{k}:#{v};")}.join
-      [name, options, configs]
     end
 
     def unmask_text(&block)
       return @unmask_text if @unmask_text
-      comment = @options[:comment]
-      return @unmask_text=comment if comment
       refcardname
       if view = @options[:view]
         view = view.to_sym

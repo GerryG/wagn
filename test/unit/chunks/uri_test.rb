@@ -236,8 +236,15 @@ class URITest < ActiveSupport::TestCase
   private
   # Asserts a number of tests for the given type and text.
   def no_match(type, test_text)
-   assert type.respond_to? :pattern
-   assert_no_match(type.pattern, test_text)
+    assert type.respond_to? :pattern
+    pattern = type.pattern
+    if test_text =~ pattern 
+      params = $~.to_a; m = params.shift
+      chunk = type.new(m, {}, params)
+      assert( ! chunk.kind_of?(type), "Shouln't match #{type}, #{chunk.inspect}" )
+    else 
+      assert true # didn't match, so we don't have to creat chunk
+    end
   end
 
   def match(type, test_text, expected)

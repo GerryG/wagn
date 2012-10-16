@@ -2,7 +2,7 @@ require File.expand_path('../spec_helper', File.dirname(__FILE__))
 require 'object_content'
 
 CONTENT = {
-  :one => %(Some Literals: \\[{I'm not| a link]}, and \\{{This Card|Is not Transcluded}}, but {{this is}}),
+  :one => %(Some Literals: \\[{I'm not| a link]}, and \\{{This Card|Is not Transcluded}}, but {{this is}}, and some tail),
   :two => %(Some Links and transcludes: [[the card|the text]], and {{This Card|Is Transcluded}}{{this too}}
          more formats for links and transcludes: [the card][the text],
          and [[http://external.wagn.org/path|link text]][This Card][Is linked]{{Transcluded|open}}),
@@ -10,18 +10,21 @@ CONTENT = {
         More urls: wagn.com/a/path/to.html
         [ http://gerry.wagn.com/a/path ]
         { https://brain/more?args }
-        http://localhost:2020/path?cgi=foo&bar=baz  [[http://brain/Home|extra]])
+        http://localhost:2020/path?cgi=foo&bar=baz  [[http://brain/Home|extra]]),
+   :four => "No chunks",
+   :five => "{{one transclusion|size;large}}"
 }
 
 CLASSES = {
-   :one => [String, Literal::Escape, String, Literal::Escape, String, Chunk::Transclude ],
+   :one => [String, Literal::Escape, String, Literal::Escape, String, Chunk::Transclude, String ],
    :two => [String, Chunk::Link, String, Chunk::Transclude, Chunk::Transclude, String, Chunk::Link, String, Chunk::Link, Chunk::Link, Chunk::Transclude ],
-   :three => [String, URIChunk, String, URIChunk, String, URIChunk, String, LocalURIChunk, String, LocalURIChunk, String, Chunk::Link ]
+   :three => [String, URIChunk, String, URIChunk, String, URIChunk, String, LocalURIChunk, String, LocalURIChunk, String, Chunk::Link ],
+   :five => [Chunk::Transclude]
 }
 
 RENDERED = {
   :one => ['Some Literals: ', "[<span>{</span>I'm not| a link]}", ", and ", "<span>{</span>{This Card|Is not Transcluded}}", ", but ",
-            {:options => {:tname=>"this is",:unmask=>"this is",:style=>''}} ],
+            {:options => {:tname=>"this is",:unmask=>"this is",:style=>''}}, ", and some tail" ],
   :two => ["Some Links and transcludes: ", "<a class=\"wanted-card\" href=\"/the_card\">the text</a>", #"[[the card|the text]]",
      ", and ", {:options => {:tname=>"This Card", :view => "Is Transcluded",:unmask => "This Card|Is Transcluded",:style=>""}},{
       :options=>{:tname=>"this too",:unmask=>"this too",:style=>""}},
@@ -34,7 +37,8 @@ RENDERED = {
     "\n        [ ","<a class=\"external-link\" href=\"http://gerry.wagn.com/a/path\">http://gerry.wagn.com/a/path</a>",
     " ]\n        { ","<a class=\"external-link\" href=\"https://brain/more?args\">https://brain/more?args</a>"," }\n        ",
     "<a class=\"external-link\" href=\"http://localhost:2020/path?cgi=foo&bar=baz\">http://localhost:2020/path?cgi=foo&bar=baz</a>", "  ",
-    "<a class=\"external-link\" href=\"http://brain/Home\">extra</a>"]
+    "<a class=\"external-link\" href=\"http://brain/Home\">extra</a>"],
+  :four => "No chunks"
 }
 
 describe ObjectContent do
@@ -84,6 +88,21 @@ describe ObjectContent do
       cobj = ObjectContent.new CONTENT[:three], @card_opts
       cobj.inject(CLASSES[:three], &@check_classes).should == true
       clist = CLASSES[:three].find_all {|c| String != c }
+      cobj.each_chunk do |chk|
+        chk.should be_instance_of clist.shift
+      end
+      clist.should be_empty
+    end
+
+    it "should parse just a string" do
+      cobj = ObjectContent.new CONTENT[:four], @card_opts
+      cobj.should == RENDERED[:four]
+    end
+
+    it "should parse a single chunk" do
+      cobj = ObjectContent.new CONTENT[:five], @card_opts
+      cobj.inject(CLASSES[:five], &@check_classes).should == true
+      clist = CLASSES[:five].find_all {|c| String != c }
       cobj.each_chunk do |chk|
         chk.should be_instance_of clist.shift
       end

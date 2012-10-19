@@ -242,7 +242,7 @@ Done"
   def index_preload
     Session.no_logins? ?
       redirect_to( Card.path_setting '/admin/setup' ) :
-      params[:id] = (Card.setting(:home) || 'Home').to_cardname.to_url_key
+      params[:id] = (Card.setting(:home) || 'Home').to_cardname.url_key
   end
 
 

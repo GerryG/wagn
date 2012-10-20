@@ -243,9 +243,7 @@ module Wagn::Model::Permissions
 
   def update_ruled_cards
     # FIXME: codename
-    #warn "uprc #{name} #{junction?}, #{Card::ReadID}, #{tag_id}" if junction?
     if junction? && tag_id==Card::ReadID && (@name_or_content_changed || @trash_changed)
-    #warn "uprc #{name} #{junction?}, #{tag_id}"
       # These instance vars are messy.  should use tracked attributes' @changed variable 
       # and get rid of @name_changed, @name_or_content_changed, and @trash_changed.
       # Above should look like [:name, :content, :trash].member?( @changed.keys ).
@@ -260,34 +258,34 @@ module Wagn::Model::Permissions
       # could be related to other bugs?
       in_set = {}
       if !(self.trash)
+        if class_id = (set=left and set_class=set.tag and set_class.id)
         rule_class_ids = Wagn::Model::Pattern.subclasses.map &:key_id
-        raise "no tag_id" if (key_id = Card[trunk_id].tag_id).nil?
-        rule_class_index = rule_class_ids.index key_id
-        if rule_class_index.nil?
-          notify_airbrake 'not a proper rule card' if Airbrake.configuration.api_key
-          warn "not a proper rule card #{name} not in #{rule_classes.inspect}"
-          #warn "up rld cds #{name} tk.tid:#{key_id}"
-          warn "not a proper rule card #{name}, #{Card[key_id].name} is not in rc:#{rule_class_ids.map{|x|Card[x].name}*', '}"
-          return false
-        end
+        if rule_class_index = rule_class_ids.index( class_id )
 
-        #first update all cards in set that aren't governed by narrower rule
-        Session.as_bot do
-          Card.fetch(cardname.trunk_name).item_cards(:limit=>0).each do |item_card|
-            in_set[item_card.key] = true
-            #Rails.logger.debug "rule_class_ids[#{rule_class_index}] #{rule_class_ids.inspect} This:#{item_card.read_rule_class.inspect} idx:#{rule_class_ids.index(item_card.read_rule_class)}"
-            rc_index = rule_class_ids.index Card[item_card.read_rule_class].id # FIXME: migrate rr_class to rr_id
-            warn "not a proper class, #{item_card.read_rule_class}" if rc_index.nil? # should not happen
-            next if rc_index < rule_class_index
-            item_card.update_read_rule
+            #first update all cards in set that aren't governed by narrower rule
+            Session.as_bot do
+              Card.fetch(cardname.trunk_name).item_cards(:limit=>0).each do |item_card|
+                in_set[item_card.key] = true
+                #Rails.logger.debug "rule_class_ids[#{rule_class_index}] #{rule_class_ids.inspect} This:#{item_card.read_rule_class.inspect} idx:#{rule_class_ids.index(item_card.read_rule_class)}"
+                rc_index = rule_class_ids.index Card[item_card.read_rule_class].id # FIXME: migrate rr_class to rr_class_id
+                next if rc_index < rule_class_index
+                item_card.update_read_rule
+              end
+            end
+
+          else
+            Airbrake.notify 'improper rule card' if Airbrake.configuration.api_key
+            warn "not a proper rule card #{name}, #{Card[key_id].name} is not in rc:#{rule_class_ids.map{|x|Card[x].name}*', '}"
+            return false
           end
         end
       end
 
       #then find all cards with me as read_rule_id that were not just updated and regenerate their read_rules
       if !new_record?
-        Card.where(:read_rule_id=>self.id, :trash=>false).
-          reject{|w|in_set[w.key]}.each(&:update_read_rule)
+        Card.where( :read_rule_id=>self.id, :trash=>false ).reject do |w|
+          in_set[ w.key ]
+        end.each &:update_read_rule
       end
     end
   end

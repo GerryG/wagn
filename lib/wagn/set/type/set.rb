@@ -3,35 +3,38 @@ module Wagn::Set::Type::Set
   class Wagn::Views
     format :base
 
-    @@setting_group_title = {
-      :perms   => 'Permission',
-      :look    => 'Look and Feel',
-      :com     => 'Communication',
-      :other   => 'Other',
-      :pointer => 'Pointer'
-    }
+    # make these into traits of Setting cards:
+    # *content+*group => [[:code]]
+    # where below are the codenames and the cardnames (in Wagn seed DB)
+    #@@setting_group_title = {
+    #  :perms   => 'Permission',
+    #  :look    => 'Look and Feel',
+    #  :com     => 'Communication',
+    #  :other   => 'Other',
+    #  :pointer => 'Pointer'
+    #}
+    # should construct this from a search:
+    # to  model/settings: Card class method
+    def setting_groups
+      [:perms, :look, :com, :pointer, :other]
+    end
 
     define_view :core , :type=>:set do |args|
-      headings = ['Content','Type']
-      setting_groups = card.setting_names_by_group
-
-      body = [:perms, :look, :com, :pointer, :other].map do |group|
-
-        next unless setting_groups[group]
+      body = card.setting_names_by_group.map do |group, data|
+        next if data.nil?
         content_tag(:tr, :class=>"rule-group") do
-          (["#{@@setting_group_title[group.to_sym]} Settings"]+headings).map do |heading|
+          (["#{Card[group].name} Settings"]+%w{Content Type}).map do |heading|
             content_tag(:th, :class=>'rule-heading') { heading }
-          end.join("\n")
+          end * "\n"
         end +
-        raw( setting_groups[group].map do |setting_code|
+        raw( data.map do |setting_code|
           setting_name = (setting_card=Card[setting_code]).nil? ? "no setting ?" : setting_card.name
           rule_card = card.trait_card(setting_code)
           process_inclusion(rule_card, :view=>:closed_rule)
-        end.join("\n"))
-      end.compact.join
+        end * "\n" )
+      end.compact * ''
 
       content_tag('table', :class=>'set-rules') { body }
-
     end
 
 
@@ -77,14 +80,9 @@ module Wagn::Set::Type::Set
       end
     end
 
-    def setting_names_by_group
-      Card.universal_setting_names_by_group.clone.merge(
-        if Card::PointerID == ( templt = existing_trait_card(:content) || existing_trait_card(:default) and
-              templt.type_id or tag.id == Card::TypeID ? trunk.id : trunk.type_id )
-         {:pointer => ['*options','*options label','*input']}
-        else
-          {} end
-      )
+    def set_group
+      Card::PointerID == ( templt = existing_trait_card(:content) || existing_trait_card(:default) and
+          templt.type_id or tag.id == Card::TypeID ? trunk.id : trunk.type_id ) and :pointer or nil
     end
 
     def prototype

@@ -28,4 +28,10 @@ module Wagn::Set::Type::Setting
       %{<div class="instruction">#{process_content "{{+*right+*edit help}}"}</div>}
     end
   end
+
+  module Model
+    def setting_kind() :default end
+    def setting_group(extra=nil) :other end
+    def setting_seq() 9999 end
+  end
 end

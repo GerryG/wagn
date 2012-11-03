@@ -29,8 +29,11 @@ module Wagn::Model
     end
 
     def patterns kind=nil
-      #warn "pats K:#{kind} N:#{name}"
-      @patterns ||= @@subclasses.map { |sub| sub.new(self, kind) }.compact
+      kind=:default if kind.nil?
+      @patterns ||= {}
+      warn "pats #{kind.inspect}"
+      r=@patterns[kind] ||= @@subclasses.map { |sub| sub.new(self, kind) }.compact
+      warn "pats K:#{kind.inspect}, N:#{name} R:#{r}"; r
     end
     def patterns_with_new kind=nil
       #warn "pw/new K:#{kind} N:#{name}"
@@ -43,8 +46,11 @@ module Wagn::Model
     def safe_keys()      patterns.map(&:safe_key).reverse*" "                                   end
     def set_modules()    @set_modules ||= patterns_without_new.reverse.map(&:set_const).compact end
     def set_names kind=nil
-      Card.set_members(@set_names = patterns(kind).map(&:to_s), key) if @set_names.nil?
-      @set_names
+      kind=:default if kind.nil?
+      @set_names ||= {}
+      warn "sn K:#{kind.inspect}"
+      Card.set_members(@set_names[kind] = patterns(kind).map(&:to_s), key) if @set_names[kind].nil?
+      @set_names[kind]
     end
     def method_keys()    @method_keys ||= patterns.map(&:get_method_key).compact                end
   end
@@ -80,7 +86,7 @@ module Wagn::Model
         def junction_only?()  !!junction_only        end
         def trunkless?()      !!method_key           end # method key determined by class only when no trunk involved
         def new(card, kind=nil)
-          #warn "new #{card.name}, #{kind.nil?} || #{kind==:default} || #{!kinds.nil? && kinds[kind]}"
+          warn "new #{card.name}, #{kind.nil?} || #{kind==:default} || #{!kinds.nil? && kinds[kind]}"
           super(card) if kind.nil? || kind==:default || !kinds.nil? && kinds[kind] and pattern_applies?(card)
         end
         def key_name()

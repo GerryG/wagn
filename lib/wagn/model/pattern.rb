@@ -31,9 +31,8 @@ module Wagn::Model
     def patterns kind=nil
       kind=:default if kind.nil?
       @patterns ||= {}
-      warn "pats #{kind.inspect}"
       r=@patterns[kind] ||= @@subclasses.map { |sub| sub.new(self, kind) }.compact
-      warn "pats K:#{kind.inspect}, N:#{name} R:#{r}"; r
+      #warn "pats K:#{kind.inspect}, N:#{name} R:#{r}"; r
     end
     def patterns_with_new kind=nil
       #warn "pw/new K:#{kind} N:#{name}"
@@ -48,8 +47,10 @@ module Wagn::Model
     def set_names kind=nil
       kind=:default if kind.nil?
       @set_names ||= {}
-      warn "sn K:#{kind.inspect}"
-      Card.set_members(@set_names[kind] = patterns(kind).map(&:to_s), key) if @set_names[kind].nil?
+      #warn "sn K:#{kind.inspect}"
+      if @set_names[kind].nil?
+        Card.set_members(@set_names[kind] = patterns(kind).map {|p| p.set_name(kind)}, key)
+      end
       @set_names[kind]
     end
     def method_keys()    @method_keys ||= patterns.map(&:get_method_key).compact                end
@@ -86,7 +87,7 @@ module Wagn::Model
         def junction_only?()  !!junction_only        end
         def trunkless?()      !!method_key           end # method key determined by class only when no trunk involved
         def new(card, kind=nil)
-          warn "new #{card.name}, #{kind.nil?} || #{kind==:default} || #{!kinds.nil? && kinds[kind]}"
+          #warn "new #{card.name}, #{kind.nil?} || #{kind==:default} || #{!kinds.nil? && kinds[kind]}"
           super(card) if kind.nil? || kind==:default || !kinds.nil? && kinds[kind] and pattern_applies?(card)
         end
         def key_name()
@@ -158,6 +159,11 @@ module Wagn::Model
             end
         end
         @opt_vals
+      end
+
+      def set_name(kind=nil)
+        #warn "set_name #{kind}, #{self.class} #{@trunk_name.inspect}" unless kind.nil? || kind==:default || !(SelfPattern===self)
+        kind.nil? || kind==:default || !(SelfPattern===self) ? to_s : @trunk_name.to_s
       end
 
       def to_s()

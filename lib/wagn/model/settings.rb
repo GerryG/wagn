@@ -7,18 +7,19 @@ module Wagn::Model::Settings
 
   def rule_card setting_name, options={}
     fallback = options.delete( :fallback )
-    #warn "rule_card[#{name}] #{setting_name}, #{options.inspect} RSN:#{real_set_names.inspect}" if setting_name == :edit_help
     fetch_args = {:skip_virtual=>true}.merge options
+    #warn "setting_kind = #{scard = Card[setting_name]} #{scard and scard.type_id == Card::SettingID} #{scard and scard.setting_kind}"
     setting_kind = (scard = Card[setting_name] and scard.type_id == Card::SettingID and scard.setting_kind)
+    #warn "rule_card[#{name}] #{setting_name}, #{options.inspect} K:#{setting_kind}, RSN:#{real_set_names(setting_kind).inspect}" if setting_name == :autoname
     real_set_names(setting_kind).each do |set_name|
-      #warn "rule_card search #{set_name.inspect}" if setting_name == :edit_help
+      #warn "rule_card search #{set_name.inspect}" if setting_name == :autoname
       set_name=set_name.to_cardname
       card = Card.fetch(set_name.trait_name( setting_name ), fetch_args)
       card ||= fallback && Card.fetch(set_name.trait_name(fallback), fetch_args)
-      #warn (Rails.logger.warn "rule #{name} [#{set_name}] #{card.inspect}") #if setting_name == :read
+      #warn "rule #{name} [#{set_name}] rc:#{card.inspect}" if setting_name == :autoname
       return card if card
     end
-    #warn (Rails.logger.warn "rc nothing #{setting_name}, #{name}") #if setting_name == :read
+    #warn (Rails.logger.warn "rc nothing #{setting_name}, #{name}") if setting_name == :autoname
     nil
   end
   def rule_card_with_cache setting_name, options={}

@@ -33,9 +33,7 @@ module Wagn::Set::Type::Basic
           make_table_of_contents_list(toc) + '</div>'+ content
       end
     end
-  end
 
-  private
 
     private
 
@@ -47,4 +45,3 @@ module Wagn::Set::Type::Basic
     end
   end
 end
-

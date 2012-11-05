@@ -1540,7 +1540,7 @@ cards_065:
   name: "*account"
   key: "*account"
   codename: account
-  typecode: Basic
+  typecode: Setting
   trunk_id: 
   tag_id: 
   current_revision_id: 5976
@@ -1556,7 +1556,7 @@ cards_065:
   read_rule_id: 500
   references_expired: 
   trash: 0
-  type_id: 3
+  type_id: 278
   created_by: 1
   updated_by: 3
 cards_066: 

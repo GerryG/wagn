@@ -37,7 +37,9 @@ class CardController < ApplicationController
   def delete
     @card = @card.refresh if @card.frozen? # put in model
     @card.confirm_destroy = params[:confirm_destroy]
+    Rails.logger.warn "deleteing #{@card.inspect} CR:#{@card.errors.to_a.inspect}, confirm:#{params[:confirm_destroy]}"
     @card.destroy
+    Rails.logger.warn "deleted #{@card.inspect} CR:#{@card.errors[:confirmation_required].to_a.inspect}, confirm:#{params[:confirm_destroy]}"
 
     return show(:delete) if @card.errors[:confirmation_required].any?
 
@@ -77,8 +79,8 @@ class CardController < ApplicationController
 
     @card = @card.refresh if @card.frozen?
 
-    author = Session.user_id == Card::AnonID ?
-        "#{session[:comment_author] = params[:card][:comment_author]} (Not signed in)" : "[[#{Session.user.card.name}]]"
+    author = Session.account.id == Card::AnonID ?
+        "#{session[:comment_author] = params[:card][:comment_author]} (Not signed in)" : "[[#{Session.authorized.name}]]"
     comment = params[:card][:comment].split(/\n/).map{|c| "<p>#{c.strip.empty? ? '&nbsp;' : c}</p>"} * "\n"
     @card.comment = "<hr>#{comment}<p><em>&nbsp;&nbsp;--#{author}.....#{Time.now}</em></p>"
 
@@ -100,8 +102,9 @@ class CardController < ApplicationController
 
   def watch
     watchers = @card.trait_card(:watchers )
+    Rails.logger.info "watch #{@card.inspect}, #{watchers.inspect}"
     watchers = watchers.refresh if watchers.frozen?
-    myname = Card[Session.user_id].name
+    myname = Session.authorized.name
     watchers.send((params[:toggle]=='on' ? :add_item : :drop_item), myname)
     ajax? ? show(:watch) : read
   end
@@ -124,16 +127,18 @@ class CardController < ApplicationController
       role_card.items= role_hash.keys.map &:to_i
     end
 
-    account = @card.to_user
-    if account and account_args = params[:account]
-      unless Session.as_id == @card.id and !account_args[:blocked]
-        @card.trait_card(:account).ok! :update
+    account = @card.trait_card(:account) and user = User.from_id(account.id)
+    if user and account_args = params[:account]
+      Rails.logger.warn "up acct #{Session.as_card}, #{Session.authorized}, #{params.inspect}, U:#{user}, A:#{account.inspect}, C:#{@card.inspect}"
+      unless Session.authorized.id == account.id and !account_args[:blocked]
+        @card.ok! :update
       end
-      account.update_attributes account_args
+      user.update_attributes account_args
     end
 
-    if account && account.errors.any?
-      account.errors.each do |field, err|
+    if user && user.errors.any?
+      user.errors.each do |field, err|
+        Rails.logger.debug "User error #{user}, #{field}, #{err}"
         @card.errors.add field, err
       end
       errors
@@ -146,9 +151,9 @@ class CardController < ApplicationController
     @card.trait_card(:account).ok! :create
     email_args = { :subject => "Your new #{Card.setting :title} account.",   #ENGLISH
                    :message => "Welcome!  You now have an account on #{Card.setting :title}." } #ENGLISH
-    @user, @card = User.create_with_card(params[:user],@card, email_args)
+    @user = User.new(params[:user])
+    @card = @user.create_card(@card, email_args)
     raise ActiveRecord::RecordInvalid.new(@user) if !@user.errors.empty?
-    #@account = User.new(:email=>@user.email)
 #    flash[:notice] ||= "Done.  A password has been sent to that email." #ENGLISH
     params[:attribute] = :account
     show :options

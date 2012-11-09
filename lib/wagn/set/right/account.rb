@@ -1,62 +1,24 @@
 module Wagn
   module Set::Right::Account
-
-    include Sets
-
-    format :html
-
-=begin how is this used now?  I think this may be buggy, or related to model/traits stuff which is not in now
-    # from app/view/card/_declare.rhtml
-    define_view(:account_form, :right=>'account') do |args|
-    end
-
-    define_view(:account) do |args|
-      #tcard = @card.trait_card(:sol)
-      tcard = @card.trait_card(:account)
-      raise "No card" unless tcard
-
-      wrap( args ) do
-        %{#{#slot.header  I don't understand why this doesn't work here?
-        }<style>.SELF-#{tcard.safe_key
-        } .account-area .title-#{
-          tcard.cardname.safe_key
-        } { display: none; }</style>} +
-
-        div( :id=>id('card-body'), :class=>'card-body') do
-          Rails.logger.debug "render account sub #{tcard&&tcard.name}"
-          self.subrenderer(tcard).render(:account_form)
-        end + notice
+    module Model
+      def email
+        perm = Session.account.id == id || trunk.trait_card(:email).ok?(:read)
+        Rails.logger.warn "rt acct email #{perm}, CN:#{name}"
+        r=(perm and user = User.from_id(id) and user.email or '')
+        Rails.logger.warn "rt acct email for#{name}, r:#{r}"; r
       end
-    end
 
-    # Traits can have submenus: This is the links for differet form selections
-    def trait_submenu(menu_name, on)
-      menu_name = menu_name.to_s
-      div(:class=>'submenu') do
-        trait_forms(menu_name) do |key, ok, args|
-          if ok
-            #link_to_remote( key, { :url=>url_for("card/#{menu_name}",args,key),
-            #    :update => id , :menu => key}, :class=>(key==on.to_s ? 'on' : '') )
-          end
+      def before_destroy
+        block_user
+      end
+
+      def block_user
+        Rails.logger.info "block_user #{inspect}, u:#{User.from_id id }"
+        if account = User.from_id(id)
+          st=account.block!
+          Rails.logger.info "block_user #{inspect}, Acct:#{account.inspect}, #{a=User.from_id(account.card_id) and a.status}, st:#{st and account.errors.map(&:to_s)*", "}\nST:#{st}"; st
         end
       end
     end
-
-    def trait_forms(action)
-    end
-    def trait_form(action)
-      forms = trait_forms(action=action.to_s)
-      return forms if String === forms
-      #Rails.logger.info "trait_form(#{action.inspect}) #{forms.inspect}"
-      if form = forms.find { |k|
-        #Rails.logger.info "trait_search(#{action.inspect}) #{card.attribute.inspect}, #{k.tag.inspect} #{forms.inspect}"
-        k.tag == action } and form = Card.fetch(form)
-        form.content
-      else
-        "No form card #{@state} #{card&&card.name}"
-      end
-    end
-=end
   end
-
 end

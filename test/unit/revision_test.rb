@@ -7,21 +7,21 @@ class RevisionTest < ActiveSupport::TestCase
   end
 
   def test_revise
-    author1 = User.find_by_email('joe@user.com')
-    author2 = User.find_by_email('sara@user.com')
-    author_cd1 = Card[author1.card_id]
-    author_cd2 = Card[author2.card_id]
+    author1 = User.from_email('joe@user.com')
+    author2 = User.from_email('sara@user.com')
+    author_cd1 = Card[author1.card_id] and author_cd1 = author_cd1.trunk
+    author_cd2 = Card[author2.card_id] and author_cd2 = author_cd2.trunk
     #author1, author2 = User.find(:all, :limit=>2)
-    Session.user = Card::WagnBotID
+    Session.account = Card::WagnBotID
     rc1=author_cd1.trait_card(:roles)
     rc1 << Card::AdminID
     rc2 = author_cd2.trait_card(:roles)
     rc2 << Card::AdminID
     author_cd1.save
     author_cd2.save
-    Session.user = author1
+    Session.account = author1
     card = newcard( 'alpha', 'stuff')
-    Session.user = author2
+    Session.account = author_cd2
     card.content = 'boogy'
     card.save
     card.reload
@@ -49,7 +49,7 @@ class RevisionTest < ActiveSupport::TestCase
 =begin #FIXME - don't think this is used by any controller. we'll see what breaks
   def test_rollback
     @card = newcard("alhpa", "some test content")
-    @user = User.where(:card_id=>Card['quentin'].id).first
+    @user = User.from_id(Card['quentin'].id)
     @card.content = "spot two"; @card.save
     @card.content = "spot three"; @card.save
     assert_equal 3, @card.revisions(true).length, "Should have three revisions"

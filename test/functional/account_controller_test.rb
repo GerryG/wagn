@@ -50,7 +50,6 @@ class AccountControllerTest < ActionController::TestCase
 
   def test_create_successful
     integration_login_as 'joe_user', true
-    #login_as 'joe_user'
     assert_difference ActionMailer::Base.deliveries, :size do
       assert_new_account do
         post_invite
@@ -63,6 +62,8 @@ class AccountControllerTest < ActionController::TestCase
 
     assert_response :redirect
     assert Card['Newby Dooby'], "should create User card"
+    assert c=Card['Newby Dooby+*account'], "should create User+*account card"
+    assert User.from_id(c.id), "should create User"
     assert_status @newby_email, 'pending'
 
     integration_login_as 'joe_admin', true
@@ -83,7 +84,7 @@ class AccountControllerTest < ActionController::TestCase
   end
 
   def test_dont_let_blocked_user_signin
-    u = User.find_by_email('u3@user.com')
+    u = User.from_email('u3@user.com')
     u.blocked = true
     u.save
     post :signin, :login => 'u3@user.com', :password => 'u3_pass'
@@ -104,7 +105,7 @@ class AccountControllerTest < ActionController::TestCase
   def test_forgot_password_blocked
     email = 'u3@user.com'
     Session.as_bot do
-      u = User.find_by_email(email)
+      u = User.from_email(email)
       u.status = 'blocked'
       u.save!
     end

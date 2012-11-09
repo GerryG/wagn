@@ -1,141 +1,105 @@
 class Session
-  @@as_card = @@as_id = @@user_id = @@user_card = @@user = nil
+
+  @@as_card = @@account = nil
+
+  ANONCARD = Card[Card::AnonID]
 
   class << self
-    def user_id
-      @@user_id ||= Card::AnonID
-    end
+    def reset()           @@account = @@as_card = nil     end
+    def account()         @@account || ANONCARD           end
+    def account=(account) @@account = get_account account end
+    def as_card()         @@as_card || account            end
+    def authorized() (ac=as_card).simple? ? ac : ac.trunk end #warn "authzd #{@@as_card} || #{@@account}"
+    #def authorized()      account.trunk                   end
+    def as_bot(&block) as Card::WagnBotID, &block end
+    def among?(authzed) authorized.among? authzed end
+    def logged_in?() authorized.id != Card::AnonID end
 
-    def user_card
-      if @@user_card && @@user_card.id == user_id
-        @@user_card
-      else
-        @@user_card = Card[user_id]
-      end
-    end
-
-    def user
-      if @@user && @@user.card_id == user_id
-        @@user
-      else
-        @@user = user_card.to_user
-      end
-    end
-
-    def user= user
-      @@user = @@user_card = @@as_id = @@as_card = nil
-      @@user_id = get_user_id user
-    end
-
-    def get_user_id user
-      case user
-      when NilClass;   nil
-      when User    ;   user.card_id
-      when Card    ;   user.id
-      when Integer ;   user
-      else
-        user = user.to_s
-        Wagn::Codename[user] or (cd=Card[user] and cd.id)
-      end
-    end
-
-    def as given_user
-      tmp_id, tmp_card = @@as_id, @@as_card
-      @@as_id, @@as_card = get_user_id( given_user ), nil  # we could go ahead and set as_card if given a card...
-
-      @@user_id = @@as_id if @@user_id.nil?
+    def as given_account
+      save_as = @@as_card
+      @@as_card = get_account given_account
+      Rails.logger.info "set ac #{@@as_card.inspect}"
 
       if block_given?
         value = yield
-        @@as_id, @@as_card = tmp_id, tmp_card
+        @@as_card = save_as
         return value
-      else
-        #fail "BLOCK REQUIRED with Card#as"
+      else #fail "BLOCK REQUIRED with Card#as"
       end
     end
-
-    def as_bot &block
-      as Card::WagnBotID, &block
+ 
+    def no_logins?
+      cache = Card.cache
+     !!rd=cache.read('no_logins') ? rd : cache.write( 'no_logins',
+               (Card.search({:right=>Card::AccountID, :left=>{:type=>Card::UserID }}).count < 0 ))
+                 #:not => { :left => ['in', Card::WagnBotID, Card::AnonID]  }}).count < 0 ))
     end
-
-    def among? authzed
-      as_card.among? authzed
-    end
-
-    def as_id
-      @@as_id || user_id
-    end
-
-    def as_card
-      if @@as_card and @@as_card.id == as_id
-        @@as_card
-      else
-        @@as_card = Card[as_id]
-      end
-    end
-
-    def logged_in?
-      user_id != Card::AnonID
-    end
-
-    def no_logins?()
-      c = Card.cache
-      !c.read('no_logins').nil? ? c.read('no_logins') : c.write('no_logins', (User.count < 3))
-    end
-
+ 
     def always_ok?
-      #warn Rails.logger.warn("aok? #{as_id}, #{as_id&&Card[as_id].id}")
-      return false unless usr_id = as_id
-      return true if usr_id == Card::WagnBotID #cannot disable
-
+      as_id = authorized.id
+      return true if as_id == Card::WagnBotID #cannot disable
+      #warn "aok? bot" if as_id == Card::WagnBotID
+ 
       always = Card.cache.read('ALWAYS') || {}
-      #warn(Rails.logger.warn "Session.always_ok? #{usr_id}")
-      if always[usr_id].nil?
+      if always[as_id].nil?
         always = always.dup if always.frozen?
-        always[usr_id] = !!Card[usr_id].all_roles.detect{|r|r==Card::AdminID}
-        #warn(Rails.logger.warn "update always hash #{always[usr_id]}, #{always.inspect}")
+        always[as_id] = !!Card[as_id].all_roles.detect{|r|r==Card::AdminID}
         Card.cache.write 'ALWAYS', always
-      end
-      #warn Rails.logger.warn("aok? #{usr_id}, #{always[usr_id]}")
-      always[usr_id]
+       end
+     #Rails.logger.warn "aok? #{Card[as_id].name}, #{always.inspect}" if always[as_id]
+     always[as_id]
     end
     # PERMISSIONS
 
+  private
+
+    def get_account account
+      case account
+      when NilClass; nil
+      when Card;     account
+      when User;     Card[account.card_id]
+      else
+        account=Card[account]
+        acct = account.trait_card :account
+        #Rails.logger.info "account lookup: #{acct.inspect}, #{account.inspect}"
+        if acct.new_card?
+          # this helps the migration to do as_bot before the trait is real
+          if account.id == Card::WagnBotID
+            account
+          else raise "no account #{account.name}" end # return nil, but for debug ...
+        else acct end
+      end
+    end
 
   protected
     # FIXME stick this in session? cache it somehow??
     def ok_hash
-      usr_id = Session.as_id
+      as_id = authorized.id
       ok_hash = Card.cache.read('OK') || {}
-      #warn(Rails.logger.warn "ok_hash #{usr_id}")
-      if ok_hash[usr_id].nil?
+      if ok_hash[as_id].nil?
         ok_hash = ok_hash.dup if ok_hash.frozen?
-        ok_hash[usr_id] = begin
-            Card[usr_id].all_roles.inject({:role_ids => {}}) do |ok,role_id|
+        ok_hash[as_id] = begin
+            Card[as_id].all_roles.inject({:role_ids => {}}) do |ok,role_id|
               ok[:role_ids][role_id] = true
               ok
             end
           end || false
-        #warn(Rails.logger.warn "update ok_hash(#{usr_id}) #{ok_hash.inspect}")
         Card.cache.write 'OK', ok_hash
       end
-      r=ok_hash[usr_id]
-      #warn "ok_h #{r}, #{usr_id}, #{ok_hash.inspect}";
+      ok_hash[as_id]
     end
 
   public
 
+    # Shouldn't this be someplace else?  Card? a Model module?
     NON_CREATEABLE_TYPES = %w{ account_request setting set }
 
     def createable_types
-      type_names = Session.as_bot do
-        Card.search :type=>Card::CardtypeID, :return=>:name, :not => { :codename => ['in'] + NON_CREATEABLE_TYPES }
-      end
-      type_names.reject do |name|
-        !Card.new( :type=>name ).ok? :create
-      end.sort
+      as_bot { Card.search :type=>Card::CardtypeID, :return=>:name,
+                 :not => { :codename => ['in'] + NON_CREATEABLE_TYPES } }.
+        reject { |name| !Card.new( :type=>name ).ok? :create }.sort
     end
   end
 
-
 end
+

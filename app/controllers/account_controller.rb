@@ -10,10 +10,11 @@ class AccountController < ApplicationController
     c=Card.new(:type_id=>Card::AccountRequestID)
     #warn Rails.logger.warn("signup ok? #{c.inspect}, #{c.ok? :create}")
     raise(Wagn::PermissionDenied, "Sorry, no Signup allowed") unless c.ok? :create #ENGLISH
-    #raise(Wagn::PermissionDenied, "Sorry, no Signup allowed") unless Card.new(:typecode=>:account_request).ok? :create #ENGLISH
 
-    user_args = (params[:user]||{}).merge(:status=>'pending').symbolize_keys
-    @user = User.new( user_args ) #does not validate password
+    #does not validate password
+    user_args = (user_args = params[:user]) && user_args.symbolize_keys || {}
+    @user = User.new( user_args )
+    @user.pending
     card_args = (params[:card]||{}).merge(:type_id=>Card::AccountRequestID)
 
     unless request.post?
@@ -22,9 +23,9 @@ class AccountController < ApplicationController
     end
 
     return render_user_errors if @user.errors.any?
-    #warn Rails.logger.warn("signup UA:#{user_args.inspect}, CA:#{card_args.inspect}")
-    @user, @card = User.create_with_card( user_args, card_args )
-    #warn Rails.logger.warn("signup UA:#{@user.inspect}, CA:#{@card.inspect}")
+    #Rails.logger.warn "signup UA:#{user_args.inspect}, CA:#{card_args.inspect}"
+    @card = @user.create_card( card_args )
+    #Rails.logger.warn "signup UA:#{@user.inspect}, CA:#{@card.inspect}"
     return render_user_errors if @user.errors.any?
 
     tr_card = @card.trait_card :account
@@ -51,11 +52,12 @@ class AccountController < ApplicationController
 
   def accept
     card_key=params[:card][:key]
-    #warn "accept #{card_key.inspect}, #{Card[card_key]}, #{params.inspect}"
+    Rails.logger.warn "accept #{card_key.inspect}, #{Card[card_key]}, #{params.inspect}"
     raise(Wagn::Oops, "I don't understand whom to accept") unless params[:card]
     @card = Card[card_key] or raise(Wagn::NotFound, "Can't find this Account Request")  #ENGLISH
-    #warn "accept #{Session.user_id}, #{@card.inspect}"
-    @user = @card.to_user or raise(Wagn::Oops, "This card doesn't have an account to approve")  #ENGLISH
+    Rails.logger.warn "accept #{Session.account.inspect}, #{@card.inspect}"
+    @card=@card.trait_card(:account) and !@card.new_card? and @user = User.from_id(@card.id) or
+      raise(Wagn::Oops, "This card doesn't have an account to approve")  #ENGLISH
     #warn "accept #{@user.inspect}"
     @card.ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create accounts")  #ENGLISH
 
@@ -71,16 +73,20 @@ class AccountController < ApplicationController
   end
 
   def invite
+    #warn "invite: ok? #{Card.new(:name=>'dummy+*account').inspect} P:#{params.inspect}"
     #warn "invite: ok? #{Card.new(:name=>'dummy+*account').ok?(:create)}"
     cok=Card.new(:name=>'dummy+*account').ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create")  #ENGLISH
     #warn "post invite #{cok}, #{request.post?}, #{params.inspect}"
-    @user, @card = request.post? ?
-      User.create_with_card( params[:user], params[:card] ) :
-      [User.new, Card.new()]
+    if request.post?
+      @user = User.new params[:user]
+      @card = @user.create_card params[:card]
+    else
+      @user = User.new; @card = Card.new
+    end
     #warn "invite U:#{@user.inspect} C:#{@card.inspect}"
     if request.post? and @user.errors.empty?
       @user.send_account_info(params[:email])
-      redirect_to Card.path_setting(Card.setting('*invite+*thanks'))
+      redirect_to Card.path_setting(Card.setting '*invite+*thanks')
     end
     #warn "invite errors #{@user.errors} C:#{@card.errors}"
     #unless @user.errors.empty?
@@ -90,7 +96,7 @@ class AccountController < ApplicationController
 
 
   def signin
-    #warn Rails.logger.info("signin #{params[:login]}")
+    Rails.logger.warn "signin #{params[:login]}"
     if params[:login]
       password_authentication params[:login], params[:password]
     end
@@ -104,7 +110,7 @@ class AccountController < ApplicationController
 
   def forgot_password
     return unless request.post? and email = params[:email].downcase
-    @user = User.find_by_email(email)
+    @user = User.from_email(email)
     if @user.nil?
       flash[:notice] = "Unrecognized email."   #ENGLISH
       render :action=>'signin', :status=>404
@@ -139,7 +145,7 @@ class AccountController < ApplicationController
       #warn Rails.logger.info("to prev #{previous_location}")
       redirect_to previous_location
     else
-      usr=User.where(:email=>params[:login].strip.downcase).first
+      usr=User.from_email(params[:login].strip.downcase)
       failed_login(
         case
         when usr.nil?     ; "Unrecognized email."

@@ -12,7 +12,7 @@ describe "User" do
     end
 
     it "3 more should apply to Joe Admin" do
-      Session.as(:joe_admin) do
+      Session.as('joe_admin') do
         ids = Session.as_card.read_rules
         #warn "rules = #{ids.map(&Card.method(:find)).map(&:name) * ', '}"
         ids.length.should == @read_rules.size+3

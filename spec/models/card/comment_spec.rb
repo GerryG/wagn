@@ -11,17 +11,17 @@ describe Card, "record appender" do
   it "should have appender immediately" do
     Card['a'].ok?(:comment).should_not be_true
     Session.as_bot do
-      warn "rule #{@rule.inspect}"
       @rule.save!
-      warn "rule #{@rule.inspect}"
     end
     Card['a'].ok?(:comment).should be_true
   end
 
   it "should have appender immediately" do
-    Session.as(Card::WagnBotID) do Card['a'].ok?(:comment).should_not be_true end
-    Session.as_bot do @rule.save! end
-    Session.as(Card::WagnBotID) do Card['a'].ok?(:comment).should be_true end
+    Session.as_bot do
+      Card['a'].ok?(:comment).should_not be_true
+      @rule.save!
+      Card['a'].ok?(:comment).should be_true
+    end
   end
 end
 

@@ -3,7 +3,7 @@ require 'card_controller'
 
 # Re-raise errors caught by the controller.
 class CardController; def rescue_action(e) raise e end; end
-class InvitationRequestTest < ActionController::TestCase
+class Wagn::Set::Type::AccountRequestTest < ActionController::TestCase
 
   include AuthenticatedTestHelper
 
@@ -37,24 +37,26 @@ class InvitationRequestTest < ActionController::TestCase
     }
 
     @card =  Card["Word Third"]
-    @user = User.where(:card_id=>@card.id).first
+    @acard =  Card["Word Third+*account"]
+    @user = User.from_id @acard.id.to_i
 
     @card.typecode.should == :account_request
 
     # this now happens only when created via account controller
 
-    #assert_instance_of ::User, @user
-    #assert_equal 'jamaster@jay.net', @user.email
-    #assert_equal 'request', @user.status
+    assert_instance_of User, @user
+    assert_equal 'jamaster@jay.net', @card.email
+    assert_equal 'jamaster@jay.net', @acard.email
+    assert_equal 'request', @user.status
 
   end
 
   def test_should_destroy_and_block_user
-    login_as :joe_user
+    login_as 'joe_admin'
     # FIXME: should test agains mocks here, instead of re-testing the model...
-    post :delete, :id=>"~#{Card.fetch('Ron Request').id}"
-    assert_equal nil, Card.fetch('Ron Request')
-    assert_equal 'blocked', User.find_by_email('ron@request.com').status
+    post :delete, :id=>"~#{Card['Ron Request'].id}", :confirm_destroy=>true
+    assert_equal nil, Card['Ron Request']
+    assert_equal 'blocked', User.from_email('ron@request.com').status
   end
 
 end

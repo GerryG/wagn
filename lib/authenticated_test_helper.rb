@@ -1,12 +1,13 @@
 module AuthenticatedTestHelper
   # Sets the current user in the session from the user fixtures.
   def login_as user
-    Session.user = @request.session[:user] = (uc=Card[user.to_s] and uc.id)
-    #warn "(ath)login_as #{user.inspect}, #{Session.user_id}, #{@request.session[:user]}"
+    Session.reset
+    Session.account = @request.session[:user] = (uc=Card[user.to_s] and uc.id)
+    Rails.logger.info "(ath)login_as #{uc.inspect}, #{Session.account.inspect}, #{Session.as_card}, #{@request.session[:user]}"
   end
 
   def signout
-    Session.user = @request.session[:user] = nil
+    Session.account = @request.session[:user] = nil
   end
 
 
@@ -34,20 +35,9 @@ module AuthenticatedTestHelper
     assert_response :success
   end
 
-  # http://project.ioni.st/post/217#post-217
-  #
-  #  def test_new_publication
-  #    assert_difference(Publication, :count) do
-  #      post :create, :publication => {...}
-  #      # ...
-  #    end
-  #  end
-  #
-
-
   def assert_new_account(&block)
-    assert_difference(User, :count, 1) do
-      assert_difference Card.where(:type_id=>Card::UserID), :count, 1, &block
+    assert_difference User, :count, 1, 'Users' do
+      assert_difference Card.where(:type_id=>Card::UserID), :count, 1, 'User Cards', &block
     end
   end
 
@@ -58,7 +48,6 @@ module AuthenticatedTestHelper
   end
 
   def assert_status(email, status)
-    u = User.find_by_email(email)
-    assert_equal status, u.status
+    assert_equal status, User.from_email(email).status
   end
 end

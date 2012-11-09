@@ -290,16 +290,17 @@ module Wagn
     define_view :options, :perms=>:none do |args|
       attribute = params[:attribute]
 
-      attribute ||= if card.to_user and ( Session.as_id==card.id or card.trait_card(:account).ok?(:update) )
+      attribute ||= if card.to_user and ( Session.as_card.id==card.id or card.trait_card(:account).ok?(:update) )
         'account'; else; 'settings'; end
       render "option_#{attribute}"
     end
 
     define_view :option_account, :perms=> lambda { |r|
-        Session.as_id==r.card.id or r.card.trait_card(:account).ok?(:update)
+        # Should :update be on the card with account or the account?  This design decision is implemented a couple of places
+        Session.as_card.id==r.card.id or r.card.ok?(:update)
       } do |args|
     
-      locals = {:slot=>self, :card=>card, :account=>User.where(:card_id=>card.id).first }
+      locals = {:slot=>self, :card=>card, :account=>User.from_id(card.id) }
       wrap :options, args do
         %{ #{ _render_header }
           <div class="options-body">
@@ -612,7 +613,7 @@ module Wagn
               <h1>Ooo.  Sorry, but...</h1>
 
 
-           #{ if task != :read && Wagn::Conf[:read_only]
+           #{ if task != :read && Conf[:read_only]
                 "<div>We are currently in read-only mode.  Please try again later.</div>"
               else
                 %{<div>#{
@@ -651,115 +652,116 @@ module Wagn
 
   end
 
-end
 
-class Wagn::Renderer::Html < Wagn::Renderer
-  def watching_type_cards
-    "watching #{ link_to_page card.type_name } cards"
-  end
-
-  def watch_link text, toggle, title, extra={}
-    link_to "#{text}", path(:watch, :toggle=>toggle),
-      {:class=>"watch-toggle watch-toggle-#{toggle} slotter", :title=>title, :remote=>true, :method=>'post'}.merge(extra)
-  end
-
-  def card_form *opts
-    form_for( card, form_opts(*opts) ) { |form| yield form }
-  end
-
-  def form_opts url, classes='', other_html={}
-    url = path(url) if Symbol===url
-    opts = { :url=>url, :remote=>true, :html=>other_html }
-    opts[:html][:class] = classes + ' slotter'
-    opts[:html][:recaptcha] = 'on' if Wagn::Conf[:recaptcha_on] && Card.toggle( card.rule(:captcha) )
-    opts
-  end
-
-  private
-
-  def fancy_title name=nil
-    name ||= showname
-    title = name.to_cardname.parts.join %{<span class="joint">+</span>}
-    raw title
-  end
-
-  def page_icon cardname
-    link_to_page '&nbsp;'.html_safe, cardname, {:class=>'page-icon', :title=>"Go to: #{cardname.to_s}"}
-  end
-
-  def load_revisions
-    @revision_number = (params[:rev] || (card.revisions.count - card.drafts.length)).to_i
-    @revision = card.revisions[@revision_number - 1]
-    @previous_revision = @revision ? card.previous_revision( @revision.id ) : nil
-    @show_diff = (params[:mode] != 'false')
-  end
-
-  def new_instruction
-    i=%{#{if card.broken_type
-            %{<div class="error" id="no-cardtype-error">
-              Oops! There's no <strong>card type</strong> called "<strong>#{ card.broken_type }</strong>".
-            </div>}
-          end }
-       #{
-       if @help_card
-         ''  # they'll go inside the card
-       elsif !card.cardname.blank? #ENGLISH
-         %{<div>Currently, there is no card named "<strong>#{ card.name
-                 }</strong>", but you're welcomed to create it.</div>}
-       else
-         %{<div>Creating a new card is easy; you just need a unique name.</div>}
-       end}}
-    i.blank? ? '' : %{<div class="instruction new-instruction"> #{ i } </div>}
-  end
-
-  def new_content(args)
-    hide_type = params[:type] && !card.broken_type
-
-    wrap :new, args do
-      %{#{error_messages_for card}#{
-
-      card_form :create, 'card-form card-new-form', 'main-success'=>'REDIRECT' do |form|
-        @form = form
-
-        %{ #{ hidden_field_tag :success, card.rule(:thanks) || '_self' }
-
-        <div class="card-header">
-          #{
-          if hide_type
-            form.hidden_field :type_id
-          else
-            %{<span class="new-type">
-              <label>type:</label>
-              #{ type_field :class=>'type-field new-type-field live-type-field', :href=>path(:new), 'data-remote'=>true}
-            </span>}
-          end}
-
-            <span class="new-name">
-
-              #{ if card.cardname.blank? || Card.exists?(card.cardname)
-                  card.rule_card(:autoname) ? '&nbsp;' :
-                    %{<label>name:</label> <span class="name-area">#{ raw name_field(form) }</span>}
-                else
-                  %{#{hidden_field_tag 'card[name]', card.name} <label>name:</label>
-                    <span class="title">#{ fancy_title }</span>}
-                end }
-              </span>
-            </div>
-
-           #{@help_card ? %{<div class="instruction">#{
-             raw( with_inclusion_mode(:normal) { subrenderer(@help_card).render_core } ) }</div>} : '' }
-
-           <div class="edit-area">
-             <div class="card-editor editor">#{ edit_slot args }</div>
-             <div class="edit-button-area">
-               #{ submit_tag 'Submit', :class=>'create-submit-button' }
-               #{ button_tag 'Cancel', :type=>'button', :class=>"create-cancel-button #{args[:cancel_class]}", :href=>args[:cancel_href] }
-             </div>
-           </div>}
-         end }#{
-
-       notice}}
+  # need a better way to add defs to the renderer, but maybe this is ok for core usage?
+  class Renderer::Html < Renderer
+    def watching_type_cards
+      "watching #{ link_to_page card.type_name } cards"
     end
 
+    def watch_link text, toggle, title, extra={}
+      link_to "#{text}", path(:watch, :toggle=>toggle),
+        {:class=>"watch-toggle watch-toggle-#{toggle} slotter", :title=>title, :remote=>true, :method=>'post'}.merge(extra)
+    end
+
+    def card_form *opts
+      form_for( card, form_opts(*opts) ) { |form| yield form }
+    end
+
+    def form_opts url, classes='', other_html={}
+      url = path(url) if Symbol===url
+      opts = { :url=>url, :remote=>true, :html=>other_html }
+      opts[:html][:class] = classes + ' slotter'
+      opts[:html][:recaptcha] = 'on' if Conf[:recaptcha_on] && Card.toggle( card.rule(:captcha) )
+      opts
+    end
+
+    private
+
+    def fancy_title name=nil
+      name ||= showname
+      title = name.to_cardname.parts.join %{<span class="joint">+</span>}
+      raw title
+    end
+
+    def page_icon cardname
+      link_to_page '&nbsp;'.html_safe, cardname, {:class=>'page-icon', :title=>"Go to: #{cardname.to_s}"}
+    end
+
+    def load_revisions
+      @revision_number = (params[:rev] || (card.revisions.count - card.drafts.length)).to_i
+      @revision = card.revisions[@revision_number - 1]
+      @previous_revision = @revision ? card.previous_revision( @revision.id ) : nil
+      @show_diff = (params[:mode] != 'false')
+    end
+
+    def new_instruction
+      i=%{#{if card.broken_type
+              %{<div class="error" id="no-cardtype-error">
+                Oops! There's no <strong>card type</strong> called "<strong>#{ card.broken_type }</strong>".
+              </div>}
+            end }
+         #{
+         if @help_card
+           ''  # they'll go inside the card
+         elsif !card.cardname.blank? #ENGLISH
+           %{<div>Currently, there is no card named "<strong>#{ card.name
+                   }</strong>", but you're welcomed to create it.</div>}
+         else
+           %{<div>Creating a new card is easy; you just need a unique name.</div>}
+         end}}
+      i.blank? ? '' : %{<div class="instruction new-instruction"> #{ i } </div>}
+    end
+
+    def new_content(args)
+      hide_type = params[:type] && !card.broken_type
+
+      wrap :new, args do
+        %{#{error_messages_for card}#{
+
+        card_form :create, 'card-form card-new-form', 'main-success'=>'REDIRECT' do |form|
+          @form = form
+
+          %{ #{ hidden_field_tag :success, card.rule(:thanks) || '_self' }
+
+          <div class="card-header">
+            #{
+            if hide_type
+              form.hidden_field :type_id
+            else
+              %{<span class="new-type">
+                <label>type:</label>
+                #{ type_field :class=>'type-field new-type-field live-type-field', :href=>path(:new), 'data-remote'=>true}
+              </span>}
+            end}
+
+              <span class="new-name">
+
+                #{ if card.cardname.blank? || Card.exists?(card.cardname)
+                    card.rule_card(:autoname) ? '&nbsp;' :
+                      %{<label>name:</label> <span class="name-area">#{ raw name_field(form) }</span>}
+                  else
+                    %{#{hidden_field_tag 'card[name]', card.name} <label>name:</label>
+                      <span class="title">#{ fancy_title }</span>}
+                  end }
+                </span>
+              </div>
+
+             #{@help_card ? %{<div class="instruction">#{
+               raw( with_inclusion_mode(:normal) { subrenderer(@help_card).render_core } ) }</div>} : '' }
+
+             <div class="edit-area">
+               <div class="card-editor editor">#{ edit_slot args }</div>
+               <div class="edit-button-area">
+                 #{ submit_tag 'Submit', :class=>'create-submit-button' }
+                 #{ button_tag 'Cancel', :type=>'button', :class=>"create-cancel-button #{args[:cancel_class]}", :href=>args[:cancel_href] }
+               </div>
+             </div>}
+           end }#{
+
+         notice}}
+      end
+
+    end
   end
 end

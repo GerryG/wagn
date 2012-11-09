@@ -6,7 +6,7 @@ CARDS_MATCHING_TWO = ["Two","One+Two","One+Two+Three","Joe User","*plusses+*righ
 
 describe Wql do
   before do
-    Session.user= :joe_user
+    Session.account= 'joe_user'
   end
 
 
@@ -77,7 +77,7 @@ describe Wql do
     end
 
     it "should not give duplicate results for multiple edits" do
-      Session.as(:joe_user){ c=Card["JoeNow"]; c.content="testagagin"; c.save!; c.content="test3"; c.save! }
+      Session.as('joe_user'){ c=Card["JoeNow"]; c.content="testagagin"; c.save!; c.content="test3"; c.save! }
       Wql.new(:edited_by=>"Joe User").run.map(&:name).sort.should == ["JoeLater","JoeNow"]
     end
 
@@ -88,7 +88,7 @@ describe Wql do
 
   describe "created_by/creator_of" do
     before do
-      Session.as :joe_user do
+      Session.as 'joe_user' do
         Card.create :name=>'Create Test', :content=>'sufficiently distinctive'
       end
     end
@@ -105,7 +105,7 @@ describe Wql do
 
   describe "last_edited_by/last_editor_of" do
     before do
-      Session.user= :joe_user
+      Session.account= 'joe_user'
       c=Card.fetch('A'); c.content='peculicious'; c.save!
     end
 
@@ -352,7 +352,7 @@ describe Wql do
   #=end
   describe "found_by" do
     before do
-      Session.user= Card::WagnBotID
+      Session.account= Card::WagnBotID
       c = Card.create(:name=>'Simple Search', :type=>'Search', :content=>'{"name":"A"}')
     end
 

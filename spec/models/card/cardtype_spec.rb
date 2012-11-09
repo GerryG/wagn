@@ -9,7 +9,7 @@ end
 describe "Card (Cardtype)" do
 
   before do
-    Session.as :joe_user
+    Session.as 'joe_user'
   end
 
   it "should not allow cardtype remove when instances present" do
@@ -69,7 +69,7 @@ end
 
 describe Card, "created without permission" do
   before do
-    Session.user= Card::AnonID
+    Session.account= Card::AnonID
   end
 
   # FIXME:  this one should pass.  unfortunately when I tried to fix it it started looking like the clean solution
@@ -166,8 +166,8 @@ describe User, "Joe User" do
       Card.create :name=>'Cardtype F+*type+*create', :type=>'Pointer', :content=>'[[r3]]'
     end
 
-    Session.as :joe_user
-    @user = User.user
+    Session.as 'joe_user'
+    @user = Session.as_user
     @ucard = Card[@user.card_id]
     @type_names = Session.createable_types
   end

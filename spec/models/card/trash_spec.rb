@@ -21,7 +21,7 @@ end
 
 describe Card, "in trash" do
   it "should be retrieved by fetch_or_create" do
-    Session.as :joe_user do
+    Session.as 'joe_user' do
       Card.create(:name=>"Betty").destroy
       Card.fetch_or_create "Betty"
       Card["Betty"].should be_instance_of(Card)
@@ -54,20 +54,23 @@ end
 #NOT WORKING, BUT IT SHOULD
 #describe Card, "a part of an unremovable card" do
 #  before do
-#     Session.as(Card::WagnBotID)
+#    Session.as_bot do
 #     # this ugly setup makes it so A+Admin is the actual user with edits..
 #     Card["Wagn Bot"].update_attributes! :name=>"A+Wagn Bot"
+#    end
 #  end
 #  it "should not be removable" do
+#    Session.as_bot do
 #    @a = Card['A']
 #    @a.confirm_destroy = true
 #    @a.destroy.should_not be_true
+#    end
 #  end
 #end
 
 describe Card, "dependent removal" do
   before do
-    Session.as :joe_user
+    Session.as 'joe_user'
     @a = Card['A']
     @a.destroy!
     @c = Card.find_by_key "A+B+C".to_cardname.key
@@ -154,7 +157,7 @@ end
 
 describe Card, "recreate trashed card via new" do
 #  before do
-#    Session.as(Card::WagnBotID)
+#    Session.as_bot
 #    @c = Card.create! :type=>'Basic', :name=>"BasicMe"
 #  end
 

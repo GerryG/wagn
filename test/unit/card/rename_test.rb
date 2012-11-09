@@ -30,7 +30,7 @@ class Card::RenameTest < ActiveSupport::TestCase
   end
 
   def test_subdivision
-    assert_rename card("A+B"), "A+B+T"  # re-uses the parent card: A+B
+    Session.as 'joe_user' do assert_rename card("A+B"), "A+B+T" end  # re-uses the parent card: A+B
   end
 
 =begin

@@ -1,12 +1,12 @@
 require File.expand_path('../../test_helper', File.dirname(__FILE__))
-class Wagn::Set::Type::AccountRequestTest < ActiveSupport::TestCase
+class AccountRequestTest < ActiveSupport::TestCase
 
 
   def setup
     super
     setup_default_user
     # make sure all this stuff works as anonymous user
-    Session.user = Card::AnonID
+    Session.account = Card::AnonID
   end
 
 
@@ -30,12 +30,10 @@ class Wagn::Set::Type::AccountRequestTest < ActiveSupport::TestCase
       #auth_user_card.trait_card(:tasks).content = '[[deny_account_requests]]'
     #end
     c=Card.fetch('Ron Request')
-    #warn Rails.logger.warn("destroy card (#{c.inspect}) #{User.where(:email=>'ron@request.com').first.inspect}")
-    Session.as :joe_user do c.destroy!  end
-    #warn Rails.logger.warn("destroyed card (#{c.inspect}) #{User.where(:email=>'ron@request.com').first.inspect}")
+    Session.as 'joe_admin' do c.destroy!  end
 
     assert_equal nil, Card.fetch('Ron Request')
-    assert_equal 'blocked', User.where(:email=>'ron@request.com').first.status
+    assert_equal 'blocked', User.from_email('ron@request.com').status
   end
 
 

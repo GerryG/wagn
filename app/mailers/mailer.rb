@@ -22,9 +22,7 @@ class Mailer < ActionMailer::Base
 
     args =  { :to => @email, :subject  => subject }
     set_from_args args, ( Card.setting('*invite+*from') || begin
-      curr = Session.user
-      from_user = curr.anonymous? || curr.id == user.id ? User.admin : curr
-      "#{from_user.card.name} <#{from_user.email}>"
+      "#{Session.authorized.name} <#{Session.account.email}>"
     end ) #FIXME - might want different "from" settings for different contexts?
     mail args
   end
@@ -49,7 +47,7 @@ class Mailer < ActionMailer::Base
 
 
   def change_notice user, card, action, watched, subedits=[], updated_card=nil
-    return unless user = User===user ? user : User.from_id(user)
+    return unless user = User===user ? user : (User.from_id(user)||User.from_id(user.trait_card(:account)))
     #warn "change_notice( #{user.email}, #{card.inspect}, #{action.inspect}, #{watched.inspect} Uc:#{updated_card.inspect}...)"
 
     updated_card ||= card

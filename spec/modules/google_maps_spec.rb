@@ -3,7 +3,7 @@ require File.expand_path('../spec_helper', File.dirname(__FILE__))
 
 describe GoogleMapsAddon do
   before(:each) do
-    Session.as :joe_user
+    Session.as 'joe_user'
     @geotest = Card.new(:name=>"Geotest")
   end
 

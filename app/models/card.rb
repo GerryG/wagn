@@ -192,7 +192,7 @@ class Card < ActiveRecord::Base
   end
 
   def set_stamper
-    self.updater_id = Session.user_id
+    self.updater_id = Session.authorized.id
     self.creator_id = self.updater_id if new_card?
   end
 
@@ -293,6 +293,7 @@ class Card < ActiveRecord::Base
         dep.confirm_destroy = true
         dep.destroy
       end
+      expire
       true
     end
   end
@@ -493,12 +494,13 @@ class Card < ActiveRecord::Base
   end
 
   def parties
-    @parties ||= (all_roles << self.id).flatten.reject(&:blank?)
+    @parties ||= (all_roles << trunk.id).flatten.reject(&:blank?)
   end
 
   def read_rules
     @read_rules ||= begin
-      if id==Card::WagnBotID
+      Rails.logger.info "read_rules #{inspect}"
+      if id==Card::WagnBotID 
         [] # avoids infinite loop
       else
         party_keys = ['in', Card::AnyoneID] + parties
@@ -507,15 +509,18 @@ class Card < ActiveRecord::Base
         end
       end
     end
+    #Rails.logger.debug "read_rules rr:#{@read_rules.map{|i| Card[i].name||''}*", "}"; @read_rules
   end
 
   def all_roles
-    ids = Session.as_bot { trait_card(:roles).item_cards(:limit=>0).map(&:id) }
-    @all_roles ||= (id==Card::AnonID ? [] : [Card::AuthID] + ids)
+    ids = Session.as_bot {
+      trait_card(:roles).item_cards(:limit=>0).map(&:id)
+    }
+    @all_roles ||= (id==Card::AnonID || (trunk && trunk.id==Card::AnonID) ? [] : [Card::AuthID] + ids)
   end
 
   def to_user
-    User.where( :card_id => id ).first
+    User.from_id id
   end # should be obsolete soon.
 
 

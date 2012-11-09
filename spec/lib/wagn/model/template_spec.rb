@@ -29,7 +29,7 @@ describe Card, "with right content template" do
     Session.as_bot do
       @bt = Card.create! :name=>"birthday+*right+*content", :type=>'Date', :content=>"Today!"
     end
-    Session.as :joe_user
+    Session.as 'joe_user'
     @jb = Card.create! :name=>"Jim+birthday"
   end
 
@@ -51,7 +51,7 @@ describe Card, "with right default template" do
     Session.as_bot  do
       @bt = Card.create! :name=>"birthday+*right+*default", :type=>'Date', :content=>"Today!"
     end
-    Session.as :joe_user
+    Session.as 'joe_user'
     @jb = Card.create! :name=>"Jim+birthday"
   end
 

@@ -5,6 +5,7 @@ require File.expand_path('../../../packs/pack_spec_helper', File.dirname(__FILE_
 describe "reader rules" do
   before do
     @perm_card =  Card.new(:name=>'Home+*self+*read', :type=>'Pointer', :content=>'[[Anyone Signed In]]')
+    Rails.logger.info "perm card #{@perm_card.inspect}"
   end
 
   it "should be *all+*read by default" do
@@ -35,8 +36,8 @@ describe "reader rules" do
     card.read_rule_id.should == @perm_card.id
     card.who_can(:read).should == [Card['joe_admin'].id]
     Session.as(:anonymous) { card.ok?(:read).should be_false }
-    Session.as(:joe_user)  { card.ok?(:read).should be_false }
-    Session.as(:joe_admin) { card.ok?(:read).should be_true  }
+    Session.as('joe_user')  { card.ok?(:read).should be_false }
+    Session.as('joe_admin') { card.ok?(:read).should be_true  }
     Session.as_bot         { card.ok?(:read).should be_true  }
   end
 
@@ -93,11 +94,13 @@ describe "reader rules" do
   it "should get updated when trunk type change makes type-plus-right apply / unapply" do
     @perm_card.name = "Phrase+B+*type plus right+*read"
     Session.as_bot { @perm_card.save! }
+    Rails.logger.warn "renamed perm_card and saved #{@perm_card.inspect}"
     Card.fetch('A+B').read_rule_id.should == Card.fetch('*all+*read').id
     c = Card.fetch('A')
     c.type_id = Card::PhraseID
     c.save!
     Card.fetch('A+B').read_rule_id.should == @perm_card.id
+    Rails.logger.warn "tested"
   end
 
   it "should work with relative settings" do
@@ -140,6 +143,7 @@ describe "reader rules" do
 
   it "should work on virtual+virtual cards" do
     c = Card.fetch('Number+*type+by name')
+    Rails.logger.warn "testing #{c.inspect}"
     c.ok?(:read).should be_true
   end
 
@@ -161,10 +165,10 @@ describe "Permission", ActiveSupport::TestCase do
     Session.as_bot do
       Session.always_ok?.should == true
     end
-    Session.as(:joe_user) do
+    Session.as('joe_user') do
       Session.always_ok?.should == false
     end
-    Session.as(:joe_admin) do
+    Session.as('joe_admin') do
       Session.always_ok?.should == true
       Card.create! :name=>"Hidden"
       Card.create(:name=>'Hidden+*self+*read', :type=>'Pointer', :content=>'[[Anyone Signed In]]')
@@ -215,12 +219,10 @@ describe "Permission", ActiveSupport::TestCase do
 
     @c1 = Card['c1']
     assert_not_locked_from( @u1, @c1 )
-    Rails.logger.info "testing point 1 #{@u2.inspect}, #{@c1.inspect}"
     assert_locked_from( @u2, @c1 )
     assert_locked_from( @u3, @c1 )
 
     @c2 = Card['c2']
-    Rails.logger.info "testing point 2 #{@u1.inspect}, #{@c2.inspect}"
     assert_locked_from( @u1, @c2 )
     assert_not_locked_from( @u2, @c2 )
     assert_locked_from( @u3, @c2 )
@@ -333,7 +335,7 @@ describe "Permission", ActiveSupport::TestCase do
     Session.as(@u1) do
       Card.search(:content=>'WeirdWord').plot(:name).sort.should == %w( c1 c2 c3 )
     end
-    Session.user=nil # for Session.as to be effective, you can't have a logged in user
+    Session.account=nil # for Session.as to be effective, you can't have a logged in user
     Session.as(@u2) do
       Card.search(:content=>'WeirdWord').plot(:name).sort.should == %w( c2 c3 )
     end
@@ -365,7 +367,7 @@ end
 
 
 describe Card, "new permissions" do
-  Session.as :joe_user
+  Session.as 'joe_user'
 
   it "should let joe view new cards" do
     @c = Card.new
@@ -377,7 +379,7 @@ end
 
 describe Card, "default permissions" do
   before do
-    Session.as :joe_user do
+    Session.as 'joe_user' do
       @c = Card.create! :name=>"sky blue"
     end
   end
@@ -389,7 +391,7 @@ describe Card, "default permissions" do
   end
 
   it "should let joe view basic cards" do
-    Session.as :joe_user do
+    Session.as 'joe_user' do
       @c.ok?(:read).should be_true
     end
   end
@@ -411,10 +413,10 @@ describe Card, "settings based permissions" do
   it "should handle delete as a setting" do
     c = Card.new :name=>'whatever'
     c.who_can(:delete).should == [Card['joe_user'].id]
-    Session.as(:joe_user) do
+    Session.as('joe_user') do
       c.ok?(:delete).should == true
     end
-    Session.as(:u1) do
+    Session.as('u1') do
       c.ok?(:delete).should == false
     end
     Session.as(:anonymous) do

@@ -3,7 +3,7 @@ require File.expand_path('../../spec_helper', File.dirname(__FILE__))
 # FIXME this shouldn't be here
 describe Wagn::Set::Type::Cardtype, ".create with :codename" do
   before do
-    Session.as :joe_user
+    Session.as 'joe_user'
   end
   it "should work" do
     Card.create!(:name=>"Foo Type", :codename=>"foo", :type=>'Cardtype').typecode.should==:cardtype
@@ -90,7 +90,7 @@ end
 
 describe Card, "create junction" do
   before(:each) do
-    Session.as :joe_user
+    Session.as 'joe_user'
     @c = Card.create! :name=>"Peach+Pear", :content=>"juicy"
   end
 

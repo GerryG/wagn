@@ -5,7 +5,7 @@ require File.expand_path('../../packs/pack_spec_helper', File.dirname(__FILE__))
 
 describe Wagn::Renderer, "" do
   before do
-    Session.user= :joe_user
+    Session.account= 'joe_user'
     Wagn::Renderer.current_slot = nil
     Wagn::Renderer.ajax_call = false
   end
@@ -67,7 +67,7 @@ describe Wagn::Renderer, "" do
         Card.create(:name=>'Joe no see me', :type=>'Html', :content=>'secret')
         Card.create(:name=>'Joe no see me+*self+*read', :type=>'Pointer', :content=>'[[Administrator]]')
       end
-      Session.as :joe_user do
+      Session.as 'joe_user' do
         assert_view_select Wagn::Renderer.new(Card.fetch('Joe no see me')).render(:core), 'span[class="denied"]'
       end
     end
@@ -298,7 +298,7 @@ describe Wagn::Renderer, "" do
     end
 
     it "is used in new card forms when soft" do
-      Session.as :joe_admin do
+      Session.as 'joe_admin' do
         content_card = Card["Cardtype E+*type+*default"]
         content_card.content= "{{+Yoruba}}"
         content_card.save!
@@ -313,7 +313,7 @@ describe Wagn::Renderer, "" do
     end
 
     it "is used in new card forms when hard" do
-      Session.as :joe_admin do
+      Session.as 'joe_admin' do
         content_card = Card.create!(:name=>"Cardtype E+*type+*content",  :content=>"{{+Yoruba}}" )
         help_card    = Card.create!(:name=>"Cardtype E+*type+*add help", :content=>"Help me dude" )
         card = Card.new(:type=>'Cardtype E')
@@ -390,7 +390,7 @@ describe Wagn::Renderer, "" do
 
     context "HTML" do
       before do
-        Session.user= Card::WagnBotID
+        Session.account= Card::WagnBotID
       end
 
       it "should have special editor" do
@@ -491,7 +491,7 @@ describe Wagn::Renderer, "" do
 
     context "*account link" do
       it "should have a 'my card' link" do
-        Session.as :joe_user do
+        Session.as 'joe_user' do
           assert_view_select render_card(:raw, :name=>'*account links'), 'span[id="logging"]' do
             assert_select 'a[id="my-card-link"]', :text => 'Joe User'
           end
@@ -514,7 +514,7 @@ describe Wagn::Renderer, "" do
 
   context "replace refs" do
     before do
-      Session.user= Card::WagnBotID
+      Session.account= Card::WagnBotID
     end
 
     it "replace references should work on inclusions inside links" do

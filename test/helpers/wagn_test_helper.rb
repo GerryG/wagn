@@ -55,7 +55,7 @@ module WagnTestHelper
         login = u.email and pass = USERS[login]
 
     if functional
-      #warn "functional login #{login}, #{pass}"
+      Rails.logger.warn "functional login #{login}, #{pass}"
       post :signin, :login=>login, :password=>pass, :controller=>:account
     else
       post 'account/signin', :login=>login, :password=>pass, :controller=>:account

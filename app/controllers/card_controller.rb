@@ -37,9 +37,8 @@ class CardController < ApplicationController
   def delete
     @card = @card.refresh if @card.frozen? # put in model
     @card.confirm_destroy = params[:confirm_destroy]
-    Rails.logger.warn "deleteing #{@card.inspect} CR:#{@card.errors.to_a.inspect}, confirm:#{params[:confirm_destroy]}"
+    Rails.logger.info "deleteing #{@card.inspect} CR:#{@card.errors.to_a.inspect}, confirm:#{params[:confirm_destroy]}"
     @card.destroy
-    Rails.logger.warn "deleted #{@card.inspect} CR:#{@card.errors[:confirmation_required].to_a.inspect}, confirm:#{params[:confirm_destroy]}"
 
     return show(:delete) if @card.errors[:confirmation_required].any?
 
@@ -129,7 +128,6 @@ class CardController < ApplicationController
 
     account = @card.trait_card(:account) and user = Account.from_id(account.id)
     if user and account_args = params[:account]
-      Rails.logger.warn "up acct #{Account.as_card}, #{Account.authorized}, #{params.inspect}, U:#{user}, A:#{account.inspect}, C:#{@card.inspect}"
       unless Account.authorized.id == account.id and !account_args[:blocked]
         @card.ok! :update
       end
@@ -138,7 +136,6 @@ class CardController < ApplicationController
 
     if user && user.errors.any?
       user.errors.each do |field, err|
-        Rails.logger.debug "User error #{user}, #{field}, #{err}"
         @card.errors.add field, err
       end
       errors
@@ -154,9 +151,7 @@ class CardController < ApplicationController
                    :message => "Welcome!  You now have an account on #{Card.setting :title}." } #ENGLISH
     Rails.logger.info "create_account #{params[:user].inspect}, #{email_args.inspect}"
     @user = Account.new params[:user]
-    Rails.logger.info "create_account U:#{@user.inspect}"
     @card = @user.save_card(@card, email_args)
-    Rails.logger.info "create_account #{@card.inspect}, U:#{@user.inspect}"
     raise ActiveRecord::RecordInvalid.new(@user) if !@user.errors.empty?
 #    flash[:notice] ||= "Done.  A password has been sent to that email." #ENGLISH
     params[:attribute] = :account

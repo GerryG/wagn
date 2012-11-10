@@ -37,17 +37,19 @@ class Account
     def reset()                @@account = ANONCARD; @@as_card = nil                        end
     def account()              @@account || ANONCARD                                        end
     def account_name()         account.cardname.left                                        end
-    def account=(account)      @@account = get_account account                              end
+    def account=(account)      @@account = get_account account
+    raise "bad id #{account.inspect}" if @@account.nil?; @@account end
     def as_card()              @@as_card || account                                         end
     def authorized()        (ac=as_card).tag_id == Card::AccountID ? Card[ac.trunk_id] : ac end
     def as_bot(&block)         as Card::WagnBotID, &block                                   end
     def among?(authzed)        authorized.among? authzed                                    end
     def logged_in?()           authorized.id != Card::AnonID                                end
+    alias session account ; alias session= account=  # until I remove .account usage fully
 
     def as given_account
       save_as = @@as_card
       @@as_card = get_account given_account
-      Rails.logger.info "set ac #{@@as_card.inspect}"
+      #Rails.logger.info "set ac #{@@as_card.inspect}"
 
       if block_given?
         value = yield
@@ -80,12 +82,12 @@ class Account
     end
 
     def get_account account
+      Rails.logger.debug "account lookup: #{account.inspect}"
       return Card[account.card_id] if @@account_class===account
       account = acct = Card===account ? account : Card[account]
       acct = acct.trait_card(:account) unless acct.id == ANONCARD.id || acct.tag_id==Card::AccountID
-      Rails.logger.info "account lookup: acct:#{acct.inspect} cd(:account).inspect}"
       acct = account.id == Card::WagnBotID ? account : Account::ANONCARD if acct.new_card? 
-      Rails.logger.info "account lookup: acct:#{acct.inspect}, #{account.inspect}"
+      #Rails.logger.info "account lookup: acct:#{acct.inspect} cd:#{account.inspect}"
       acct
     end
 

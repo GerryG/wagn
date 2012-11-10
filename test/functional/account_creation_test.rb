@@ -26,9 +26,10 @@ class AccountCreationTest < ActionController::TestCase
     @controller = AccountController.new
     @request    = ActionController::TestRequest.new
     @response   = ActionController::TestResponse.new
+    Wagn::Cache.restore
     #login_as 'joe_admin'
     integration_login_as 'joe_admin', true
-    Wagn::Cache.restore
+    Rails.logger.warn "login= (su)#{Account.authorized}"
   end
 
 # this is working in interface but I can't get it to work here:
@@ -80,14 +81,16 @@ class AccountCreationTest < ActionController::TestCase
     email = ActionMailer::Base.deliveries[-1]
     # emails should be 'from' inviting user
     assert_equal Account.account.email, email.from[0]
-    assert_equal 'active', Account.from_email('new@user.com').status
-    assert_equal 'active', Account.from_email('new@user.com').status
+    Rails.logger.warn "testing fscr #{Account.from_email('new@user.com').inspect}"
+    assert Account.from_email('new@user.com').active?
   end
 
   def test_should_create_account_when_user_cards_are_templated   ##FIXME -- I don't think this actually catches the bug I saw.
     Account.as_bot { Card.create! :name=> 'User+*type+*content'}
     assert_new_account do
+    Rails.logger.warn "login= templ #{Account.authorized}"
       post_invite
+    Rails.logger.warn "login= Atempl #{Account.authorized}"
       assert_response 302
     end
   end
@@ -95,7 +98,9 @@ class AccountCreationTest < ActionController::TestCase
   # should work -- we generate a password if it's nil
   def test_should_generate_password_if_not_given
     assert_new_account do
+    Rails.logger.warn "login= genpw #{Account.authorized}"
       post_invite
+    Rails.logger.warn "login= Agenpw #{Account.authorized}"
       assert !assigns(:user).password.blank?
     end
   end

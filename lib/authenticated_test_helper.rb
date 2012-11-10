@@ -43,13 +43,13 @@ module AuthenticatedTestHelper
 
   def assert_new_account(&block)
     assert_difference User, :count, 1, 'Users' do
-      assert_difference Card.where(:type_id=>Card::UserID), :count, 1, 'User Cards', &block
+      assert_difference Card, :count, 2, 'User Cards', &block
     end
   end
 
   def assert_no_new_account(&block)
     assert_no_difference(User, :count) do
-      assert_no_difference Card.where(:type_id=>Card::UserID), :count, &block
+      assert_no_difference Card, :count, &block
     end
   end
 

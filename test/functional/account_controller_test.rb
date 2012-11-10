@@ -44,7 +44,7 @@ class AccountControllerTest < ActionController::TestCase
 
   def test_should_signout
     get :signout
-    assert_nil session[:user]
+    assert_equal session[:user], Card::AnonID
     assert_response :redirect
   end
 
@@ -52,7 +52,9 @@ class AccountControllerTest < ActionController::TestCase
     integration_login_as 'joe_user', true
     assert_difference ActionMailer::Base.deliveries, :size do
       assert_new_account do
+        Rails.logger.warn "testing #{Account.authorized}"
         post_invite
+        Rails.logger.warn "posted #{Account.from_login(@newby_email).inspect}"
       end
     end
   end

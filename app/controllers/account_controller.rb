@@ -53,10 +53,10 @@ class AccountController < ApplicationController
 
   def accept
     card_key=params[:card][:key]
-    Rails.logger.warn "accept #{card_key.inspect}, #{Card[card_key]}, #{params.inspect}"
+    Rails.logger.info "accept #{card_key.inspect}, #{Card[card_key]}, #{params.inspect}"
     raise(Wagn::Oops, "I don't understand whom to accept") unless params[:card]
     @card = Card[card_key] or raise(Wagn::NotFound, "Can't find this Account Request")
-    Rails.logger.warn "accept #{Account.account.inspect}, #{@card.inspect}"
+    Rails.logger.debug "accept #{Account.account.inspect}, #{@card.inspect}"
     @card=@card.trait_card(:account) and !@card.new_card? and @user = Account.from_id(@card.id) or
       raise(Wagn::Oops, "This card doesn't have an account to approve")
     #warn "accept #{@user.inspect}"
@@ -74,17 +74,15 @@ class AccountController < ApplicationController
   end
 
   def invite
-    #warn "invite: ok? #{Card.new(:name=>'dummy+*account').inspect} P:#{params.inspect}"
-    #warn "invite: ok? #{Card.new(:name=>'dummy+*account').ok?(:create)}"
+    Rails.logger.info "invite: ok? #{Card.new(:name=>'dummy+*account').ok?(:create)}"
     cok=Card.new(:name=>'dummy+*account').ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create")
-    #warn "post invite #{cok}, #{request.post?}, #{params.inspect}"
     if request.post?
       @user = Account.new params[:user]
       @card = @user.save_card params[:card]
     else
       @user = Account.new; @card = Card.new
     end
-    #warn "invite U:#{@user.inspect} C:#{@card.inspect}"
+    Rails.logger.debug "invite U:#{@user.inspect} C:#{@card.inspect}"
     if request.post? and @user.errors.empty?
       @user.send_account_info(params[:email])
       redirect_to Card.path_setting(Card.setting '*invite+*thanks')
@@ -97,11 +95,10 @@ class AccountController < ApplicationController
 
 
   def signin
-    Rails.logger.warn "signin #{params[:login]}"
+    Rails.logger.info "signin #{params[:login]}"
     if user=Account.from_params(params) and user.authenticated?(params)
-      self.session_user = user
+      self.session_user = user.card_id
       flash[:notice] = "Successfully signed in"
-      Rails.logger.warn Rails.logger.info("to prev #{previous_location}")
       redirect_to previous_location
     else
       failed_login( case

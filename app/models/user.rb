@@ -18,26 +18,21 @@ class User < ActiveRecord::Base
   validates_presence_of     :password_confirmation,      :if => :password_required?
   validates_length_of       :password, :within => 5..40, :if => :password_required?
   validates_confirmation_of :password,                   :if => :password_required?
-#  validates_uniqueness_of   :salt, :allow_nil => true
 
   before_validation :downcase_email!
   before_save :encrypt_password
   after_save :reset_cache
 
   class << self
-    def from_email(email)
-      r=User.where(:email=>email.strip.downcase).first
-      Rails.logger.warn "from email #{email}, #{r.inspect}"; r
-    end
+    def from_email(email) User.where(:email=>email.strip.downcase).first           end
     def from_login(login) User.where(:login=>login).first                          end
-    def from_id(card_id)
-      Rails.logger.warn "from id #{card_id}, #{User.where(:card_id=>card_id).first} #{card_id==709 ? (caller*"\n") : ''}"
-      User.where(:card_id=>card_id).first                      end
+    def from_id(card_id)  User.where(:card_id=>card_id).first                      end
     def cache()           Wagn::Cache[User]                                        end
 
     # Encrypts some data with the salt.
     def encrypt(password, salt)
-      Digest::SHA1.hexdigest("#{salt}--#{password}--")
+      r= Digest::SHA1.hexdigest("#{salt}--#{password}--")
+      Rails.logger.warn "encrypt #{salt}, #{password}, #{r}"; r
     end
 
     # User caching, needs work
@@ -69,7 +64,7 @@ class User < ActiveRecord::Base
 
   def save_card args, email_args={}
     raise "anon creates?" if self.card_id == 709
-    Rails.logger.info  "create with(#{inspect}, #{args.inspect})"
+    #Rails.logger.info  "create with(#{inspect}, #{args.inspect})"
     @card = if Card===args
         args.type_id = Card::UserID unless args.type_id == Card::UserID ||
                                     args.type_id == Card::AccountRequestID
@@ -82,12 +77,12 @@ class User < ActiveRecord::Base
     # it would just be a copy of Card[card_id].trunk_id
     # then login isn't used anymore
     Account.as_bot do
-      Rails.logger.debug "save_card saving #{inspect}, #{args.inspect}, #{Account.account.inspect}"
+      #Rails.logger.debug "save_card saving #{inspect}, #{args.inspect}, #{Account.account.inspect}"
       active() if self.status.blank?
       generate_password if password.blank?
 
       begin
-        Rails.logger.info "save with card #{@card.inspect}, #{self.inspect}"
+        #Rails.logger.info "save with card #{@card.inspect}, #{self.inspect}"
         User.transaction do
           @card = @card.refresh if @card.frozen?
           newcard = @card.new_card?
@@ -103,13 +98,14 @@ class User < ActiveRecord::Base
 
           self.card_id = @card.id
           Rails.logger.info "save user #{inspect}"
-          if !(sv=save) || newcard && self.errors.any?
+          if newcard && self.errors.any? || !(sv=save)
             self.card_id=nil; save
-            Rails.logger.warn "RB #{sv}, #{self.errors.map(&:to_s)*', '}, #{inspect}"
+            Rails.logger.warn "RB #{sv}, #{inspect} #{caller*"\n"}"
+            Rails.logger.warn "RB #{self.errors.inspect}"
             raise ActiveRecord::Rollback # ROLLBACK should undo any changes made
           end
-          Rails.logger.debug "save with_card error? #{inspect}, card:#{@card.inspect}"
-          Rails.logger.debug "save with_card error #{self.errors.to_a.inspect}, card:#{@card.inspect}" if self.errors.any?
+          #Rails.logger.debug "save with_card error? #{inspect}, card:#{@card.inspect}"
+          #Rails.logger.debug "save with_card error #{self.errors.to_a.inspect}, card:#{@card.inspect}" if self.errors.any?
           true
         end
       rescue Exception => e
@@ -117,7 +113,6 @@ class User < ActiveRecord::Base
         warn "save with card failed. #{e.inspect},  #{@card.inspect} Bt:#{e.backtrace*"\n"}"
       end
 
-      Rails.logger.debug "user is #{inspect} #{email_args.inspect}"
       self.send_account_info(email_args) if self.errors.empty? && !email_args.empty?
     end
     @card
@@ -125,7 +120,7 @@ class User < ActiveRecord::Base
 
   def reset_cache
     self.class.cache.reset
-    Rails.logger.debug "User reset cache"
+    #Rails.logger.debug "User reset cache"
     true
   end
 
@@ -143,7 +138,6 @@ class User < ActiveRecord::Base
     #return if args[:no_email]
     [:subject, :message].each {|r| args[r] or raise Wagn::Oops, "#{r} is requires" }
     begin
-      Rails.logger.info "sai #{email}, #{inspect}"
       message = Mailer.account_info self, args
       message.deliver
     rescue Exception=>e
@@ -171,16 +165,15 @@ class User < ActiveRecord::Base
       9.times.map() do PW_CHARS[rand*61] end *''
   end
 
-  def to_s()            "#<#{self.class.name}:#{login}<#{email}>>"                      end
-  def mocha_inspect()   to_s                                                           end
-  def downcase_email!()
-    (em = self.email) =~ /[A-Z]/ and em=em.downcase and self.email=em
-    Rails.logger.warn "dwnc #{em}"
-  end
+  def to_s()            "#<#{self.class.name}:#{login}<#{email}>>"                        end
+  def mocha_inspect()   to_s                                                              end
+  def downcase_email!() (em = self.email) =~ /[A-Z]/ and em=em.downcase and self.email=em end
 
   # Authenticates a user by their login name and unencrypted password.  Returns the user or nil.
   def authenticated? params
+    r=(
     password = params[:password].strip and crypted_password == encrypt(password) and active?
+    ) ; Rails.logger.warn "auth? #{params[:password]}, #{crypted_password} #{active?} R:#{r}"; r
   end
 
  protected

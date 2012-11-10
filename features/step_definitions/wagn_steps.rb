@@ -7,11 +7,11 @@ Given /^I log in as (.+)$/ do |user_card_name|
   account=Card[user_card_name]
   @session_user = account.id
   account=account.trait_card :account
-  user = User.from_id(account.id)
+  user = Session.from_id(account.id)
   email = user.email
   visit "/account/signin"
   fill_in("login", :with=> email )
-  fill_in("password", :with=> User.from_id(account.id).login.split("_")[0]+"_pass")
+  fill_in("password", :with=> Session.from_id(account.id).login.split("_")[0]+"_pass")
   click_button("Sign me in")
   page.should have_content(user_card_name)
 end

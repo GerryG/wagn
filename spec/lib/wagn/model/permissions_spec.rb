@@ -98,7 +98,7 @@ describe "reader rules" do
     Card.fetch('A+B').read_rule_id.should == Card.fetch('*all+*read').id
     c = Card.fetch('A')
     c.type_id = Card::PhraseID
-    c.save!
+    Session.as_bot { c.save! }
     Card.fetch('A+B').read_rule_id.should == @perm_card.id
     Rails.logger.warn "tested"
   end
@@ -109,7 +109,7 @@ describe "reader rules" do
     c = Card.new(:name=>'Home+Heart')
     c.who_can(:read).should == [Card::AuthID]
     c.permission_rule_card(:read).first.id.should == @perm_card.id
-    c.save
+    Session.as_bot { c.save }
     c.read_rule_id.should == @perm_card.id
   end
 
@@ -118,7 +118,7 @@ describe "reader rules" do
     c = Card.new(:name=>'Home+Heart')
     c.who_can(:read).should == [Card::AnyoneID]
     c.permission_rule_card(:read).first.id.should == Card.fetch('*all+*read').id
-    c.save
+    Session.as_bot { c.save }
     c.read_rule_id.should == Card.fetch('*all+*read').id
     Session.as_bot { @perm_card.save! }
     c2 = Card.fetch('Home+Heart')
@@ -143,7 +143,6 @@ describe "reader rules" do
 
   it "should work on virtual+virtual cards" do
     c = Card.fetch('Number+*type+by name')
-    Rails.logger.warn "testing #{c.inspect}"
     c.ok?(:read).should be_true
   end
 
@@ -154,7 +153,7 @@ end
 describe "Permission", ActiveSupport::TestCase do
   before do
     Session.as_bot do
-      User.cache.reset
+      Session.cache.reset
       @u1, @u2, @u3, @r1, @r2, @r3, @c1, @c2, @c3 =
         %w( u1 u2 u3 r1 r2 r3 c1 c2 c3 ).map do |x| Card[x] end
     end
@@ -335,7 +334,7 @@ describe "Permission", ActiveSupport::TestCase do
     Session.as(@u1) do
       Card.search(:content=>'WeirdWord').plot(:name).sort.should == %w( c1 c2 c3 )
     end
-    Session.account=nil # for Session.as to be effective, you can't have a logged in user
+    Session.account=Session::ANONCARD # for Session.as to be effective, you can't have a logged in user
     Session.as(@u2) do
       Card.search(:content=>'WeirdWord').plot(:name).sort.should == %w( c2 c3 )
     end

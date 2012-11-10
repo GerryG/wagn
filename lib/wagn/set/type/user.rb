@@ -3,12 +3,10 @@ module Wagn
     #include Sets
 
     module Model
-      def email
-        perm = trait_card(:email).ok?(:read)
-        account = (perm) ? trait_card(:account) : nil
-        Rails.logger.warn "user type email #{inspect} As:#{Session.as_card.inspect}, Act:#{Session.account.inspect}, P#{perm}, #{account}, E:#{account &&account.email}"
-        r=(account and !account.new_card? and User.from_id(account.id).email or '')
-        #Rails.logger.warn "user type email #{inspect} As:#{Session.as_card.inspect}, Act:#{Session.account.inspect}, R:#{r} TC:#{trait_card(:email).inspect}, P#{perm}, #{account}, E:#{account &&account.email}"; r
+      def email perm=false
+        user = perm || Session.authorized.id == trunk_id || trait_card(:email).ok?(:read)
+        Rails.logger.info "Type::User#email cd#{user.inspect}, #{inspect} P#{perm}"
+        user && (user = Session.from_id((cd=trait_card :account) && cd.id)) && user.email || ''
       end
     end
   end

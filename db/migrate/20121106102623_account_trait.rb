@@ -8,6 +8,7 @@ class AccountTrait < ActiveRecord::Migration
         if account
           account.save!
           user.card_id = account.id
+          user.login = card.key
           user.save
         end
         warn "update card_id #{card.inspect}, #{account.inspect}, #{user.card_id}"

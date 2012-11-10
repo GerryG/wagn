@@ -252,6 +252,7 @@ describe Card do
 
     describe "Specail rules recognized" do
       it "should find a default rule" do
+        warn "rcard : #{@ucard.rule_card(:account).inspect}, #{@ucard.inspect}"
         @ucard.rule_card(:account).should be
         @ucard.rule_card(:account).name.should == '*all+*account'
         @pluscard.rule_card(:account).name.should == '*all+*account'
@@ -262,7 +263,7 @@ describe Card do
           @ucard_rule.save
           @pluscard_rule.save
         end
-        @ucard.rule_card(:account).should be
+        #@ucard.rule_card(:account).should be
         @ucard.rule_card(:account).name.should == 'Joe User+*account'
         @pluscard.rule_card(:account).name.should == 'A+B+*account'
       end

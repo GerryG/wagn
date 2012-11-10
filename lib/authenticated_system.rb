@@ -15,7 +15,11 @@ module AuthenticatedSystem
 
   # Store the given user in the session.
   def session_user= new_user
-    @session_user = session[:user] = ( Card==new_user ? card.id : new_user )
+    @session_user = session[:user] = ( case new_user
+        when Card ; new_user.id
+        when User ; new_user.card_id
+        else      ; new_user
+      end )
   end
 
   #

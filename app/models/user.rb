@@ -25,15 +25,15 @@ class User < ActiveRecord::Base
   after_save :reset_cache
 
   class << self
-    def from_email(email) User.where(:email=>email).first                          end
-    def from_login(login) User.where(:login=>login).first                          end
-    def from_id(card_id)  User.where(:card_id=>card_id).first or Session::ANONCARD end
-    def cache()           Wagn::Cache[User]                                        end
-
-    # Authenticates a user by their login name and unencrypted password.  Returns the user or nil.
-    def authenticate email, password
-      (user = User.from_email(email.strip.downcase) and user.authenticated?(password.strip)) ? user : nil
+    def from_email(email)
+      r=User.where(:email=>email.strip.downcase).first
+      Rails.logger.warn "from email #{email}, #{r.inspect}"; r
     end
+    def from_login(login) User.where(:login=>login).first                          end
+    def from_id(card_id)
+      Rails.logger.warn "from id #{card_id}, #{User.where(:card_id=>card_id).first} #{card_id==709 ? (caller*"\n") : ''}"
+      User.where(:card_id=>card_id).first                      end
+    def cache()           Wagn::Cache[User]                                        end
 
     # Encrypts some data with the salt.
     def encrypt(password, salt)
@@ -59,7 +59,7 @@ class User < ActiveRecord::Base
 
       # cache it (on codename too if there is one)
       card_id ||= @card && @card.id
-      self.cache.write(key, usr)
+      self.cache.write key, usr
       code = Wagn::Codename[card_id].to_s and code != key and self.cache.write(code.to_s, usr)
       usr
     end
@@ -67,63 +67,66 @@ class User < ActiveRecord::Base
 
 #~~~~~~~ Instance
 
-  def create_card card_args, email_args={}
-    card_args[:type_id] ||= Card::UserID
-    Rails.logger.warn  "create with(#{inspect}, #{card_args.inspect}, #{email_args.inspect})"
-    @card = Card.fetch_or_new(card_args[:name], card_args)
-    login ||= @card.name
-    Rails.logger.warn "create with >>#{Session.account.name}"
+  def save_card args, email_args={}
+    raise "anon creates?" if self.card_id == 709
+    Rails.logger.info  "create with(#{inspect}, #{args.inspect})"
+    @card = if Card===args
+        args.type_id = Card::UserID unless args.type_id == Card::UserID ||
+                                    args.type_id == Card::AccountRequestID
+        args
+      else
+        Card.fetch_or_new args[:name], args
+      end
+
+    #self.login ||= @card.key # We can keep the login, but better is the card_id of the User (card with account)
+    # it would just be a copy of Card[card_id].trunk_id
+    # then login isn't used anymore
     Session.as_bot do
-      Rails.logger.warn "cwa #{inspect}, #{inspect}, #{card_args.inspect}, #{Session.account.inspect}"
-      active if default?
-      Rails.logger.warn "user is #{inspect}" unless email
+      Rails.logger.debug "save_card saving #{inspect}, #{args.inspect}, #{Session.account.inspect}"
+      active() if self.status.blank?
       generate_password if password.blank?
-      save_with_card(@card)
-      send_account_info(email_args) if errors.empty? && !email_args.empty?
+
+      begin
+        Rails.logger.info "save with card #{@card.inspect}, #{self.inspect}"
+        User.transaction do
+          @card = @card.refresh if @card.frozen?
+          newcard = @card.new_card?
+          @card.save
+          Rails.logger.debug "save with_card #{inspect}, cd:#{@card.inspect}"
+          @card.errors.each { |key,err| self.errors.add key,err }
+          if (cn=@card.cardname).simple? || Codename[cn.right] == Card::AccountID
+            @card = @card.trait_card :account
+            newcard ||= @card.new_card?
+            @card.save
+            @card.errors.each { |key,err| self.errors.add key,err }
+          end
+
+          self.card_id = @card.id
+          Rails.logger.info "save user #{inspect}"
+          if !(sv=save) || newcard && self.errors.any?
+            self.card_id=nil; save
+            Rails.logger.warn "RB #{sv}, #{self.errors.map(&:to_s)*', '}, #{inspect}"
+            raise ActiveRecord::Rollback # ROLLBACK should undo any changes made
+          end
+          Rails.logger.debug "save with_card error? #{inspect}, card:#{@card.inspect}"
+          Rails.logger.debug "save with_card error #{self.errors.to_a.inspect}, card:#{@card.inspect}" if self.errors.any?
+          true
+        end
+      rescue Exception => e
+        Rails.logger.info "save with card failed. #{e.inspect},  #{@card.inspect} Bt:#{e.backtrace*"\n"}"
+        warn "save with card failed. #{e.inspect},  #{@card.inspect} Bt:#{e.backtrace*"\n"}"
+      end
+
+      Rails.logger.debug "user is #{inspect} #{email_args.inspect}"
+      self.send_account_info(email_args) if self.errors.empty? && !email_args.empty?
     end
     @card
   end
 
   def reset_cache
     self.class.cache.reset
-    Rails.logger.warn "ricache"
+    Rails.logger.debug "User reset cache"
     true
-  end
-
-  def save_with_card card
-    Rails.logger.warn "save with card #{card.inspect}, #{self.inspect}"
-    User.transaction do
-      card = card.refresh if card.frozen?
-      newcard = card.new_card?
-      card.save
-      Rails.logger.warn "save with_card #{User.count}, #{card.id}, #{card.inspect}"
-      card.errors.each do |key,err|
-        self.errors.add key,err
-      end
-      acard = card.trait_card :account
-      newcard ||= acard.new_card?
-      acard.save
-      acard.errors.each do |key,err|
-        self.errors.add key,err
-      end
-
-      Rails.logger.warn "saving #{inspect}"
-      self.card_id = acard.id
-      save
-      Rails.logger.warn "saved? pwr[#{password.blank?}]:pwrq#{password_required?}, Emrq:#{email_required?}, errs:#{self.errors.size}, NC:#{newcard}, u:#{inspect}"
-      if newcard && self.errors.any?
-        card.delete #won't the rollback take care of this?  if not, should Wagn Bot do it?
-        self.card_id=nil
-        save
-        Rails.logger.warn "swc rb #{self}, #{acard.inspect}"
-        raise ActiveRecord::Rollback
-      end
-      Rails.logger.warn "swc true #{card_id}, #{acard.inspect}"
-      true
-    end
-  rescue Exception => e
-    Rails.logger.info "save with card failed. #{e.inspect},  #{card.inspect} Bt:#{e.backtrace*"\n"}"
-    warn "save with card failed. #{e.inspect},  #{card.inspect} Bt:#{e.backtrace*"\n"}"
   end
 
   def accept card, email_args
@@ -131,40 +134,35 @@ class User < ActiveRecord::Base
       card = card.trunk and card.type_id = Card::UserID # Invite Request -> User
       active
       generate_password
-      save_with_card(card)
+      save_card(card)
     end
-    #card.save #hack to make it so last editor is current user.
-    self.send_account_info(email_args) if self.errors.empty?
+    send_account_info(email_args) if self.errors.empty?
   end
 
   def send_account_info args
     #return if args[:no_email]
-    raise(Wagn::Oops, "subject is required") unless (args[:subject])
-    raise(Wagn::Oops, "message is required") unless (args[:message])
+    [:subject, :message].each {|r| args[r] or raise Wagn::Oops, "#{r} is requires" }
     begin
-      message = Mailer.account_info(self, args[:subject], args[:message])
+      Rails.logger.info "sai #{email}, #{inspect}"
+      message = Mailer.account_info self, args
       message.deliver
     rescue Exception=>e
       Rails.logger.info "ACCOUNT INFO DELIVERY FAILED: \n #{args.inspect}\n   #{e.message}, #{e.backtrace*"\n"}"
     end
   end
 
-  def active?()   status=='active'  end
-  def blocked?()  status=='blocked' end
-  def built_in?() status=='system'  end
-  def pending?()  status=='pending' end
-  def default?()  status=='request' end
+  def active?()         status=='active'  end
+  def blocked?()        status=='blocked' end
+  def built_in?()       status=='system'  end
+  def pending?()        status=='pending' end
+  def default_status?() status=='request' end
 
-  def active()  self.status='active'  end
-  def pending() self.status='pending' end
-  def block()   self.status='blocked' end
-  def block!()  block; save           end
+  def active()     self.status='active'   end
+  def pending()    self.status='pending'  end
+  def block()      self.status='blocked'  end
+  def block!()          block; save       end
 
   def blocked=(arg) arg != '0' && block || !built_in? && active end
-
-  def authenticated? password
-    crypted_password == encrypt(password) and active?
-  end
 
   PW_CHARS = ('A'..'Z').to_a + ('a'..'z').to_a + ('0'..'9').to_a
 
@@ -178,6 +176,11 @@ class User < ActiveRecord::Base
   def downcase_email!()
     (em = self.email) =~ /[A-Z]/ and em=em.downcase and self.email=em
     Rails.logger.warn "dwnc #{em}"
+  end
+
+  # Authenticates a user by their login name and unencrypted password.  Returns the user or nil.
+  def authenticated? params
+    password = params[:password].strip and crypted_password == encrypt(password) and active?
   end
 
  protected
@@ -195,7 +198,6 @@ class User < ActiveRecord::Base
   def email_required?() !built_in?  end
 
   def password_required?()
-    Rails.logger.warn "pw? #{built_in?}, #{pending?}, #{crypted_password.blank?} or not #{password.blank?}"
      !built_in? && !pending?  &&
       #not_openid? &&
      (crypted_password.blank? or not password.blank?)

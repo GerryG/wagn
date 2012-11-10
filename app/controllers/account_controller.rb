@@ -5,15 +5,16 @@ class AccountController < ApplicationController
   before_filter :login_required, :only => [ :invite, :update ]
   helper :wagn
 
+  #ENGLISH many messages throughout this file
   def signup
-    raise(Wagn::Oops, "You have to sign out before signing up for a new Account") if logged_in?  #ENGLISH
+    raise(Wagn::Oops, "You have to sign out before signing up for a new Account") if logged_in?
     c=Card.new(:type_id=>Card::AccountRequestID)
     #warn Rails.logger.warn("signup ok? #{c.inspect}, #{c.ok? :create}")
-    raise(Wagn::PermissionDenied, "Sorry, no Signup allowed") unless c.ok? :create #ENGLISH
+    raise(Wagn::PermissionDenied, "Sorry, no Signup allowed") unless c.ok? :create
 
     #does not validate password
     user_args = (user_args = params[:user]) && user_args.symbolize_keys || {}
-    @user = User.new( user_args )
+    @user = Session.new user_args
     @user.pending
     card_args = (params[:card]||{}).merge(:type_id=>Card::AccountRequestID)
 
@@ -24,15 +25,15 @@ class AccountController < ApplicationController
 
     return render_user_errors if @user.errors.any?
     #Rails.logger.warn "signup UA:#{user_args.inspect}, CA:#{card_args.inspect}"
-    @card = @user.create_card( card_args )
+    @card = @user.save_card( card_args )
     #Rails.logger.warn "signup UA:#{@user.inspect}, CA:#{@card.inspect}"
     return render_user_errors if @user.errors.any?
 
     tr_card = @card.trait_card :account
     #warn "check for account #{@card.name} #{tr_card.inspect}"
     if tr_card.ok?(:create)       #complete the signup now
-      email_args = { :message => Card.setting('*signup+*message') || "Thanks for signing up to #{Card.setting('*title')}!",  #ENGLISH
-                     :subject => Card.setting('*signup+*subject') || "Account info for #{Card.setting('*title')}!" }  #ENGLISH
+      email_args = { :message => Card.setting('*signup+*message') || "Thanks for signing up to #{Card.setting('*title')}!",
+                     :subject => Card.setting('*signup+*subject') || "Account info for #{Card.setting('*title')}!" }
       @user.accept(@card, email_args)
       return wagn_redirect Card.path_setting(Card.setting('*signup+*thanks'))
     else
@@ -54,12 +55,12 @@ class AccountController < ApplicationController
     card_key=params[:card][:key]
     Rails.logger.warn "accept #{card_key.inspect}, #{Card[card_key]}, #{params.inspect}"
     raise(Wagn::Oops, "I don't understand whom to accept") unless params[:card]
-    @card = Card[card_key] or raise(Wagn::NotFound, "Can't find this Account Request")  #ENGLISH
+    @card = Card[card_key] or raise(Wagn::NotFound, "Can't find this Account Request")
     Rails.logger.warn "accept #{Session.account.inspect}, #{@card.inspect}"
-    @card=@card.trait_card(:account) and !@card.new_card? and @user = User.from_id(@card.id) or
-      raise(Wagn::Oops, "This card doesn't have an account to approve")  #ENGLISH
+    @card=@card.trait_card(:account) and !@card.new_card? and @user = Session.from_id(@card.id) or
+      raise(Wagn::Oops, "This card doesn't have an account to approve")
     #warn "accept #{@user.inspect}"
-    @card.ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create accounts")  #ENGLISH
+    @card.ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create accounts")
 
     if request.post?
       #warn "accept #{@card.inspect}, #{@user.inspect}"
@@ -75,13 +76,13 @@ class AccountController < ApplicationController
   def invite
     #warn "invite: ok? #{Card.new(:name=>'dummy+*account').inspect} P:#{params.inspect}"
     #warn "invite: ok? #{Card.new(:name=>'dummy+*account').ok?(:create)}"
-    cok=Card.new(:name=>'dummy+*account').ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create")  #ENGLISH
+    cok=Card.new(:name=>'dummy+*account').ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create")
     #warn "post invite #{cok}, #{request.post?}, #{params.inspect}"
     if request.post?
-      @user = User.new params[:user]
-      @card = @user.create_card params[:card]
+      @user = Session.new params[:user]
+      @card = @user.save_card params[:card]
     else
-      @user = User.new; @card = Card.new
+      @user = Session.new; @card = Card.new
     end
     #warn "invite U:#{@user.inspect} C:#{@card.inspect}"
     if request.post? and @user.errors.empty?
@@ -97,34 +98,44 @@ class AccountController < ApplicationController
 
   def signin
     Rails.logger.warn "signin #{params[:login]}"
-    if params[:login]
-      password_authentication params[:login], params[:password]
+    if user=Session.from_params(params) and user.authenticated?(params)
+      self.session_user = user
+      flash[:notice] = "Successfully signed in"
+      Rails.logger.warn Rails.logger.info("to prev #{previous_location}")
+      redirect_to previous_location
+    else
+      failed_login( case
+          when user.nil?     ; "Unrecognized email."
+          when user.blocked? ; "Sorry, that account is blocked."
+          else               ; "Wrong password"
+        end )
     end
   end
 
   def signout
     self.session_user = nil
-    flash[:notice] = "Successfully signed out" #ENGLISH
+    flash[:notice] = "Successfully signed out"
     redirect_to Card.path_setting('/')  # previous_location here can cause infinite loop.  ##  Really?  Shouldn't.  -efm
   end
 
   def forgot_password
     return unless request.post? and email = params[:email].downcase
-    @user = User.from_email(email)
+    @user = Session.from_email(email)
     if @user.nil?
-      flash[:notice] = "Unrecognized email."   #ENGLISH
+      flash[:notice] = "Unrecognized email."
       render :action=>'signin', :status=>404
     elsif !@user.active?
-      flash[:notice] = "That account is not active."  #ENGLISH
+      flash[:notice] = "That account is not active."
       render :action=>'signin', :status=>403
     else
       @user.generate_password
       @user.save!
-      subject = "Password Reset"  #ENGLISH
-      message = "You have been given a new temporary password.  " +  #ENGLISH
-         "Please update your password once you've signed in. "
-      Mailer.account_info(@user, subject, message).deliver
-      flash[:notice] = "Check your email for your new temporary password"  #ENGLISH
+
+      @user.send_account_info(:subject=> "Password Reset",
+           :message=> "You have been given a new temporary password.  " +
+                      "Please update your password once you've signed in. " )
+
+      flash[:notice] = "Check your email for your new temporary password"
       redirect_to previous_location
     end
   end
@@ -137,23 +148,6 @@ class AccountController < ApplicationController
       # needed to prevent duplicates because User adds them in the other direction in user.rb
     end
     errors
-  end
-
-  def password_authentication(login, password)
-    if self.session_user = User.authenticate( params[:login], params[:password] )
-      flash[:notice] = "Successfully signed in"  #ENGLISH
-      #warn Rails.logger.info("to prev #{previous_location}")
-      redirect_to previous_location
-    else
-      usr=User.from_email(params[:login].strip.downcase)
-      failed_login(
-        case
-        when usr.nil?     ; "Unrecognized email."
-        when usr.blocked? ; "Sorry, that account is blocked."
-        else              ; "Wrong password"
-        end
-      )
-    end
   end
 
   def failed_login(message)

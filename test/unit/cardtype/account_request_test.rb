@@ -33,7 +33,7 @@ class AccountRequestTest < ActiveSupport::TestCase
     Session.as 'joe_admin' do c.destroy!  end
 
     assert_equal nil, Card.fetch('Ron Request')
-    assert_equal 'blocked', User.from_email('ron@request.com').status
+    assert_equal 'blocked', Session.from_email('ron@request.com').status
   end
 
 

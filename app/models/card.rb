@@ -489,6 +489,7 @@ class Card < ActiveRecord::Base
 
   def among? authzed
     prties = parties
+    #Rails.logger.debug "among? #{prties.map{|x|Card[x].name}*', '} athzd:#{authzed.map{|x|Card[x].name}*', '}"
     authzed.each { |auth| return true if prties.member? auth }
     authzed.member? Card::AnyoneID
   end
@@ -520,7 +521,7 @@ class Card < ActiveRecord::Base
   end
 
   def to_user
-    User.from_id id
+    Session.from_id id
   end # should be obsolete soon.
 
 

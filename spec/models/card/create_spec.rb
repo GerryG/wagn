@@ -75,13 +75,15 @@ describe Card, "created with autoname" do
   end
 
   it "should handle cards without names" do
-    c = Card.create! :type=>'Book'
+    c = Session.as_bot { Card.create! :type=>'Book' }
     c.name.should== 'b1'
   end
 
   it "should increment again if name already exists" do
-    Card.create :name=>'b1'
-    c = Card.create! :type=>'Book'
+    c = Session.as_bot do
+      Card.create :name=>'b1'
+      Card.create! :type=>'Book'
+    end
     c.name.should== 'b2'
 
   end
@@ -90,8 +92,9 @@ end
 
 describe Card, "create junction" do
   before(:each) do
-    Session.as 'joe_user'
-    @c = Card.create! :name=>"Peach+Pear", :content=>"juicy"
+    Session.as 'joe_user' do
+      @c = Card.create! :name=>"Peach+Pear", :content=>"juicy"
+    end
   end
 
   it "should not have errors" do

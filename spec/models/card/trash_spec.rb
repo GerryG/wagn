@@ -39,12 +39,10 @@ end
 
 describe User, "without revisions" do
   before do
-    Session.as_bot do
-      @c = Card.create! :name=>'User Must Die', :type=>'User'
-    end
+    Session.as_bot { @c = Card.create! :name=>'User Must Die', :type=>'User' }
   end
   it "should be removable" do
-    @c.destroy!.should be_true
+    Session.as_bot { @c.destroy!.should be_true }
   end
 end
 

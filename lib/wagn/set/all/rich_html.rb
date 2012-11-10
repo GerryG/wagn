@@ -300,7 +300,7 @@ module Wagn
         Session.as_card.id==r.card.id or r.card.ok?(:update)
       } do |args|
     
-      locals = {:slot=>self, :card=>card, :account=>User.from_id(card.id) }
+      locals = {:slot=>self, :card=>card, :account=>Session.from_id(card.id) }
       wrap :options, args do
         %{ #{ _render_header }
           <div class="options-body">
@@ -589,6 +589,7 @@ module Wagn
       :perms=> lambda { |r| Session.logged_in? && !r.card.new_card? } do |args|
 
       wrap :watch do
+        #warn "watch view #{card.watching_type?}, #{card.watching?}"
         if card.watching_type?
           watching_type_cards
         else

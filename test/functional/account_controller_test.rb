@@ -63,7 +63,7 @@ class AccountControllerTest < ActionController::TestCase
     assert_response :redirect
     assert Card['Newby Dooby'], "should create User card"
     assert c=Card['Newby Dooby+*account'], "should create User+*account card"
-    assert User.from_id(c.id), "should create User"
+    assert Session.from_id(c.id), "should create User"
     assert_status @newby_email, 'pending'
 
     integration_login_as 'joe_admin', true
@@ -84,7 +84,7 @@ class AccountControllerTest < ActionController::TestCase
   end
 
   def test_dont_let_blocked_user_signin
-    u = User.from_email('u3@user.com')
+    u = Session.from_email('u3@user.com')
     u.blocked = true
     u.save
     post :signin, :login => 'u3@user.com', :password => 'u3_pass'
@@ -105,7 +105,7 @@ class AccountControllerTest < ActionController::TestCase
   def test_forgot_password_blocked
     email = 'u3@user.com'
     Session.as_bot do
-      u = User.from_email(email)
+      u = Session.from_email(email)
       u.status = 'blocked'
       u.save!
     end

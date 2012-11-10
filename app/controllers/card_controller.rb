@@ -102,9 +102,9 @@ class CardController < ApplicationController
 
   def watch
     watchers = @card.trait_card(:watchers )
-    Rails.logger.info "watch #{@card.inspect}, #{watchers.inspect}"
     watchers = watchers.refresh if watchers.frozen?
     myname = Session.authorized.name
+    #warn "watch (#{myname}) #{watchers.inspect}, #{watchers.item_names.inspect}"
     watchers.send((params[:toggle]=='on' ? :add_item : :drop_item), myname)
     ajax? ? show(:watch) : read
   end
@@ -127,7 +127,7 @@ class CardController < ApplicationController
       role_card.items= role_hash.keys.map &:to_i
     end
 
-    account = @card.trait_card(:account) and user = User.from_id(account.id)
+    account = @card.trait_card(:account) and user = Session.from_id(account.id)
     if user and account_args = params[:account]
       Rails.logger.warn "up acct #{Session.as_card}, #{Session.authorized}, #{params.inspect}, U:#{user}, A:#{account.inspect}, C:#{@card.inspect}"
       unless Session.authorized.id == account.id and !account_args[:blocked]
@@ -147,12 +147,16 @@ class CardController < ApplicationController
     end
   end
 
+  # FIXME: make this part of create
   def create_account
     @card.trait_card(:account).ok! :create
     email_args = { :subject => "Your new #{Card.setting :title} account.",   #ENGLISH
                    :message => "Welcome!  You now have an account on #{Card.setting :title}." } #ENGLISH
-    @user = User.new(params[:user])
-    @card = @user.create_card(@card, email_args)
+    Rails.logger.info "create_account #{params[:user].inspect}, #{email_args.inspect}"
+    @user = Session.new params[:user]
+    Rails.logger.info "create_account U:#{@user.inspect}"
+    @card = @user.save_card(@card, email_args)
+    Rails.logger.info "create_account #{@card.inspect}, U:#{@user.inspect}"
     raise ActiveRecord::RecordInvalid.new(@user) if !@user.errors.empty?
 #    flash[:notice] ||= "Done.  A password has been sent to that email." #ENGLISH
     params[:attribute] = :account

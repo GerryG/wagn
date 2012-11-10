@@ -48,7 +48,7 @@ end
 describe User, 'Joe User' do
   before do
     Session.account= 'joe_user'
-    User.cache.delete 'joe_user'
+    Session.cache.delete 'joe_user'
     @ju = Session.account
     @jucard = Session.authorized
     @r1 = Card['r1']
@@ -70,7 +70,7 @@ describe User, 'Joe User' do
       @roles_card.content=''
       @roles_card << @r1;
     }
-    @ju = User.from_id Card['joe_user+*account']
+    @ju = Session.from_id Card['joe_user+*account']
     @roles_card = Card[@jucard.trait_card(:roles).id]
     @roles_card.item_names.length.should==1
     @jucard.parties.should == [Card::AuthID, Card['r1'].id, Card[@ju.card_id].trunk.id]

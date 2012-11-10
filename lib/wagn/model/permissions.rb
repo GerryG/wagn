@@ -42,7 +42,7 @@ module Wagn::Model::Permissions
   # ok? and ok! are public facing methods to approve one operation at a time
   def ok? operation
     #warn "ok? #{operation}"
-    Rails.logger.info "ok? #{Session.account.inspect}, #{Session.as_card.inspect}, #{operation} #{inspect}" if operation == :read
+    Rails.logger.info "ok? #{Session.authorized.inspect}, #{Session.as_card.inspect}, #{operation} #{inspect}" if operation == :read
     @operation_approved = true
     @permission_errors = []
 
@@ -117,14 +117,14 @@ module Wagn::Model::Permissions
 
     permitted_ids = who_can operation
 
-    #r=
+    r=
     if operation == :comment && Session.always_ok?
       # admin can comment if anyone can
       !permitted_ids.empty?
     else
       Session.among? permitted_ids
     end
-    #warn "lets_user[#{operation}]#{name} #{Session.as_card.name}, #{permitted_ids.map {|id|Card[id].name}*', '} R:#{r}" if name=='Buffalo'; r
+    #warn "lets_user[#{operation}]#{name} #{Session.as_card.name}, #{permitted_ids.map {|id|Card[id].name}*', '} R:#{r}" if id == Card::WagnBotID || trunk_id== Card::WagnBotID; r
   end
 
   def approve_task operation, verb=nil
@@ -264,7 +264,7 @@ module Wagn::Model::Permissions
       # (though maybe not as a tracked_attribute for performance reasons?)
       # AND need to make sure @changed gets wiped after save (probably last in the sequence)
 
-      User.cache.reset
+      Session.cache.reset
       Card.cache.reset # maybe be more surgical, just Session.account related
       expire #probably shouldn't be necessary,
       # but was sometimes getting cached version when card should be in the trash.

@@ -115,18 +115,18 @@ class CardActionTest < ActionController::IntegrationTest
     end
     email = ActionMailer::Base.deliveries[-1]
     assert_equal Session.account.email, email.from[0]
-    assert user = User.from_email('foo@bar.com')
+    assert user = Session.from_email('foo@bar.com')
     assert_equal 'active', user.status
   end
 
   def test_update_user_account_email
     post '/card/update_account', :id=>"Joe User".to_cardname.key, :account => { :email => 'joe@user.co.uk' }
-    assert user = User.from_id(Card['joe_user+*account'].id)
+    assert user = Session.from_id(Card['joe_user+*account'].id)
     assert user.email == 'joe@user.co.uk'
   end
 
   def test_user_cant_block_self
-    assert user = User.from_id(Card['joe_user+*account'].id)
+    assert user = Session.from_id(Card['joe_user+*account'].id)
     post '/card/update_account', :id=>"Joe User".to_cardname.key, :account => { :blocked => '1' }
     assert !user.blocked?
   end

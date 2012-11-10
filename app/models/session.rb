@@ -1,19 +1,48 @@
 class Session
+  # in migrations
+  ANONCARD = Card[Card::AnonID].trait_card(:account)
+  # This will probably have a hash of possible account classes and a value for the class
+  @@account_class = User
+  # FIXME: Probably should use nil as the 'account' for Anonymous (Card/codename)
+  # but tests depend on this being same class (User) as other accounts
+  # It shouldn't be a Card, and if User can be replaced, does each plugin need an Anonymous or
+  # we just use nil for that function.  There is a similar issue for WagnBot, it depends on
+  # User if it has an account, but if it doesn't we will need a dummy class for this
+  # For now find it by card_id in User
+  ANONUSER = Session.from_id ANONCARD.id
 
-  @@as_card = @@account = nil
+  cattr_accessor :account_class
 
-  ANONCARD = Card[Card::AnonID]
+  @@as_card = nil
+  @@account = ANONCARD
 
   class << self
-    def reset()           @@account = @@as_card = nil     end
-    def account()         @@account || ANONCARD           end
-    def account=(account) @@account = get_account account end
-    def as_card()         @@as_card || account            end
-    def authorized() (ac=as_card).simple? ? ac : ac.trunk end #warn "authzd #{@@as_card} || #{@@account}"
-    #def authorized()      account.trunk                   end
-    def as_bot(&block) as Card::WagnBotID, &block end
-    def among?(authzed) authorized.among? authzed end
-    def logged_in?() authorized.id != Card::AnonID end
+    def from_params params
+      if login = params[:login]
+        login = login.strip.downcase
+        (from_email login) #|| (from_login login) # by cardname or email
+      end
+    end
+    # can these just be delegations:
+    # delegate @@acount_class, :new, :cache, :from_email, :from_login, :from_id, :save_card
+    def new()             @@account_class.new()                                        end
+    def save_card()       @@account_class.save_card()                                  end
+    def cache()           @@account_class.cache()                                      end
+    def from_email(email) @@account_class.from_email(email)                            end
+    def from_login(login) @@account_class.from_login(login)                            end
+    def from_id(card_id)  @@account_class.from_id(card_id) || ANONUSER                 end
+
+    def admin?() ((ac=as_card).tag_id==Card::AccountID ? ac.trunk_id : ac.id)==Card::WagnBotID end
+
+    def reset()           @@account = ANONCARD; @@as_card = nil                        end
+    def account()         @@account || ANONCARD                                        end
+    def account_name()    account.cardname.left                                        end
+    def account=(account) @@account = get_account account                              end
+    def as_card()         @@as_card || account                                         end
+    def authorized()      (ac=as_card).tag_id == Card::AccountID ? Card[ac.trunk_id] : ac end
+    def as_bot(&block)    as Card::WagnBotID, &block                                   end
+    def among?(authzed)   authorized.among? authzed                                    end
+    def logged_in?()      authorized.id != Card::AnonID                                end
 
     def as given_account
       save_as = @@as_card
@@ -49,29 +78,20 @@ class Session
      #Rails.logger.warn "aok? #{Card[as_id].name}, #{always.inspect}" if always[as_id]
      always[as_id]
     end
-    # PERMISSIONS
-
-  private
 
     def get_account account
-      case account
-      when NilClass; nil
-      when Card;     account
-      when User;     Card[account.card_id]
-      else
-        account=Card[account]
-        acct = account.trait_card :account
-        #Rails.logger.info "account lookup: #{acct.inspect}, #{account.inspect}"
-        if acct.new_card?
-          # this helps the migration to do as_bot before the trait is real
-          if account.id == Card::WagnBotID
-            account
-          else raise "no account #{account.name}" end # return nil, but for debug ...
-        else acct end
-      end
+      return Card[account.card_id] if @@account_class===account
+      account = acct = Card===account ? account : Card[account]
+      acct = acct.trait_card(:account) unless acct.id == ANONCARD.id || acct.tag_id==Card::AccountID
+      Rails.logger.info "account lookup: acct:#{acct.inspect} cd(:account).inspect}"
+      acct = account.id == Card::WagnBotID ? account : Session::ANONCARD if acct.new_card? 
+      Rails.logger.info "account lookup: acct:#{acct.inspect}, #{account.inspect}"
+      acct
     end
 
   protected
+    # PERMISSIONS
+
     # FIXME stick this in session? cache it somehow??
     def ok_hash
       as_id = authorized.id

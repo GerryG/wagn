@@ -7,7 +7,8 @@ module AuthenticatedTestHelper
   end
 
   def signout
-    Session.account = @request.session[:user] = nil
+    Session.reset
+    @request.session[:user] = nil
   end
 
 
@@ -35,6 +36,11 @@ module AuthenticatedTestHelper
     assert_response :success
   end
 
+  def assert_auth email, password
+    assert user = Session.from_params(:login=>email), "#{email} should locate a user"
+    assert user.authenticated?(:password => password), "#{email} should authenticate"
+  end
+
   def assert_new_account(&block)
     assert_difference User, :count, 1, 'Users' do
       assert_difference Card.where(:type_id=>Card::UserID), :count, 1, 'User Cards', &block
@@ -48,6 +54,7 @@ module AuthenticatedTestHelper
   end
 
   def assert_status(email, status)
-    assert_equal status, User.from_email(email).status
+    Rails.logger.warn "assert stat #{status} #{Session.from_params(:login=>email).inspect}"
+    assert_equal status, Session.from_params(:login=>email).status
   end
 end

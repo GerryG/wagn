@@ -23,9 +23,9 @@ describe Mailer do
   context "account info, new password" do # forgot password
     before do
       Session.account = Card['sara+*account']
-      @user = User.from_id Session.account.id
+      @user = Session.from_id Session.account.id
       @user.generate_password
-      @email = Mailer.account_info(@user, "New password subject", "Forgot my password")
+      @email = Mailer.account_info @user, {:subject=>"New password subject", :message=>"Forgot my password"}
     end
 
     context "new password message" do
@@ -34,7 +34,6 @@ describe Mailer do
       end
 
       it "is from Wag bot email" do
-        #warn "test from #{User.admin.inspect}, #{User.admin.email}"
         @email.should deliver_from("Sara <sara@user.com>")
       end
 

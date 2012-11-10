@@ -167,7 +167,7 @@ describe User, "Joe User" do
     end
 
     Session.as 'joe_user'
-    @user = Session.as_user
+    @user = Session.from_id(Session.as_card.id)
     @ucard = Card[@user.card_id]
     @type_names = Session.createable_types
   end

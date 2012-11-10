@@ -10,7 +10,8 @@ class AdminController < ApplicationController
     if request.post?
       #Card::User  # wtf - trigger loading of Card::User, otherwise it tries to use U
       Session.as_bot do
-        @account, @card = User.create_with_card( params[:account].merge({:login=>'first'}), params[:card] )
+        @account = Session.new params[:account].merge(:login=>'first')
+        @card = Session.save_card params[:card]
         set_default_request_recipient
 
         #warn "ext id = #{@account.id}"
@@ -29,7 +30,7 @@ class AdminController < ApplicationController
       end
     else
       @card = Card.new( params[:card] || {} ) #should prolly skip defaults
-      @account = User.new( params[:user] || {} )
+      @account = Session.new( params[:user] || {} )
     end
   end
 

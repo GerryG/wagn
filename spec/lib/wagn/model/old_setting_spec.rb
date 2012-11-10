@@ -2,7 +2,7 @@ require File.expand_path('../../../spec_helper', File.dirname(__FILE__))
 
 describe Card do
   before do
-    Session.as(Card::WagnBotID) # FIXME: as without a block is deprecated
+    Account.as(Card::WagnBotID) # FIXME: as without a block is deprecated
   end
 
   describe "setting data setup" do
@@ -69,7 +69,7 @@ describe Card do
     it "returns pointer-specific setting names for pointer card (*type)" do
       pending "Different api, we should just put the tests in a new spec for that"
       # was this test wrong before?  What made Fruit a pointer without this?
-      Session.as_bot do
+      Account.as_bot do
         c1=Card.create! :name=>'Fruit+*type+*default', :type=>'Pointer'
         Card.create! :name=>'Pointer+*type'
       end

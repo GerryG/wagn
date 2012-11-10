@@ -7,11 +7,11 @@ Given /^I log in as (.+)$/ do |user_card_name|
   account=Card[user_card_name]
   @session_user = account.id
   account=account.trait_card :account
-  user = Session.from_id(account.id)
+  user = Account.from_id(account.id)
   email = user.email
   visit "/account/signin"
   fill_in("login", :with=> email )
-  fill_in("password", :with=> Session.from_id(account.id).login.split("_")[0]+"_pass")
+  fill_in("password", :with=> Account.from_id(account.id).login.split("_")[0]+"_pass")
   click_button("Sign me in")
   page.should have_content(user_card_name)
 end
@@ -23,7 +23,7 @@ Given /^I log out/ do
 end
 
 Given /^the card (.*) contains "([^\"]*)"$/ do |cardname, content|
-  Session.as_bot do
+  Account.as_bot do
     card = Card.fetch_or_create cardname
     card.content = content
     card.save!

@@ -15,7 +15,7 @@ end
 module Wagn::Model::Permissions
 
   def ydhpt
-    "#{Session.authorized.name}, You don't have permission to"
+    "#{Account.authorized.name}, You don't have permission to"
   end
 
   def approved?
@@ -42,7 +42,7 @@ module Wagn::Model::Permissions
   # ok? and ok! are public facing methods to approve one operation at a time
   def ok? operation
     #warn "ok? #{operation}"
-    Rails.logger.info "ok? #{Session.authorized.inspect}, #{Session.as_card.inspect}, #{operation} #{inspect}" if operation == :read
+    Rails.logger.info "ok? #{Account.authorized.inspect}, #{Account.as_card.inspect}, #{operation} #{inspect}" if operation == :read
     @operation_approved = true
     @permission_errors = []
 
@@ -54,7 +54,7 @@ module Wagn::Model::Permissions
     # self.errors.clear
 
     
-    Rails.logger.info "ok? #{Session.account.inspect}, #{Session.as_card.inspect}, #{operation} #{inspect} R:#{@operation_approved}" if operation == :create
+    Rails.logger.info "ok? #{Account.account.inspect}, #{Account.as_card.inspect}, #{operation} #{inspect} R:#{@operation_approved}" if operation == :create
     @operation_approved
   end
 
@@ -81,7 +81,7 @@ module Wagn::Model::Permissions
     end
 
     rcard = begin
-      Session.as_bot do
+      Account.as_bot do
         #warn "in permission_rule_card #{opcard&&opcard.name} #{operation}" if opcard.name == '*logo+*self+*read'
         if opcard.content == '_left' && self.junction?
           lcard = loaded_trunk || Card.fetch_or_new(cardname.trunk_name, :skip_virtual=>true, :skip_modules=>true)
@@ -113,18 +113,18 @@ module Wagn::Model::Permissions
     #warn "creating *account ??? #{caller[0..25]*"\n"}" if name == '*account' && operation==:create
     #warn "lets_user[#{operation}]#{name}" if name=='Buffalo'
     return false if operation != :read    and Wagn::Conf[:read_only]
-    return true  if operation != :comment and Session.always_ok?
+    return true  if operation != :comment and Account.always_ok?
 
     permitted_ids = who_can operation
 
     r=
-    if operation == :comment && Session.always_ok?
+    if operation == :comment && Account.always_ok?
       # admin can comment if anyone can
       !permitted_ids.empty?
     else
-      Session.among? permitted_ids
+      Account.among? permitted_ids
     end
-    #warn "lets_user[#{operation}]#{name} #{Session.as_card.name}, #{permitted_ids.map {|id|Card[id].name}*', '} R:#{r}" if id == Card::WagnBotID || trunk_id== Card::WagnBotID; r
+    #warn "lets_user[#{operation}]#{name} #{Account.as_card.name}, #{permitted_ids.map {|id|Card[id].name}*', '} R:#{r}" if id == Card::WagnBotID || trunk_id== Card::WagnBotID; r
   end
 
   def approve_task operation, verb=nil
@@ -139,11 +139,11 @@ module Wagn::Model::Permissions
   end
 
   def approve_read
-    Rails.logger.warn "AR #{inspect} #{Session.always_ok?}"
-    return true if Session.always_ok?
+    Rails.logger.warn "AR #{inspect} #{Account.always_ok?}"
+    return true if Account.always_ok?
     @read_rule_id ||= (rr=permission_rule_card(:read).first).id.to_i
-    Rails.logger.warn "AR #{name} #{@read_rule_id}, #{Session.account.inspect} #{rr&&rr.name}, RR:#{Session.as_card.read_rules.map{|i|c=Card[i] and c.name}*", "}"
-    unless Session.as_card.read_rules.member?(@read_rule_id.to_i)
+    Rails.logger.warn "AR #{name} #{@read_rule_id}, #{Account.account.inspect} #{rr&&rr.name}, RR:#{Account.as_card.read_rules.map{|i|c=Card[i] and c.name}*", "}"
+    unless Account.as_card.read_rules.member?(@read_rule_id.to_i)
       deny_because you_cant("read this card")
     end
   end
@@ -200,7 +200,7 @@ module Wagn::Model::Permissions
       # skip if name is updated because will already be resaved
 
       if !new_card? && updates.for(:type_id)
-        Session.as_bot do
+        Account.as_bot do
           Card.search(:left=>self.name).each do |plus_card|
             plus_card = plus_card.refresh if plus_card.frozen?
             plus_card.update_read_rule
@@ -224,7 +224,7 @@ module Wagn::Model::Permissions
     expire
 
     # currently doing a brute force search for every card that may be impacted.  may want to optimize(?)
-    Session.as_bot do
+    Account.as_bot do
       Card.search(:left=>self.name).each do |plus_card|
         if plus_card.rule(:read) == '_left'
           plus_card.update_read_rule
@@ -264,8 +264,8 @@ module Wagn::Model::Permissions
       # (though maybe not as a tracked_attribute for performance reasons?)
       # AND need to make sure @changed gets wiped after save (probably last in the sequence)
 
-      Session.cache.reset
-      Card.cache.reset # maybe be more surgical, just Session.account related
+      Account.cache.reset
+      Card.cache.reset # maybe be more surgical, just Account.account related
       expire #probably shouldn't be necessary,
       # but was sometimes getting cached version when card should be in the trash.
       # could be related to other bugs?
@@ -277,7 +277,7 @@ module Wagn::Model::Permissions
           Rails.logger.warn "rule_class_id #{class_id}, #{rule_class_ids.inspect}"
 
           #first update all cards in set that aren't governed by narrower rule
-           Session.as_bot do
+           Account.as_bot do
              cur_index = rule_class_ids.index Card[read_rule_class].id
              if rule_class_index = rule_class_ids.index( class_id )
                 # Why isn't this just 'trunk', do we need the fetch?

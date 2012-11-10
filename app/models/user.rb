@@ -81,8 +81,8 @@ class User < ActiveRecord::Base
     #self.login ||= @card.key # We can keep the login, but better is the card_id of the User (card with account)
     # it would just be a copy of Card[card_id].trunk_id
     # then login isn't used anymore
-    Session.as_bot do
-      Rails.logger.debug "save_card saving #{inspect}, #{args.inspect}, #{Session.account.inspect}"
+    Account.as_bot do
+      Rails.logger.debug "save_card saving #{inspect}, #{args.inspect}, #{Account.account.inspect}"
       active() if self.status.blank?
       generate_password if password.blank?
 
@@ -130,7 +130,7 @@ class User < ActiveRecord::Base
   end
 
   def accept card, email_args
-    Session.as_bot do #what permissions does approver lack?  Should we check for them?
+    Account.as_bot do #what permissions does approver lack?  Should we check for them?
       card = card.trunk and card.type_id = Card::UserID # Invite Request -> User
       active
       generate_password

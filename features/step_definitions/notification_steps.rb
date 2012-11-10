@@ -1,13 +1,13 @@
 require File.expand_path(File.join(File.dirname(__FILE__), "..", "support", "paths"))
 
 Given /^(.*) (is|am) watching "([^\"]+)"$/ do |user, verb, cardname|
-  user = Session.authorized.name if user == "I"
+  user = Account.authorized.name if user == "I"
   step "the card #{cardname}+*watchers contains \"[[#{user}]]\""
 end
 
 Then /^(.*) should be notified that "(.*)"$/ do |username, subject|
-  account = username=='I' ? Session.authorized : Card[username].trait_card(:account)
-  user = Session.from_id account.id
+  account = username=='I' ? Account.authorized : Card[username].trait_card(:account)
+  user = Account.from_id account.id
   email = user.email
   warn "sbe notified #{account.inspect}, #{user.inspect}, #{email.inspect}"
   begin

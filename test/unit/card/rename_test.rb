@@ -10,7 +10,7 @@ class Card::RenameTest < ActiveSupport::TestCase
 
   def setup
     super
-    Session.as_bot do
+    Account.as_bot do
       Card.create! :name => "chuck_wagn+chuck"
       Card.create! :name => "Blue"
 
@@ -29,7 +29,7 @@ class Card::RenameTest < ActiveSupport::TestCase
   end
 
   def test_subdivision
-    Session.as 'joe_user' do assert_rename card("A+B"), "A+B+T" end  # re-uses the parent card: A+B
+    Account.as 'joe_user' do assert_rename card("A+B"), "A+B+T" end  # re-uses the parent card: A+B
   end
 
 =begin
@@ -175,7 +175,7 @@ class Card::RenameTest < ActiveSupport::TestCase
 
   def test_rename_should_not_fail_when_updating_inaccessible_referencer
     Card.create! :name => "Joe Card", :content => "Whattup"
-    Session.as :joe_admin do
+    Account.as :joe_admin do
       Card.create! :name => "Admin Card", :content => "[[Joe Card]]"
     end
     c = Card["Joe Card"]

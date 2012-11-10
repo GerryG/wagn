@@ -180,7 +180,7 @@ module Wagn
       context = context.to_cardname
       parts.map do |part|
         new_part = case part
-          when /^_user$/i;            (user=Session.authorized) ? user.name : part
+          when /^_user$/i;            (user=Account.authorized) ? user.name : part
           when /^_main$/i;            Wagn::Conf[:main_name]
           when /^(_self|_whole|_)$/i; context.s
           when /^_left$/i;            context.trunk #note - inconsistent use of left v. trunk

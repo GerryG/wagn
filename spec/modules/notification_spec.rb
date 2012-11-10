@@ -35,7 +35,7 @@ end
 
 describe "On Card Changes" do
   before do
-    Session.account= 'john'
+    Account.account= 'john'
     Timecop.travel(FUTURE)  # make sure we're ahead of all the test data
   end
 
@@ -57,13 +57,13 @@ describe "On Card Changes" do
 
   it "does not send notification to author of change" do
     mock(Mailer).change_notice.with_any_args.times(any_times) do
-      |*a| a[0].should_not == Session.account.id
+      |*a| a[0].should_not == Account.account.id
     end
 
     Card["All Eyes On Me"].update_attributes :content => "edit by John"
   end
 
   it "does include author in watchers" do
-     Card["All Eyes On Me"].watchers.member?(Session.authorized.id).should be_true
+     Card["All Eyes On Me"].watchers.member?(Account.authorized.id).should be_true
   end
 end

@@ -23,7 +23,7 @@ class Mailer < ActionMailer::Base
 
     args =  { :to => @email, :subject  => subject }
     mail_from args, Card.setting('*invite+*from') ||
-      "#{Session.account_name} <#{Session.account.email(true)}>"
+      "#{Account.account_name} <#{Account.account.email(true)}>"
     #FIXME - might want different "from" settings for different contexts?
   end
 
@@ -46,7 +46,7 @@ class Mailer < ActionMailer::Base
 
 
   def change_notice user, card, action, watched, subedits=[], updated_card=nil
-    return unless user =Session.get_account(user)
+    return unless user =Account.get_account(user)
     #Rails.logger.info "change_notice( #{user.email(true)}, #{card.inspect}, #{action.inspect}, #{watched.inspect} Uc:#{updated_card.inspect}...)"
 
     updated_card ||= card
@@ -65,7 +65,7 @@ class Mailer < ActionMailer::Base
       :subject      => "[#{Card.setting :title} notice] #{@updater} #{action} \"#{card.name}\"" ,
       :content_type => 'text/html',
     }
-    mail_from args, Session.get_account(Card::WagnBotID).email(true)
+    mail_from args, Account.get_account(Card::WagnBotID).email(true)
   end
 
   def flexmail config

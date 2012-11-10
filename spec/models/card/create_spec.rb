@@ -3,7 +3,7 @@ require File.expand_path('../../spec_helper', File.dirname(__FILE__))
 # FIXME this shouldn't be here
 describe Wagn::Set::Type::Cardtype, ".create with :codename" do
   before do
-    Session.as 'joe_user'
+    Account.as 'joe_user'
   end
   it "should work" do
     Card.create!(:name=>"Foo Type", :codename=>"foo", :type=>'Cardtype').typecode.should==:cardtype
@@ -15,7 +15,7 @@ end
 
 describe Card, "created by Card.new " do
   before(:each) do
-    Session.as_bot do
+    Account.as_bot do
       @c = Card.new :name=>"New Card", :content=>"Great Content"
     end
   end
@@ -34,7 +34,7 @@ describe Card, "created by Card.new " do
   end
 
   it "should not override explicit content with default content" do
-    Session.as_bot do
+    Account.as_bot do
       Card.create! :name => "blue+*right+*default", :content => "joe", :type=>"Pointer"
       c = Card.new :name => "Lady+blue", :content => "[[Jimmy]]"
       c.content.should == "[[Jimmy]]"
@@ -46,7 +46,7 @@ end
 
 describe Card, "created by Card.create with valid attributes" do
   before(:each) do
-    Session.as_bot do
+    Account.as_bot do
       @b = Card.create :name=>"New Card", :content=>"Great Content"
       @c = Card.find(@b.id)
     end
@@ -69,18 +69,18 @@ end
 
 describe Card, "created with autoname" do
   before do
-    Session.as_bot do
+    Account.as_bot do
       Card.create :name=>'Book+*type+*autoname', :content=>'b1'
     end
   end
 
   it "should handle cards without names" do
-    c = Session.as_bot { Card.create! :type=>'Book' }
+    c = Account.as_bot { Card.create! :type=>'Book' }
     c.name.should== 'b1'
   end
 
   it "should increment again if name already exists" do
-    c = Session.as_bot do
+    c = Account.as_bot do
       Card.create :name=>'b1'
       Card.create! :type=>'Book'
     end
@@ -92,7 +92,7 @@ end
 
 describe Card, "create junction" do
   before(:each) do
-    Session.as 'joe_user' do
+    Account.as 'joe_user' do
       @c = Card.create! :name=>"Peach+Pear", :content=>"juicy"
     end
   end
@@ -118,7 +118,7 @@ end
 
 describe Card, "types" do
   before do
-    Session.as(Card::WagnBotID)  # FIXME: as without a block is deprecated
+    Account.as(Card::WagnBotID)  # FIXME: as without a block is deprecated
     # NOTE: it looks like these tests aren't DRY- but you can't pull the cardtype creation up here because:
     #  creating cardtypes creates constants in the namespace, and those aren't removed
     #  when the db is rolled back, so you're not starting in the original state.

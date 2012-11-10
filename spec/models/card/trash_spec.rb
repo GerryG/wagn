@@ -2,7 +2,7 @@ require File.expand_path('../../spec_helper', File.dirname(__FILE__))
 
 describe Card, "deleted card" do
   before do
-    Session.as_bot do
+    Account.as_bot do
       @c = Card['A']
       @c.destroy!
     end
@@ -11,7 +11,7 @@ describe Card, "deleted card" do
     @c.trash.should be_true
   end
   it "should come out of the trash when a plus card is created" do
-    Session.as_bot do
+    Account.as_bot do
       Card.create(:name=>'A+*acct')
       c = Card['A']
       c.trash.should be_false
@@ -21,7 +21,7 @@ end
 
 describe Card, "in trash" do
   it "should be retrieved by fetch_or_create" do
-    Session.as 'joe_user' do
+    Account.as 'joe_user' do
       Card.create(:name=>"Betty").destroy
       Card.fetch_or_create "Betty"
       Card["Betty"].should be_instance_of(Card)
@@ -31,7 +31,7 @@ end
 
 # FIXME: these user tests should probably be in a set of cardtype specific tests somewhere..
 describe User, "with revisions" do
-  before do Session.as_bot { @c = Card["Wagn Bot"] } end
+  before do Account.as_bot { @c = Card["Wagn Bot"] } end
   it "should not be removable" do
     @c.destroy.should_not be_true
   end
@@ -39,10 +39,10 @@ end
 
 describe User, "without revisions" do
   before do
-    Session.as_bot { @c = Card.create! :name=>'User Must Die', :type=>'User' }
+    Account.as_bot { @c = Card.create! :name=>'User Must Die', :type=>'User' }
   end
   it "should be removable" do
-    Session.as_bot { @c.destroy!.should be_true }
+    Account.as_bot { @c.destroy!.should be_true }
   end
 end
 
@@ -52,13 +52,13 @@ end
 #NOT WORKING, BUT IT SHOULD
 #describe Card, "a part of an unremovable card" do
 #  before do
-#    Session.as_bot do
+#    Account.as_bot do
 #     # this ugly setup makes it so A+Admin is the actual user with edits..
 #     Card["Wagn Bot"].update_attributes! :name=>"A+Wagn Bot"
 #    end
 #  end
 #  it "should not be removable" do
-#    Session.as_bot do
+#    Account.as_bot do
 #    @a = Card['A']
 #    @a.confirm_destroy = true
 #    @a.destroy.should_not be_true
@@ -68,7 +68,7 @@ end
 
 describe Card, "dependent removal" do
   before do
-    Session.as 'joe_user'
+    Account.as 'joe_user'
     @a = Card['A']
     @a.destroy!
     @c = Card.find_by_key "A+B+C".to_cardname.key
@@ -85,7 +85,7 @@ end
 
 describe Card, "rename to trashed name" do
   before do
-    Session.as_bot do
+    Account.as_bot do
       @a = Card["A"]
       @b = Card["B"]
       @a.destroy!  #trash
@@ -107,7 +107,7 @@ end
 
 describe Card, "sent to trash" do
   before do
-    Session.as_bot do
+    Account.as_bot do
       @c = Card["basicname"]
       @c.destroy!
     end
@@ -129,7 +129,7 @@ end
 
 describe Card, "revived from trash" do
   before do
-    Session.as_bot do
+    Account.as_bot do
       Card["basicname"].destroy!
       @c = Card.create! :name=>'basicname', :content=>'revived content'
     end
@@ -155,7 +155,7 @@ end
 
 describe Card, "recreate trashed card via new" do
 #  before do
-#    Session.as_bot
+#    Account.as_bot
 #    @c = Card.create! :type=>'Basic', :name=>"BasicMe"
 #  end
 
@@ -170,7 +170,7 @@ end
 
 describe Card, "junction revival" do
   before do
-    Session.as_bot do
+    Account.as_bot do
       @c = Card.create! :name=>"basicname+woot", :content=>"basiccontent"
       @c.destroy!
       @c = Card.create! :name=>"basicname+woot", :content=>"revived content"

@@ -13,7 +13,7 @@ describe Card do
 
   describe "module inclusion" do
     before do
-      Session.as 'joe_user'
+      Account.as 'joe_user'
       @c = Card.new :type=>'Search', :name=>'Module Inclusion Test Card'
     end
 
@@ -64,7 +64,7 @@ describe Card do
       #[:before_save, :before_create, :after_save, :after_create].each do |hookname|
       pending "mock rr seems to be broken, maybe 'call' collides with internal methode"
       mock(Wagn::Hook).call(:after_create, instance_of(Card))
-      Session.as_bot do
+      Account.as_bot do
         Card.create :name => "testit"
       end
     end
@@ -100,7 +100,7 @@ describe Card do
 
   describe "creation" do
     before(:each) do
-      Session.as_bot do
+      Account.as_bot do
         @b = Card.create! :name=>"New Card", :content=>"Great Content"
         @c = Card.find(@b.id)
       end
@@ -124,7 +124,7 @@ describe Card do
 
   describe "attribute tracking for new card" do
     before(:each) do
-      Session.as_bot do
+      Account.as_bot do
         @c = Card.new :name=>"New Card", :content=>"Great Content"
       end
     end
@@ -151,7 +151,7 @@ describe Card do
 
   describe "content change should create new revision" do
     before do
-      Session.as_bot do
+      Account.as_bot do
         @c = Card['basicname']
         @c.update_attributes! :content=>'foo'
       end
@@ -169,7 +169,7 @@ describe Card do
 
   describe "content change should create new revision" do
     before do
-      Session.as_bot do
+      Account.as_bot do
         @c = Card['basicname']
         @c.content = "foo"
         @c.save!

@@ -59,7 +59,7 @@ module Wagn::Model::Settings
 
     def universal_setting_names_by_group
       @@universal_setting_names_by_group ||= begin
-        Session.as_bot do
+        Account.as_bot do
           Card.search(:type=>Card::SettingID, :limit=>'0').inject({}) do |grouped,setting_card|
             next unless group = setting_card.setting_group(set_group)
             grouped[ group ] ||= []

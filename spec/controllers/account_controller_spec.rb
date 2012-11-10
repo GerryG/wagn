@@ -9,7 +9,7 @@ describe AccountController do
   describe "#accept" do
     before do
       login_as 'joe_user'
-      @user = Session.account
+      @user = Account.account
     end
 
   end
@@ -27,7 +27,7 @@ describe AccountController do
         :email=> @email_args
 
       Rails.logger.info "invitation #{@new_user.inspect}, #{@user_card.inspect}, #{@account_card.inspect}"
-      @new_user = Session.from_email 'joe@new.com'
+      @new_user = Account.from_email 'joe@new.com'
       @user_card = Card['Joe New']
       @account_card = @user_card.trait_card :account
       Rails.logger.info "invitation b #{@new_user.inspect}, #{@user_card.inspect}, #{@account_card.inspect}"
@@ -58,7 +58,7 @@ describe AccountController do
 
       post :signup, :user=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
 
-      @new_user = Session.from_email 'joe@new.com'
+      @new_user = Account.from_email 'joe@new.com'
       @user_card = Card['Joe New']
       @account_card = @user_card.trait_card :account
 
@@ -94,7 +94,7 @@ describe AccountController do
         mock(@mail = m).deliver }
 
       @email='joe@user.com'
-      #@juser=Session.from_email @email
+      #@juser=Account.from_email @email
       post :forgot_password, :email=>@email
     end
 

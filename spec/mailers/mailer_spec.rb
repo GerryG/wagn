@@ -18,7 +18,7 @@ describe Mailer do
   #  (ie try renamed change notice below to change_notice) then *notify+*from gets stuck on.
   context "change notice" do
     before do
-      Session.account=user =  Card['sara']
+      Account.account=user =  Card['sara']
       card =  Card["Sunglasses"]
       action = "edited"
       Mailer.change_notice( user, card, action, card.name ).deliver

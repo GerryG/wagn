@@ -56,7 +56,7 @@ module Wagn
       %{<div class="comment-box nodblclick"> #{
         card_form :comment do |f|
           %{#{f.text_area :comment, :rows=>3 }<br/> #{
-          unless Session.logged_in?
+          unless Account.logged_in?
             card.comment_author= (session[:comment_author] || params[:comment_author] || "Anonymous") #ENGLISH
             %{<label>My Name is:</label> #{ f.text_field :comment_author }}
           end}
@@ -290,17 +290,17 @@ module Wagn
     define_view :options, :perms=>:none do |args|
       attribute = params[:attribute]
 
-      attribute ||= if card.to_user and ( Session.as_card.id==card.id or card.trait_card(:account).ok?(:update) )
+      attribute ||= if card.to_user and ( Account.as_card.id==card.id or card.trait_card(:account).ok?(:update) )
         'account'; else; 'settings'; end
       render "option_#{attribute}"
     end
 
     define_view :option_account, :perms=> lambda { |r|
         # Should :update be on the card with account or the account?  This design decision is implemented a couple of places
-        Session.as_card.id==r.card.id or r.card.ok?(:update)
+        Account.as_card.id==r.card.id or r.card.ok?(:update)
       } do |args|
     
-      locals = {:slot=>self, :card=>card, :account=>Session.from_id(card.id) }
+      locals = {:slot=>self, :card=>card, :account=>Account.from_id(card.id) }
       wrap :options, args do
         %{ #{ _render_header }
           <div class="options-body">
@@ -568,7 +568,7 @@ module Wagn
 
     define_view :not_found do |args| #ug.  bad name.
 
-      sign_in_or_up_links = Session.logged_in? ? '' :
+      sign_in_or_up_links = Account.logged_in? ? '' :
         %{
         <div>
           #{link_to "Sign In", :controller=>'account', :action=>'signin'} or
@@ -586,7 +586,7 @@ module Wagn
 
 
     define_view :watch, :tags=>:unknown_ok, :denial=>:blank,
-      :perms=> lambda { |r| Session.logged_in? && !r.card.new_card? } do |args|
+      :perms=> lambda { |r| Account.logged_in? && !r.card.new_card? } do |args|
 
       wrap :watch do
         #warn "watch view #{card.watching_type?}, #{card.watching?}"
@@ -619,7 +619,7 @@ module Wagn
               else
                 %{<div>#{
 
-                if !Session.logged_in?
+                if !Account.logged_in?
                  %{You have to #{ link_to "sign in", :controller=>'account', :action=>'signin' }}
                 else
                  "You need permission"
@@ -627,7 +627,7 @@ module Wagn
                 </div>
                #{
 
-                if !Session.logged_in? && Card.new(:type_id=>Card::AccountRequestID).ok?(:create)
+                if !Account.logged_in? && Card.new(:type_id=>Card::AccountRequestID).ok?(:create)
                   %{<p>#{ link_to 'Sign up for a new account', :controller=>'account', :action=>'signup' }.</p>}
                 end }}
               end   }

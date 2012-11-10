@@ -1,13 +1,13 @@
 module AuthenticatedTestHelper
   # Sets the current user in the session from the user fixtures.
   def login_as user
-    Session.reset
-    Session.account = @request.session[:user] = (uc=Card[user.to_s] and uc.id)
-    Rails.logger.info "(ath)login_as #{uc.inspect}, #{Session.account.inspect}, #{Session.as_card}, #{@request.session[:user]}"
+    Account.reset
+    Account.account = @request.session[:user] = (uc=Card[user.to_s] and uc.id)
+    Rails.logger.info "(ath)login_as #{uc.inspect}, #{Account.account.inspect}, #{Account.as_card}, #{@request.session[:user]}"
   end
 
   def signout
-    Session.reset
+    Account.reset
     @request.session[:user] = nil
   end
 
@@ -37,7 +37,7 @@ module AuthenticatedTestHelper
   end
 
   def assert_auth email, password
-    assert user = Session.from_params(:login=>email), "#{email} should locate a user"
+    assert user = Account.from_params(:login=>email), "#{email} should locate a user"
     assert user.authenticated?(:password => password), "#{email} should authenticate"
   end
 
@@ -54,7 +54,7 @@ module AuthenticatedTestHelper
   end
 
   def assert_status(email, status)
-    Rails.logger.warn "assert stat #{status} #{Session.from_params(:login=>email).inspect}"
-    assert_equal status, Session.from_params(:login=>email).status
+    Rails.logger.warn "assert stat #{status} #{Account.from_params(:login=>email).inspect}"
+    assert_equal status, Account.from_params(:login=>email).status
   end
 end

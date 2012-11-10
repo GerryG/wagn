@@ -15,7 +15,7 @@ class Wagn::Set::Type::AccountRequestTest < ActionController::TestCase
     @response   = ActionController::TestResponse.new
     @jaymail = "jamaster@jay.net"
 
-    Session.as_bot do
+    Account.as_bot do
       Card.create(:name=>'Account Request+*type+*captcha', :content=>'0')
     end
 
@@ -23,13 +23,13 @@ class Wagn::Set::Type::AccountRequestTest < ActionController::TestCase
   end
 
   def test_should_redirect_to_account_request_landing_card
-    Session.account=Card['joe_admin+*account']
+    Account.account=Card['joe_admin+*account']
     post :create_account, :user=>{:email=>@jaymail}, :card=>{
       :type=>"Account Request",
       :name=>"Word Third",
       :content=>"Let me in!"
     }
-    @user = Session.from_email @jaymail
+    @user = Account.from_email @jaymail
     @card = Card[@user.id]
     Rails.logger.info "testing user email #{@card.inspect}, #{@user.inspect}"
     assert_response 302
@@ -45,7 +45,7 @@ class Wagn::Set::Type::AccountRequestTest < ActionController::TestCase
 
     assert (@card = Card["Word Third"]), "should be created"
     assert (@acard =  @card.trait_card(:account)), "with +*account card"
-    @user = Session.from_email(@jaymail)
+    @user = Account.from_email(@jaymail)
     assert @user, "User is created"
 
     @card.typecode.should == :account_request
@@ -63,7 +63,7 @@ class Wagn::Set::Type::AccountRequestTest < ActionController::TestCase
     # FIXME: should test agains mocks here, instead of re-testing the model...
     post :delete, :id=>"~#{Card['Ron Request'].id}", :confirm_destroy=>true
     assert_equal nil, Card['Ron Request']
-    assert_equal 'blocked', Session.from_email('ron@request.com').status
+    assert_equal 'blocked', Account.from_email('ron@request.com').status
   end
 
 end

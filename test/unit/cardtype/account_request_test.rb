@@ -6,7 +6,7 @@ class AccountRequestTest < ActiveSupport::TestCase
     super
     setup_default_user
     # make sure all this stuff works as anonymous user
-    Session.account = Card::AnonID
+    Account.account = Card::AnonID
   end
 
 
@@ -24,16 +24,16 @@ class AccountRequestTest < ActiveSupport::TestCase
 
 
   def test_should_block_user
-    #Session.as_bot  do
+    #Account.as_bot  do
     #  auth_user_card = Card[Card::AuthID]
       # FIXME: change from task ...
       #auth_user_card.trait_card(:tasks).content = '[[deny_account_requests]]'
     #end
     c=Card.fetch('Ron Request')
-    Session.as 'joe_admin' do c.destroy!  end
+    Account.as 'joe_admin' do c.destroy!  end
 
     assert_equal nil, Card.fetch('Ron Request')
-    assert_equal 'blocked', Session.from_email('ron@request.com').status
+    assert_equal 'blocked', Account.from_email('ron@request.com').status
   end
 
 

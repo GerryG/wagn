@@ -8,8 +8,8 @@ module Wagn
       #ENGLISH
       prefix = Wagn::Conf[:root_path] + '/account'
       %{<span id="logging">#{
-        if Session.logged_in?
-          ucard = Session.authorized
+        if Account.logged_in?
+          ucard = Account.authorized
           %{
             #{ link_to ucard.name, "#{Wagn::Conf[:root_path]}/#{ucard.cardname.url_key}", :id=>'my-card-link' }
             #{ if Card[:account].ok? :create

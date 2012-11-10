@@ -14,7 +14,7 @@ class AccountController < ApplicationController
 
     #does not validate password
     user_args = (user_args = params[:user]) && user_args.symbolize_keys || {}
-    @user = Session.new user_args
+    @user = Account.new user_args
     @user.pending
     card_args = (params[:card]||{}).merge(:type_id=>Card::AccountRequestID)
 
@@ -37,7 +37,7 @@ class AccountController < ApplicationController
       @user.accept(@card, email_args)
       return wagn_redirect Card.path_setting(Card.setting('*signup+*thanks'))
     else
-      Session.as_bot do
+      Account.as_bot do
         Mailer.signup_alert(@card).deliver if Card.setting('*request+*to')
       end
       return wagn_redirect Card.path_setting(Card.setting('*request+*thanks'))
@@ -56,8 +56,8 @@ class AccountController < ApplicationController
     Rails.logger.warn "accept #{card_key.inspect}, #{Card[card_key]}, #{params.inspect}"
     raise(Wagn::Oops, "I don't understand whom to accept") unless params[:card]
     @card = Card[card_key] or raise(Wagn::NotFound, "Can't find this Account Request")
-    Rails.logger.warn "accept #{Session.account.inspect}, #{@card.inspect}"
-    @card=@card.trait_card(:account) and !@card.new_card? and @user = Session.from_id(@card.id) or
+    Rails.logger.warn "accept #{Account.account.inspect}, #{@card.inspect}"
+    @card=@card.trait_card(:account) and !@card.new_card? and @user = Account.from_id(@card.id) or
       raise(Wagn::Oops, "This card doesn't have an account to approve")
     #warn "accept #{@user.inspect}"
     @card.ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create accounts")
@@ -79,10 +79,10 @@ class AccountController < ApplicationController
     cok=Card.new(:name=>'dummy+*account').ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create")
     #warn "post invite #{cok}, #{request.post?}, #{params.inspect}"
     if request.post?
-      @user = Session.new params[:user]
+      @user = Account.new params[:user]
       @card = @user.save_card params[:card]
     else
-      @user = Session.new; @card = Card.new
+      @user = Account.new; @card = Card.new
     end
     #warn "invite U:#{@user.inspect} C:#{@card.inspect}"
     if request.post? and @user.errors.empty?
@@ -98,7 +98,7 @@ class AccountController < ApplicationController
 
   def signin
     Rails.logger.warn "signin #{params[:login]}"
-    if user=Session.from_params(params) and user.authenticated?(params)
+    if user=Account.from_params(params) and user.authenticated?(params)
       self.session_user = user
       flash[:notice] = "Successfully signed in"
       Rails.logger.warn Rails.logger.info("to prev #{previous_location}")
@@ -120,7 +120,7 @@ class AccountController < ApplicationController
 
   def forgot_password
     return unless request.post? and email = params[:email].downcase
-    @user = Session.from_email(email)
+    @user = Account.from_email(email)
     if @user.nil?
       flash[:notice] = "Unrecognized email."
       render :action=>'signin', :status=>404

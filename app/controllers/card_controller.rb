@@ -79,8 +79,8 @@ class CardController < ApplicationController
 
     @card = @card.refresh if @card.frozen?
 
-    author = Session.account.id == Card::AnonID ?
-        "#{session[:comment_author] = params[:card][:comment_author]} (Not signed in)" : "[[#{Session.authorized.name}]]"
+    author = Account.account.id == Card::AnonID ?
+        "#{session[:comment_author] = params[:card][:comment_author]} (Not signed in)" : "[[#{Account.authorized.name}]]"
     comment = params[:card][:comment].split(/\n/).map{|c| "<p>#{c.strip.empty? ? '&nbsp;' : c}</p>"} * "\n"
     @card.comment = "<hr>#{comment}<p><em>&nbsp;&nbsp;--#{author}.....#{Time.now}</em></p>"
 
@@ -103,7 +103,7 @@ class CardController < ApplicationController
   def watch
     watchers = @card.trait_card(:watchers )
     watchers = watchers.refresh if watchers.frozen?
-    myname = Session.authorized.name
+    myname = Account.authorized.name
     #warn "watch (#{myname}) #{watchers.inspect}, #{watchers.item_names.inspect}"
     watchers.send((params[:toggle]=='on' ? :add_item : :drop_item), myname)
     ajax? ? show(:watch) : read
@@ -127,10 +127,10 @@ class CardController < ApplicationController
       role_card.items= role_hash.keys.map &:to_i
     end
 
-    account = @card.trait_card(:account) and user = Session.from_id(account.id)
+    account = @card.trait_card(:account) and user = Account.from_id(account.id)
     if user and account_args = params[:account]
-      Rails.logger.warn "up acct #{Session.as_card}, #{Session.authorized}, #{params.inspect}, U:#{user}, A:#{account.inspect}, C:#{@card.inspect}"
-      unless Session.authorized.id == account.id and !account_args[:blocked]
+      Rails.logger.warn "up acct #{Account.as_card}, #{Account.authorized}, #{params.inspect}, U:#{user}, A:#{account.inspect}, C:#{@card.inspect}"
+      unless Account.authorized.id == account.id and !account_args[:blocked]
         @card.ok! :update
       end
       user.update_attributes account_args
@@ -153,7 +153,7 @@ class CardController < ApplicationController
     email_args = { :subject => "Your new #{Card.setting :title} account.",   #ENGLISH
                    :message => "Welcome!  You now have an account on #{Card.setting :title}." } #ENGLISH
     Rails.logger.info "create_account #{params[:user].inspect}, #{email_args.inspect}"
-    @user = Session.new params[:user]
+    @user = Account.new params[:user]
     Rails.logger.info "create_account U:#{@user.inspect}"
     @card = @user.save_card(@card, email_args)
     Rails.logger.info "create_account #{@card.inspect}, U:#{@user.inspect}"
@@ -181,7 +181,7 @@ class CardController < ApplicationController
   end
 
   def index_preload
-    Session.no_logins? ?
+    Account.no_logins? ?
       redirect_to( Card.path_setting '/admin/setup' ) :
       params[:id] = (Card.setting(:home) || 'Home').to_cardname.url_key
   end

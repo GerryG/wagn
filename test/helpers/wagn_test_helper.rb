@@ -6,11 +6,11 @@ module WagnTestHelper
   include CardBuilderMethods
 
   def setup_default_user
-    Session.cache.reset
-    Session.reset
+    Account.cache.reset
+    Account.reset
 
-    Session.account = 'joe_user'
-    Rails.logger.warn "setup du #{Session.account}, #{Session.authorized}, #{Session.as_card}"
+    Account.account = 'joe_user'
+    Rails.logger.warn "setup du #{Account.account}, #{Account.authorized}, #{Account.as_card}"
     nil
   end
 
@@ -19,7 +19,7 @@ module WagnTestHelper
   end
 
   def given_card( *card_args )
-    Session.as_bot do
+    Account.as_bot do
       Card.create *card_args
     end
   end
@@ -48,10 +48,10 @@ module WagnTestHelper
   }
 
   def integration_login_as(user, functional=nil)
-    Session.cache.reset
+    Account.cache.reset
 
     raise "Don't know email & password for #{user}, #{Card[user].inspect}" unless uc=Card[user] and
-        uc=uc.trait_card(:account) and u=Session.from_id(uc.id) and
+        uc=uc.trait_card(:account) and u=Account.from_id(uc.id) and
         login = u.email and pass = USERS[login]
 
     if functional

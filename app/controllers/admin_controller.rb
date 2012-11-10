@@ -11,7 +11,7 @@ class AdminController < ApplicationController
       #Card::User  # wtf - trigger loading of Card::User, otherwise it tries to use U
       Account.as_bot do
         @account = Account.new params[:account].merge(:login=>'first')
-        @card = Account.save_card params[:card]
+        @card = @account.save_card params[:card]
         set_default_request_recipient
 
         #warn "ext id = #{@account.id}"

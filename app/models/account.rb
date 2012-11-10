@@ -61,9 +61,9 @@ class Account
  
     def no_logins?
       cache = Card.cache
-     !!rd=cache.read('no_logins') ? rd : cache.write( 'no_logins',
-               (Card.search({:right=>Card::AccountID, :left=>{:type=>Card::UserID }}).count < 0 ))
-                 #:not => { :left => ['in', Card::WagnBotID, Card::AnonID]  }}).count < 0 ))
+     r=( !!(rd=cache.read('no_logins')) ? rd : cache.write( 'no_logins',
+               (Card.search({:right=>Card::AccountID, :left=>{:type=>Card::UserID }}).count == 0 )) )
+      Rails.logger.warn "Logins? #{r}"; r
     end
  
     def always_ok?

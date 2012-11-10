@@ -5,7 +5,8 @@ class AdminController < ApplicationController
   def setup
     Wagn::Cardname #loading oddity made this necessary in dev.  pls don't remove without testing setup.
 
-    raise(Wagn::Oops, "Already setup") unless Account.no_logins? && !User[:first]
+    warn "a su #{Account.no_logins?} && #{User[:first].inspect}"
+    raise(Wagn::Oops, "Already setup") unless Account.no_logins? # && User[:first].nil?
     Wagn::Conf[:recaptcha_on] = false
     if request.post?
       #Card::User  # wtf - trigger loading of Card::User, otherwise it tries to use U

@@ -9,7 +9,7 @@ class Session
   # we just use nil for that function.  There is a similar issue for WagnBot, it depends on
   # User if it has an account, but if it doesn't we will need a dummy class for this
   # For now find it by card_id in User
-  ANONUSER = Session.from_id ANONCARD.id
+  ANONUSER = User.from_id ANONCARD.id
 
   cattr_accessor :account_class
 

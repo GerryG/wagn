@@ -73,7 +73,7 @@ describe User, 'Joe User' do
     @ju = Account.from_id Card['joe_user+*account']
     @roles_card = Card[@jucard.trait_card(:roles).id]
     @roles_card.item_names.length.should==1
-    @jucard.parties.should == [Card::AuthID, Card['r1'].id, Card[@ju.card_id].trunk_id]
+    @jucard.parties.should == [Card::AuthID, Card['r1'].id, Card[@ju.account_id].trunk_id]
   end
 
   it "should be 'among' itself" do

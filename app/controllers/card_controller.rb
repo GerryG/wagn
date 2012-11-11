@@ -151,6 +151,7 @@ class CardController < ApplicationController
                    :message => "Welcome!  You now have an account on #{Card.setting :title}." } #ENGLISH
     Rails.logger.info "create_account #{params[:user].inspect}, #{email_args.inspect}"
     @user = Account.new params[:user]
+    @user.active
     @card = @user.save_card(@card, email_args)
     raise ActiveRecord::RecordInvalid.new(@user) if !@user.errors.empty?
 #    flash[:notice] ||= "Done.  A password has been sent to that email." #ENGLISH

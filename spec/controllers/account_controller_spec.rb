@@ -36,11 +36,12 @@ describe AccountController do
 
     it 'should create a user' do
       @account_card.new_card?.should be_false
+      #warn "cards #{@account_card.inspect}, #{@user_card.inspect}"
       @user_card.type_id.should == Card::UserID
       @account_card.type_id.should == Card::BasicID
       Rails.logger.info "invitation a #{@new_user.inspect}, #{@user_card.inspect}, #{@account_card.inspect}"
       @new_user.should be
-      @new_user.card_id.should == @account_card.id
+      @new_user.account_id.should == @account_card.id
     end
 
     it 'should send email' do
@@ -66,7 +67,7 @@ describe AccountController do
 
     it 'should create a user' do
       @new_user.should be
-      @new_user.card_id.should == @account_card.id
+      @new_user.account_id.should == @account_card.id
       @user_card.type_id.should == Card::AccountRequestID
     end
 

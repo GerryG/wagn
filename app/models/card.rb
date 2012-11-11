@@ -76,7 +76,7 @@ class Card < ActiveRecord::Base
         super
       end
     rescue NameError
-        warn "ne: const_miss #{e.inspect}, #{const_name} R:#{x}\n#{caller*"\n"}" if const_name.to_sym==:Card; x
+      warn "#{e.inspect}, #{const_name} R:#{x}\n#{caller*"\n"}" if const_name.to_sym==:Card; x
     end
 
     def setting name
@@ -519,7 +519,6 @@ class Card < ActiveRecord::Base
     ids = Account.as_bot {
       trait_card(:roles).item_cards(:limit=>0).map(&:id)
     }
-    warn "odd tk #{trunk.id.inspect} && #{trunk_id.inspect} ???" if trunk.id != trunk_id.to_i
     @all_roles ||= (id==Card::AnonID || trunk_id==Card::AnonID ? [] : [Card::AuthID] + ids)
   end
 

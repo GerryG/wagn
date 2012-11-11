@@ -74,7 +74,7 @@ class AccountController < ApplicationController
   end
 
   def invite
-    warn "invite: ok? #{Card.new(:name=>'dummy+*account').ok?(:create)}"
+    #warn "invite: ok? #{Card.new(:name=>'dummy+*account').ok?(:create)}"
     cok=Card.new(:name=>'dummy+*account').ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create")
     if request.post?
       @user = Account.new params[:user]
@@ -98,7 +98,7 @@ class AccountController < ApplicationController
   def signin
     Rails.logger.info "signin #{params[:login]}"
     if user=Account.from_params(params) and user.authenticated?(params)
-      self.session_user = user.card_id
+      self.session_user = user.account_id
       flash[:notice] = "Successfully signed in"
       redirect_to previous_location
     else

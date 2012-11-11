@@ -8,14 +8,14 @@ describe "User" do
 
 
     it "*all+*read should apply to Joe User" do
-      warn "rules = #{@read_rules.map(&Card.method(:find)).map(&:name) * ', '}"
+      #warn "rules = #{@read_rules.map(&Card.method(:find)).map(&:name) * ', '}"
       @read_rules.member?(Card.fetch('*all+*read').id).should be_true
     end
 
     it "3 more should apply to Joe Admin" do
       Account.as('joe_admin') do
         ids = Account.as_card.read_rules
-        warn "rules = #{ids.map(&Card.method(:find)).map(&:name) * ', '}"
+        #warn "rules = #{ids.map(&Card.method(:find)).map(&:name) * ', '}"
         ids.length.should == @read_rules.size+3
       end
     end

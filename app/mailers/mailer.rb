@@ -11,7 +11,7 @@ class Mailer < ActionMailer::Base
   include LocationHelper
 
   def account_info user, args
-    user_card, subject, message = Card[user.card_id], args[:subject], args[:message]
+    user_card, subject, message = Card[user.account_id], args[:subject], args[:message]
     url_key = user_card.cardname.url_key
 
     @email    = (user.email    or raise Wagn::Oops.new("Oops didn't have user email"))

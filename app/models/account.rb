@@ -8,7 +8,7 @@ class Account
   # It shouldn't be a Card, and if User can be replaced, does each plugin need an Anonymous or
   # we just use nil for that function.  There is a similar issue for WagnBot, it depends on
   # User if it has an account, but if it doesn't we will need a dummy class for this
-  # For now find it by card_id in User
+  # For now find it by account_id in User
   ANONUSER = User.from_id ANONCARD.id
 
   cattr_accessor :account_class
@@ -83,7 +83,7 @@ class Account
 
     def get_account account
       Rails.logger.debug "account lookup: #{account.inspect}"
-      return Card[account.card_id] if @@account_class===account
+      return Card[account.account_id] if @@account_class===account
       account = acct = Card===account ? account : Card[account]
       acct = acct.trait_card(:account) unless acct.id == ANONCARD.id || acct.tag_id==Card::AccountID
       acct = account.id == Card::WagnBotID ? account : Account::ANONCARD if acct.new_card? 

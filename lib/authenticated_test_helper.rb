@@ -2,8 +2,8 @@ module AuthenticatedTestHelper
   # Sets the current user in the session from the user fixtures.
   def login_as user
     Account.reset
-    Account.account = @request.session[:user] = (uc=Card[user.to_s] and uc.id)
-    Rails.logger.info "(ath)login_as #{uc.inspect}, #{Account.account.inspect}, #{Account.as_card}, #{@request.session[:user]}"
+    Account.session = @request.session[:user] = (uc=Card[user.to_s] and uc.id)
+    Rails.logger.info "(ath)login_as #{uc.inspect}, #{Account.session.inspect}, #{Account.as_card}, #{@request.session[:user]}"
   end
 
   def signout

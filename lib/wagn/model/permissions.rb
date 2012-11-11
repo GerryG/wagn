@@ -54,7 +54,7 @@ module Wagn::Model::Permissions
     # self.errors.clear
 
     
-    Rails.logger.info "ok? #{Account.account.inspect}, #{Account.as_card.inspect}, #{operation} #{inspect} R:#{@operation_approved}" if operation == :create
+    Rails.logger.info "ok? #{Account.session.inspect}, #{Account.as_card.inspect}, #{operation} #{inspect} R:#{@operation_approved}" if operation == :create
     @operation_approved
   end
 
@@ -142,7 +142,7 @@ module Wagn::Model::Permissions
     Rails.logger.warn "AR #{inspect} #{Account.always_ok?}"
     return true if Account.always_ok?
     @read_rule_id ||= (rr=permission_rule_card(:read).first).id.to_i
-    Rails.logger.warn "AR #{name} #{@read_rule_id}, #{Account.account.inspect} #{rr&&rr.name}, RR:#{Account.as_card.read_rules.map{|i|c=Card[i] and c.name}*", "}"
+    Rails.logger.warn "AR #{name} #{@read_rule_id}, #{Account.session.inspect} #{rr&&rr.name}, RR:#{Account.as_card.read_rules.map{|i|c=Card[i] and c.name}*", "}"
     unless Account.as_card.read_rules.member?(@read_rule_id.to_i)
       deny_because you_cant("read this card")
     end
@@ -202,7 +202,7 @@ module Wagn::Model::Permissions
       if !new_card? && updates.for(:type_id)
         Account.as_bot do
           Card.search(:left=>self.name).each do |plus_card|
-            plus_card = plus_card.refresh if plus_card.frozen?
+            plus_card = plus_card.refresh
             plus_card.update_read_rule
           end
         end
@@ -265,7 +265,7 @@ module Wagn::Model::Permissions
       # AND need to make sure @changed gets wiped after save (probably last in the sequence)
 
       Account.cache.reset
-      Card.cache.reset # maybe be more surgical, just Account.account related
+      Card.cache.reset # maybe be more surgical, just Account.session related
       expire #probably shouldn't be necessary,
       # but was sometimes getting cached version when card should be in the trash.
       # could be related to other bugs?

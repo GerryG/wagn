@@ -334,7 +334,7 @@ describe "Permission", ActiveSupport::TestCase do
     Account.as(@u1) do
       Card.search(:content=>'WeirdWord').plot(:name).sort.should == %w( c1 c2 c3 )
     end
-    Account.account=Account::ANONCARD # for Account.as to be effective, you can't have a logged in user
+    Account.session =Account::ANONCARD # for Account.as to be effective, you can't have a logged in user
     Account.as(@u2) do
       Card.search(:content=>'WeirdWord').plot(:name).sort.should == %w( c2 c3 )
     end

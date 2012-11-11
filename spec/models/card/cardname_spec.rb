@@ -1,5 +1,4 @@
 require File.expand_path('../../spec_helper', File.dirname(__FILE__))
-=begin
 describe Card, "Case Variant" do
   before do
     Account.as 'joe_user'
@@ -22,19 +21,20 @@ describe Wagn::Cardname, "Underscores" do
     'Mamas_and_Papas'.to_cardname.key.should == "Mamas and Papas".to_cardname.key
   end
 end
-=end
+
 describe Wagn::Cardname, "changing from plus card to simple" do
   before do
     Account.as 'joe_user'
-    @c = Card.create! :name=>'four+five'
-    @c.name = 'nine'
-    @c.confirm_rename = true
-    @c.save
+    c = Card.create! :name=>'four+five'
+    c.name = 'nine'
+    c.confirm_rename = true
+    c.save
   end
 
   it "should erase trunk and tag ids" do
-    @c.trunk_id.should== nil
-    @c.tag_id.should== nil
+    c = Card['nine']
+    c.trunk_id.should== c.id
+    c.tag_id.should== c.id
   end
 
 end

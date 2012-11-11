@@ -9,8 +9,8 @@ module WagnTestHelper
     Account.cache.reset
     Account.reset
 
-    Account.account = 'joe_user'
-    Rails.logger.warn "setup du #{Account.account}, #{Account.authorized}, #{Account.as_card}"
+    Account.session = 'joe_user'
+    Rails.logger.warn "setup du #{Account.session}, #{Account.authorized}, #{Account.as_card}"
     nil
   end
 

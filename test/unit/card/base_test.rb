@@ -67,7 +67,7 @@ class Card::BaseTest < ActiveSupport::TestCase
 
 
   test 'update_should_create_subcards' do
-    Account.account = 'joe_user'
+    Account.session = 'joe_user'
     joe_acct = Account.authorized
     c=Card.create!( :name=>'Banana' )
     #warn "created #{c.inspect}"
@@ -80,8 +80,8 @@ class Card::BaseTest < ActiveSupport::TestCase
 
   test 'update_should_create_subcards_as_wagn_bot_if_missing_subcard_permissions' do
     Card.create(:name=>'peel')
-    Account.account = :anonymous
-    #warn Rails.logger.info("check #{Account.account}")
+    Account.session = :anonymous
+    #warn Rails.logger.info("check #{Account.session}")
     assert_equal false, Card['Basic'].ok?(:create), "anon can't creat"
     Card.create!( :type=>"Fruit", :name=>'Banana', :cards=>{ "+peel" => { :content => "yellow" }})
     peel= Card["Banana+peel"]

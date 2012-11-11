@@ -6,7 +6,7 @@ CARDS_MATCHING_TWO = ["Two","One+Two","One+Two+Three","Joe User","*plusses+*righ
 
 describe Wql do
   before do
-    Account.account= 'joe_user'
+    Account.session = 'joe_user'
   end
 
 
@@ -105,7 +105,7 @@ describe Wql do
 
   describe "last_edited_by/last_editor_of" do
     before do
-      Account.account= 'joe_user'
+      Account.session = 'joe_user'
       c=Card.fetch('A'); c.content='peculicious'; c.save!
     end
 
@@ -352,7 +352,7 @@ describe Wql do
   #=end
   describe "found_by" do
     before do
-      Account.account= Card::WagnBotID
+      Account.session = Card::WagnBotID
       c = Card.create(:name=>'Simple Search', :type=>'Search', :content=>'{"name":"A"}')
     end
 

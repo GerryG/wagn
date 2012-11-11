@@ -13,7 +13,7 @@ describe Flexmail do
 
   describe ".configs_for" do
     before do
-      Account.account = Card::WagnBotID
+      Account.session = Card::WagnBotID
       Card.create! :name => "mailconfig+*to", :content => "joe@user.com"
       Card.create! :name => "mailconfig+*from", :content => "from@user.com"
       Card.create! :name => "mailconfig+*subject", :content => "Subject of the mail"
@@ -117,7 +117,7 @@ describe Flexmail do
           Card.create! :name => "emailtest+*right+*send", :type => "Pointer", :content => "[[mailconfig]]"
           Card.create! :name => "mailconfig+*to", :content => "joe@user.com"
         }
-        Account.account = 'john'
+        Account.session = 'john'
       end
 
       it "calls to mailer on Card#create" do
@@ -146,7 +146,7 @@ describe Flexmail do
             :content => "[[mailconfig]]"
           Card.create! :name => "mailconfig+*to", :content => "joe@user.com"
         end
-        Account.account = 'john'
+        Account.session = 'john'
       end
 
       it "doesn't call to mailer on Card#create" do

@@ -5,7 +5,7 @@ require File.expand_path('../../packs/pack_spec_helper', File.dirname(__FILE__))
 
 describe Wagn::Renderer, "" do
   before do
-    Account.account= 'joe_user'
+    Account.session = 'joe_user'
     Wagn::Renderer.current_slot = nil
     Wagn::Renderer.ajax_call = false
   end
@@ -390,7 +390,7 @@ describe Wagn::Renderer, "" do
 
     context "HTML" do
       before do
-        Account.account= Card::WagnBotID
+        Account.session = Card::WagnBotID
       end
 
       it "should have special editor" do
@@ -514,7 +514,7 @@ describe Wagn::Renderer, "" do
 
   context "replace refs" do
     before do
-      Account.account= Card::WagnBotID
+      Account.session = Card::WagnBotID
     end
 
     it "replace references should work on inclusions inside links" do

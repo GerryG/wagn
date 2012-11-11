@@ -255,7 +255,7 @@ class Card < ActiveRecord::Base
       opts[:nested_edit] = self
       absolute_name = sub_name.to_cardname.post_cgi.to_cardname.to_absolute cardname
       if card = Card[absolute_name]
-        card = card.refresh if card.frozen?
+        card = card.refresh
         card.update_attributes opts
       elsif opts[:content].present? and opts[:content].strip.present?
         opts[:name] = absolute_name
@@ -353,14 +353,16 @@ class Card < ActiveRecord::Base
   def trunk()     Card.fetch cardname.trunk       end
   def tag()       Card.fetch cardname.tag         end
 
+  def tag_id()   !@tag_id.nil?   ? @tag_id   : @tag_id   = (x=tag)   ? x.id : nil end
+  def trunk_id() !@trunk_id.nil? ? @trunk_id : @trunk_id = (x=trunk) ? x.id : nil end
 
   def dependents
-    return [] if new_card?
-    Account.as_bot do
-      Card.search( :part=>name ).map do |c|
-        [ c ] + c.dependents
-      end.flatten
-    end
+    new_card? ? [] : !@dependents.nil? ? @dependents : Account.as_bot do
+        Card.search( :part=> id ).inject [] do |a,c|
+          #id == c.id ? a : a << c << *(c.dependents)
+          id == c.id ? a : (a << c) + (c.dependents)
+        end
+      end
   end
 
   def repair_key
@@ -513,8 +515,6 @@ class Card < ActiveRecord::Base
     #Rails.logger.debug "read_rules rr:#{@read_rules.map{|i| Card[i].name||''}*", "}"; @read_rules
   end
 
-  def tag_id()   !!@tag_id   ? @tag_id   : @tag_id   = (x=tag)   ? x.id : nil end
-  def trunk_id() !!@trunk_id ? @trunk_id : @trunk_id = (x=trunk) ? x.id : nil end
   def all_roles
     ids = Account.as_bot {
       trait_card(:roles).item_cards(:limit=>0).map(&:id)
@@ -564,6 +564,7 @@ class Card < ActiveRecord::Base
 
   def inspect
     "#<#{self.class.name}" + "##{self.id}" +
+    "K#{self.tag_id}G#{self.tag_id}" +
     "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
     "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{virtual? &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }} " +
     "Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}>"
@@ -634,7 +635,7 @@ class Card < ActiveRecord::Base
     if rec.new_card? && value.blank?
       if autoname_card = rec.rule_card(:autoname)
         Account.as_bot do
-          autoname_card = autoname_card.refresh if autoname_card.frozen?
+          autoname_card = autoname_card.refresh
           value = rec.name = rec.autoname( autoname_card.content )
           autoname_card.content = value  #fixme, should give placeholder on new, do next and save on create
           autoname_card.save!

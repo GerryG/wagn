@@ -1,8 +1,11 @@
 class Account
-  # in migrations
-  ANONCARD = Card[Card::AnonID].trait_card(:account)
+  # FIXME: check for this in boot and don't start if newcard?
+  # these might be newcard?, but only in migrations
+  ANONCARD = Card[Card::AnonID].trait_card :account
+  BOTCARD  = Card[Card::WagnBotID].trait_card :account
+
   # This will probably have a hash of possible account classes and a value for the class
-  @@account_class = User
+  @@session_class = User
   # FIXME: Probably should use nil as the 'account' for Anonymous (Card/codename)
   # but tests depend on this being same class (User) as other accounts
   # It shouldn't be a Card, and if User can be replaced, does each plugin need an Anonymous or
@@ -14,7 +17,7 @@ class Account
   cattr_accessor :account_class
 
   @@as_card = nil
-  @@account = ANONCARD
+  @@session = ANONCARD
 
   class << self
     def from_params params
@@ -25,26 +28,27 @@ class Account
     end
     # can these just be delegations:
     # delegate @@acount_class, :new, :cache, :from_email, :from_login, :from_id, :save_card
-    def new(args)              @@account_class.new(args)                                    end
-    def save_card(card, email) @@account_class.save_card(card, email)                       end
-    def cache()                @@account_class.cache()                                      end
-    def from_email(email)      @@account_class.from_email(email)                            end
-    def from_login(login)      @@account_class.from_login(login)                            end
-    def from_id(card_id)       @@account_class.from_id(card_id) || ANONUSER                 end
+    def new(args)              @@session_class.new(args)                                    end
+    def save_card(card, email) @@session_class.save_card(card, email)                       end
+    def cache()                @@session_class.cache()                                      end
+    def from_email(email)      @@session_class.from_email(email)                            end
+    def from_login(login)      @@session_class.from_login(login)                            end
+    def from_id(card_id)       @@session_class.from_id(card_id) || ANONUSER                 end
 
-    def admin?() ((ac=as_card).tag_id==Card::AccountID ? ac.trunk_id : ac.id)==Card::WagnBotID end
+    def admin?()          (ac=as_card.id) ? ac==BOTCARD.id || ac == Card::WagnBotID : false end
 
-    def reset()                @@account = ANONCARD; @@as_card = nil                        end
-    def account()              @@account || ANONCARD                                        end
-    def account_name()         account.cardname.left                                        end
-    def account=(account)      @@account = get_account account
-    raise "bad id #{account.inspect}" if @@account.nil?; @@account end
-    def as_card()              @@as_card || account                                         end
-    def authorized()        (ac=as_card).tag_id == Card::AccountID ? Card[ac.trunk_id] : ac end
+    def reset()                @@session = ANONCARD; @@as_card = nil                        end
+    def session()              @@session || ANONCARD                                        end
+    def authorized_name()      authorized.name                                              end
+    def session=(account)      @@session = get_account account                              end
+    def as_card()              @@as_card || session                                         end
+    # We only need to test for the tag presence for migrations, we are going to  make sure it
+    # exists and is indestructable (add tests for that)
+    #def authorized()          as_card.trunk                                                 end
+    def authorized()           (ac=as_card).tag_id == Card::AccountID ? ac.trunk : ac       end
     def as_bot(&block)         as Card::WagnBotID, &block                                   end
     def among?(authzed)        authorized.among? authzed                                    end
-    def logged_in?()           authorized.id != Card::AnonID                                end
-    alias session account ; alias session= account=  # until I remove .account usage fully
+    def logged_in?()           session.id != ANONCARD.id                                    end
 
     def as given_account
       save_as = @@as_card
@@ -67,9 +71,8 @@ class Account
     end
  
     def always_ok?
+      return true if admin? #cannot disable
       as_id = authorized.id
-      return true if as_id == Card::WagnBotID #cannot disable
-      #warn "aok? bot" if as_id == Card::WagnBotID
  
       always = Card.cache.read('ALWAYS') || {}
       if always[as_id].nil?
@@ -77,15 +80,16 @@ class Account
         always[as_id] = !!Card[as_id].all_roles.detect{|r|r==Card::AdminID}
         Card.cache.write 'ALWAYS', always
        end
-     #Rails.logger.warn "aok? #{Card[as_id].name}, #{always.inspect}" if always[as_id]
      always[as_id]
     end
 
     def get_account account
       Rails.logger.debug "account lookup: #{account.inspect}"
-      return Card[account.account_id] if @@account_class===account
+      return Card[account.account_id] if @@session_class===account
       account = acct = Card===account ? account : Card[account]
+      # if this isn't a Right::Account yet, fetch it
       acct = acct.trait_card(:account) unless acct.id == ANONCARD.id || acct.tag_id==Card::AccountID
+      # if it is new, then A: no WagnBot account, so accept the WagnBot card for migrations to work
       acct = account.id == Card::WagnBotID ? account : Account::ANONCARD if acct.new_card? 
       #Rails.logger.info "account lookup: acct:#{acct.inspect} cd:#{account.inspect}"
       acct

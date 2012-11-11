@@ -62,9 +62,12 @@ describe Card do
       #[:before_save, :before_create, :after_save, :after_create].each do |hookname|
       pending "mock rr seems to be broken, maybe 'call' collides with internal methode"
       mock(Wagn::Hook).call(:after_create, instance_of(Card))
-      Account.as_bot do
+      c=Account.as_bot do
         Card.create :name => "testit"
       end
+      c.trunk_id.should == c.id
+      c.tag_id.should == c.id
+
     end
   end
 

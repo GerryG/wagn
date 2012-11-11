@@ -114,7 +114,7 @@ class CardActionTest < ActionController::IntegrationTest
       assert_response 200
     end
     email = ActionMailer::Base.deliveries[-1]
-    assert_equal Account.account.email, email.from[0]
+    assert_equal Account.session.email, email.from[0]
     assert user = Account.from_email('foo@bar.com')
     assert_equal 'active', user.status
   end

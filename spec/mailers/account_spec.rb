@@ -9,7 +9,7 @@ describe Mailer do
   #include ActionMailer::Quoting
 
   before do
-    #FIXME: from addresses are really Account.account, not Account.as based, but
+    #FIXME: from addresses are really Account.session, not Account.as based, but
     # these tests are pretty much all using the Account.as, not logging in.
     ActionMailer::Base.delivery_method = :test
     ActionMailer::Base.perform_deliveries = true
@@ -22,8 +22,8 @@ describe Mailer do
   #  (ie try renamed change notice below to change_notice) then *notify+*from gets stuck on.
   context "account info, new password" do # forgot password
     before do
-      Account.account = Card['sara+*account']
-      @user = Account.from_id Account.account.id
+      Account.session = Card['sara+*account']
+      @user = Account.from_id Account.session.id
       @user.generate_password
       @email = Mailer.account_info @user, {:subject=>"New password subject", :message=>"Forgot my password"}
     end

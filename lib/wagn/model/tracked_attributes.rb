@@ -35,10 +35,11 @@ module Wagn::Model::TrackedAttributes
     if @cardname.junction?
       [:trunk, :tag].each do |side|
         sidename = @cardname.send "#{side}_name"
+        #warn "sidename #{newname}, #{@old_name}, #{sidename}"
         sidecard = Card[sidename]
         old_name_in_way = (sidecard && sidecard.id==self.id) # eg, renaming A to A+B
         suspend_name(sidename) if old_name_in_way
-        self.send "#{side}_id=", begin
+        new_id=self.send "#{side}_id=", begin
           if !sidecard || old_name_in_way
             Card.create! :name=>sidename
           else
@@ -47,7 +48,13 @@ module Wagn::Model::TrackedAttributes
         end
       end
     else
+      #self.trunk_id = self.tag_id = id
+      #self.left_id = self.right_id = nil
+      # FIXME: technically it should be one of the above, but the names are wrong
+      # either way we need a migration and to extend/fix wql
+      @tag_id = @trunk_id =
       self.trunk_id = self.tag_id = nil
+      #warn "Simple, no tk/tg #{inspect}, N:#{newname}, O:#{@old_name}"
     end
 
     return if new_card?
@@ -103,7 +110,7 @@ module Wagn::Model::TrackedAttributes
     new_content ||= ''
     new_content = WikiContent.clean_html!(new_content) if clean_html?
     clear_drafts if current_revision_id
-    #warn Rails.logger.info("set_content #{name} #{Account.account}, #{new_content}")
+    #warn Rails.logger.info("set_content #{name} #{Account.session}, #{new_content}")
     new_rev = Card::Revision.create :card_id=>self.id, :content=>new_content, :creator_id =>Account.authorized.id
     self.current_revision_id = new_rev.id
     reset_patterns_if_rule

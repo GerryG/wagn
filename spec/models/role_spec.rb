@@ -17,7 +17,7 @@ end
 =begin
 describe User, "Anonymous User" do
   before do
-    Account.account= Card::AnonID
+    Account.session = Card::AnonID
   end
 
   it "should ok anon role" do Wagn.role_ok?(Role['anon'].id).should be_true end
@@ -26,7 +26,7 @@ end
 
 describe User, "Authenticated User" do
   before do
-    Account.account= 'joe_user'
+    Account.session = 'joe_user'
   end
   it "should ok anon role" do Wagn.role_ok?(Role['anon'].id).should be_true end
   it "should ok auth role" do Wagn.role_ok?(Role['auth'].id).should be_true end
@@ -35,7 +35,7 @@ end
 
 describe User, "Admin User" do
   before do
-    Account.account= Card::WagnBotID
+    Account.session = Card::WagnBotID
   end
 #  it "should ok admin role" do Wagn.role_ok?(Role['admin'].id).should be_true end
 
@@ -47,9 +47,9 @@ end
 
 describe User, 'Joe User' do
   before do
-    Account.account= 'joe_user'
+    Account.session = 'joe_user'
     Account.cache.delete 'joe_user'
-    @ju = Account.account
+    @ju = Account.session
     @jucard = Account.authorized
     @r1 = Card['r1']
     @roles_card=@jucard.trait_card(:roles)

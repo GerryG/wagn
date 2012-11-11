@@ -67,7 +67,7 @@ class User < ActiveRecord::Base
     @card = Card===args ?  args : Card.fetch_or_new(args[:name], args)
     #warn "card: #{@card.inspect}"
 
-    #Rails.logger.debug "save_card saving #{inspect}, #{args.inspect}, #{Account.account.inspect}"
+    #Rails.logger.debug "save_card saving #{inspect}, #{args.inspect}, #{Account.session.inspect}"
     active() if status.blank?
     generate_password if password.blank?
 
@@ -75,7 +75,7 @@ class User < ActiveRecord::Base
       begin
         #warn "save with card #{@card.inspect}, #{inspect}"
         User.transaction do
-          @card = @card.refresh if @card.frozen?
+          @card = @card.refresh
           @card.type_id = Card::UserID unless @card.type_id == Card::UserID ||
                                       @card.type_id == Card::AccountRequestID
           newcard = @card.new_card?

@@ -58,7 +58,7 @@ module Notification
 
     def watching_type?() watcher_pairs(false, :type).member?(Account.authorized.id) end
     def watching?()      watcher_pairs(false).member?(Account.authorized.id)        end
-    def watchers()       watcher_watched_pairs(false)                      end
+    def watchers()       watcher_watched_pairs(false)                               end
     def watcher_watched_pairs(pairs=true)
       ( watcher_pairs(pairs) + watcher_pairs(pairs, :type) )
     end

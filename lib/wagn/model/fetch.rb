@@ -79,14 +79,15 @@ module Wagn::Model::Fetch
 #      end
     end
 
-    def fetch_or_new cardname, opts={}
-      Rails.logger.warn "fetch_or_new #{cardname.inspect}, #{opts.inspect}"
-      fetch( cardname, opts ) || new( opts.merge(:name=>cardname) )
+    def fetch_or_new name, opts={}
+      #Rails.logger.info "fetch_or_new #{name.inspect}, #{opts.inspect}"
+      r= fetch( name, opts ) || new( opts.merge(:name=>name) )
+      #Rails.logger.info "f or new #{name}, WB #{opts.inspect}, #{r.inspect} #{caller*"\n"}" if name.to_cardname.key =='wagn_bot+*account'; r
     end
 
-    def fetch_or_create cardname, opts={}
+    def fetch_or_create name, opts={}
       opts[:skip_virtual] ||= true
-      fetch( cardname, opts ) || create( opts.merge(:name=>cardname) )
+      fetch( name, opts ) || create( opts.merge(:name=>name) )
     end
 
     def fetch_id mark #should optimize this.  what if mark is int?  or codename?
@@ -99,8 +100,8 @@ module Wagn::Model::Fetch
       #warn "[] returning #{c.inspect}"; c
     end
 
-    def exists? cardname
-      card = fetch cardname, :skip_virtual=>true, :skip_modules=>true
+    def exists? name
+      card = fetch name, :skip_virtual=>true, :skip_modules=>true
       card.present?
     end
 
@@ -164,9 +165,11 @@ module Wagn::Model::Fetch
   end
 
   def refresh
-    fresh_card = self.class.find(self.id)
-    fresh_card.include_set_modules
-    fresh_card
+    if frozen?()
+      fresh_card = self.class.find id()
+      fresh_card.include_set_modules
+      fresh_card
+    else self end
   end
 
   def self.included(base)

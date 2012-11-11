@@ -2,7 +2,7 @@ require File.expand_path('../../spec_helper', File.dirname(__FILE__))
 
 describe Wagn::Set::Type::Pointer do
   before do
-    Account.account= 'joe_user'
+    Account.session = 'joe_user'
   end
 
   context "item_names" do

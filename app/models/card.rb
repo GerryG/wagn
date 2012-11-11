@@ -495,13 +495,13 @@ class Card < ActiveRecord::Base
   end
 
   def parties
-    @parties ||= (all_roles << trunk.id).flatten.reject(&:blank?)
+    @parties ||= (all_roles << trunk_id).flatten.reject(&:blank?)
   end
 
   def read_rules
     @read_rules ||= begin
-      Rails.logger.info "read_rules #{inspect}"
-      if id==Card::WagnBotID 
+      Rails.logger.info "read_rules #{trunk_id ==Card::WagnBotID ? 'WBAcct:::' : ''} #{inspect}"
+      if id==Card::WagnBotID or trunk_id ==Card::WagnBotID
         [] # avoids infinite loop
       else
         party_keys = ['in', Card::AnyoneID] + parties
@@ -513,11 +513,14 @@ class Card < ActiveRecord::Base
     #Rails.logger.debug "read_rules rr:#{@read_rules.map{|i| Card[i].name||''}*", "}"; @read_rules
   end
 
+  def tag_id()   !!@tag_id   ? @tag_id   : @tag_id   = (x=tag)   ? x.id : nil end
+  def trunk_id() !!@trunk_id ? @trunk_id : @trunk_id = (x=trunk) ? x.id : nil end
   def all_roles
     ids = Account.as_bot {
       trait_card(:roles).item_cards(:limit=>0).map(&:id)
     }
-    @all_roles ||= (id==Card::AnonID || (trunk && trunk.id==Card::AnonID) ? [] : [Card::AuthID] + ids)
+    warn "odd tk #{trunk.id.inspect} && #{trunk_id.inspect} ???" if trunk.id != trunk_id.to_i
+    @all_roles ||= (id==Card::AnonID || trunk_id==Card::AnonID ? [] : [Card::AuthID] + ids)
   end
 
   def to_user

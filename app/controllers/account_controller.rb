@@ -74,10 +74,11 @@ class AccountController < ApplicationController
   end
 
   def invite
-    Rails.logger.info "invite: ok? #{Card.new(:name=>'dummy+*account').ok?(:create)}"
+    warn "invite: ok? #{Card.new(:name=>'dummy+*account').ok?(:create)}"
     cok=Card.new(:name=>'dummy+*account').ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create")
     if request.post?
       @user = Account.new params[:user]
+      @user.active
       @card = @user.save_card params[:card]
     else
       @user = Account.new; @card = Card.new

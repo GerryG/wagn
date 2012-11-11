@@ -44,7 +44,7 @@ class AccountControllerTest < ActionController::TestCase
 
   def test_should_signout
     get :signout
-    assert_equal session[:user], Card::AnonID
+    assert_equal session[:user], nil
     assert_response :redirect
   end
 

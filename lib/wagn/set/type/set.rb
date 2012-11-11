@@ -75,7 +75,7 @@ module Wagn
 
       def set_group
         Card::PointerID == ( templt = existing_trait_card(:content) || existing_trait_card(:default) and
-            templt.type_id or tag.id == Card::TypeID ? trunk.id : trunk.type_id ) and :pointer or nil
+            templt.type_id or tag_id == Card::TypeID ? trunk_id : trunk.type_id ) and :pointer or nil
       end
 
       def label
@@ -89,7 +89,7 @@ module Wagn
       def setting_names_by_group
         Card.universal_setting_names_by_group.clone.merge(
           if Card::PointerID == ( templt = existing_trait_card(:content) || existing_trait_card(:default) and
-                templt.type_id or tag.id == Card::TypeID ? trunk.id : trunk.type_id )
+                templt.type_id or tag_id == Card::TypeID ? trunk_id : trunk.type_id )
            {:pointer => ['*options','*options label','*input']}
           else
             {} end

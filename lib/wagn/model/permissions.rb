@@ -42,7 +42,7 @@ module Wagn::Model::Permissions
   # ok? and ok! are public facing methods to approve one operation at a time
   def ok? operation
     #warn "ok? #{operation}"
-    Rails.logger.info "ok? #{Account.authorized.inspect}, #{Account.as_card.inspect}, #{operation} #{inspect}" if operation == :read
+    #Rails.logger.info "ok? #{Account.authorized.inspect}, #{Account.as_card.inspect}, #{operation} #{inspect}" if operation == :read
     @operation_approved = true
     @permission_errors = []
 
@@ -54,12 +54,12 @@ module Wagn::Model::Permissions
     # self.errors.clear
 
     
-    Rails.logger.info "ok? #{Account.session.inspect}, #{Account.as_card.inspect}, #{operation} #{inspect} R:#{@operation_approved}" if operation == :create
+    #Rails.logger.info "ok? #{Account.session.inspect}, #{Account.as_card.inspect}, #{operation} #{inspect} R:#{@operation_approved}" if operation == :create
     @operation_approved
   end
 
   def ok! operation
-    Rails.logger.info "ok! #{operation} #{inspect}" unless operation == :read
+    #Rails.logger.info "ok! #{operation} #{inspect}" unless operation == :read
     if ok? operation
       true
     else
@@ -68,13 +68,14 @@ module Wagn::Model::Permissions
   end
 
   def who_can(operation)
-    Rails.logger.info "who_can[#{name}] #{(prc=permission_rule_card(operation)).inspect}, #{prc.first.item_cards.map(&:name)}" if operation == :delete
+    #Rails.logger.info "who_can[#{name}] #{(prc=permission_rule_card(operation)).inspect}, #{prc.first.item_cards.map(&:name)}" #if operation == :delete
     permission_rule_card(operation).first.item_cards.map(&:id)
   end
 
-  def permission_rule_card(operation)
-    opcard = rule_card(operation)
-    #warn "prc[#{name}]#{operation} #{opcard.inspect}" if operation.to_sym == :read and opcard.name == '*logo+*self+*read'
+  def permission_rule_card operation
+    #raise "prc[#{name}]#{operation} #{caller*"\n"}" if caller.size > 500  # stack lossage finder
+    opcard = rule_card operation
+    #Rails.logger.warn "prc[#{name}]#{operation} #{opcard.inspect}" if operation==:create and name=='Yorba+Torga'
     unless opcard
       errors.add :permission_denied, "No #{operation} setting card for #{name}"
       raise Card::PermissionDenied.new(self)
@@ -82,16 +83,16 @@ module Wagn::Model::Permissions
 
     rcard = begin
       Account.as_bot do
-        #warn "in permission_rule_card #{opcard&&opcard.name} #{operation}" if opcard.name == '*logo+*self+*read'
         if opcard.content == '_left' && self.junction?
-          lcard = loaded_trunk || Card.fetch_or_new(cardname.trunk_name, :skip_virtual=>true, :skip_modules=>true)
-          lcard.permission_rule_card(operation).first
+          lcard = (loaded_left ||
+             Card.fetch_or_new(trunk_name, :skip_virtual=>true, :skip_modules=>true)).permission_rule_card(operation).first 
+          # lcard ?   : opcard
         else
           opcard
         end
       end
     end
-    #warn "permission_rule_card[#{name}] #{rcard&&rcard.name}, #{opcard.rule_name.inspect}, #{opcard.inspect}" if opcard.name == '*logo+*self+*read'
+    #Rails.logger.warn "permission_rule_card[#{name}] #{rcard&&rcard.name}, #{opcard.rule_name.inspect}, #{opcard.inspect}" #if opcard.name == '*logo+*self+*read'
     return rcard, opcard.rule_name
   end
 
@@ -111,7 +112,7 @@ module Wagn::Model::Permissions
 
   def lets_user operation
     #warn "creating *account ??? #{caller[0..25]*"\n"}" if name == '*account' && operation==:create
-    #warn "lets_user[#{operation}]#{name}" if name=='Buffalo'
+    #Rails.logger.warn "lets_user[#{operation}]#{inspect}" #if name=='Buffalo'
     return false if operation != :read    and Wagn::Conf[:read_only]
     return true  if operation != :comment and Account.always_ok?
 
@@ -130,7 +131,7 @@ module Wagn::Model::Permissions
   def approve_task operation, verb=nil
     deny_because "Currently in read-only mode" if operation != :read && Wagn::Conf[:read_only]
     verb ||= operation.to_s
-    Rails.logger.info "approve_task[#{inspect}](#{operation}, #{verb})" if operation == :delete
+    #Rails.logger.info "approve_task[#{inspect}](#{operation}, #{verb})" if operation == :delete
     deny_because you_cant("#{verb} this card") unless self.lets_user( operation )
   end
 
@@ -139,10 +140,10 @@ module Wagn::Model::Permissions
   end
 
   def approve_read
-    Rails.logger.warn "AR #{inspect} #{Account.always_ok?}"
+    #Rails.logger.warn "AR #{inspect} #{Account.always_ok?}"
     return true if Account.always_ok?
     @read_rule_id ||= (rr=permission_rule_card(:read).first).id.to_i
-    Rails.logger.warn "AR #{name} #{@read_rule_id}, #{Account.session.inspect} #{rr&&rr.name}, RR:#{Account.as_card.read_rules.map{|i|c=Card[i] and c.name}*", "}"
+    #Rails.logger.warn "AR #{name} #{@read_rule_id}, #{Account.session.inspect} #{rr&&rr.name}, RR:#{Account.as_card.read_rules.map{|i|c=Card[i] and c.name}*", "}"
     unless Account.as_card.read_rules.member?(@read_rule_id.to_i)
       deny_because you_cant("read this card")
     end
@@ -211,13 +212,12 @@ module Wagn::Model::Permissions
   end
 
   def update_read_rule
-    Rails.logger.info "update_read_rule #{name}"
     Card.record_timestamps = false
 
     reset_patterns # why is this needed?
     rcard, rclass = permission_rule_card :read
     self.read_rule_id = rcard.id #these two are just to make sure vals are correct on current object
-    Rails.logger.debug "updating read rule for #{name} to #{rcard.inspect}, #{rcard.name}, #{rclass}"
+    #Rails.logger.debug "updating read rule for #{name} to #{rcard.inspect}, #{rcard.name}, #{rclass}"
 
     self.read_rule_class = rclass
     Card.where(:id=>self.id).update_all(:read_rule_id=>rcard.id, :read_rule_class=>rclass)
@@ -239,7 +239,7 @@ module Wagn::Model::Permissions
   # fifo of cards that need read rules updated
   def update_read_rule_list() @update_read_rule_list ||= [] end
   def read_rule_updates updates
-    Rails.logger.info "read_rule_updates #{updates.inspect}"
+    #Rails.logger.info "read_rule_updates #{updates.inspect}"
     #warn "rrups #{updates.inspect}"
     @update_read_rule_list = update_read_rule_list.concat updates
     # to short circuite the queue mechanism, just each the new list here and update
@@ -264,7 +264,6 @@ module Wagn::Model::Permissions
       # (though maybe not as a tracked_attribute for performance reasons?)
       # AND need to make sure @changed gets wiped after save (probably last in the sequence)
 
-      Account.cache.reset
       Card.cache.reset # maybe be more surgical, just Account.session related
       expire #probably shouldn't be necessary,
       # but was sometimes getting cached version when card should be in the trash.
@@ -274,7 +273,7 @@ module Wagn::Model::Permissions
       if !(self.trash)
         if class_id = (set=left and set_class=set.tag and set_class.id)
           rule_class_ids = Wagn::Model::Pattern.subclasses.map &:key_id
-          Rails.logger.warn "rule_class_id #{class_id}, #{rule_class_ids.inspect}"
+          #Rails.logger.warn "rule_class_id #{class_id}, #{rule_class_ids.inspect}"
 
           #first update all cards in set that aren't governed by narrower rule
            Account.as_bot do
@@ -288,7 +287,7 @@ module Wagn::Model::Permissions
                 end
              elsif rule_class_index = rule_class_ids.index( 0 )
                in_set[trunk.key] = true
-               Rails.logger.warn "self rule update: #{trunk.inspect}, #{rule_class_index}, #{cur_index}"
+               #Rails.logger.warn "self rule update: #{trunk.inspect}, #{rule_class_index}, #{cur_index}"
                trunk.update_read_rule if cur_index > rule_class_index
              else warn "No current rule index #{class_id}, #{rule_class_ids.inspect}"
              end
@@ -296,7 +295,7 @@ module Wagn::Model::Permissions
 
         end
       end
-      Rails.logger.debug "rule_class_ids[#{rule_class_index}] #{rule_class_ids.inspect} This:#{read_rule_class.inspect} idx:#{rule_class_ids.index(read_rule_class)}" if rule_class_ids
+      #Rails.logger.debug "rule_class_ids[#{rule_class_index}] #{rule_class_ids.inspect} This:#{read_rule_class.inspect} idx:#{rule_class_ids.index(read_rule_class)}" if rule_class_ids
 
       #then find all cards with me as read_rule_id that were not just updated and regenerate their read_rules
       if !new_record?

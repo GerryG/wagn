@@ -27,10 +27,10 @@ module Wagn::Model::Fetch
 
 
       cache_key, method, val = if Integer===mark
-        [ "~#{mark}", :find_by_id_and_trash, mark ]
+        [ "~#{mark}", :find, mark ]
       else
         key = mark.to_cardname.key
-        [ key, :find_by_key_and_trash, key ]
+        [ key, :find_by_key, key ]
       end
 
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -39,50 +39,61 @@ module Wagn::Model::Fetch
       #Cache lookup
       result = Card.cache.read cache_key if Card.cache
       card = (result && Integer===mark) ? Card.cache.read(result) : result
-      #warn "fetch R #{cache_key}, #{method}, R:#{result}, c:#{card&&card.name}"
 
+      #warn "fetch 1 #{cache_key}, #{method}, #{val} #{card.inspect}" if val=='a'
       unless card
         # DB lookup
         needs_caching = true
-        card = Card.send method, val, false
+        card = Card.send method, val
       end
+      #warn "fetch 2 #{card.inspect}" if val=='a'
 
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-      opts[:skip_virtual] = true if opts[:loaded_trunk]
+      opts[:skip_virtual] = true if opts[:loaded_left]
 
-      if Integer===mark
-        raise "fetch of missing card_id #{mark}" if card.nil?
-      else
+      if not Integer===mark
         return nil if card && opts[:skip_virtual] && card.new_card?
+      elsif card.nil?
+        raise "fetch of missing card_id #{mark}"
+      end
+      #warn "fetch 3 #{card.inspect}" if val=='a'
 
         # NEW card -- (either virtual or missing)
-        if card.nil? or ( !opts[:skip_virtual] && card.type_id==-1 )
-          # The -1 type_id allows us to skip all the type lookup and flag the need for
-          # reinitialization later.  *** It should NEVER be seen elsewhere ***
-          needs_caching = true
-          new_args = { :name=>mark.to_s, :skip_modules=>true }
-          new_args[:type_id] = -1 if opts[:skip_virtual]
-          card = new new_args
+      if card.nil? or card.trash or ( !opts[:skip_virtual] && card.type_id==-1 )
+        # The -1 type_id allows us to skip all the type lookup and flag the need for
+        # reinitialization later.  *** It should NEVER be seen elsewhere ***
+        needs_caching = true
+        new_args = { :name=>mark.to_s, :skip_modules=>true }
+        new_args[:type_id] = -1 if opts[:skip_virtual]
+        card = new new_args
+      end
+      #warn "fetch 4 #{card.inspect}" if val=='a'
+
+      if needs_caching
+        Card.cache.write card.key, card
+        if not card.nil? and cid=card.id
+          unless card.trash; Card.cache.write "~#{cid}", card.key
+          else               Card.cache.delete "~#{cid}"  end
         end
       end
 
-      if Card.cache && needs_caching
-        Card.cache.write card.key, card
-        Card.cache.write "~#{card.id}", card.key if card.id and card.id != 0
+      if card.new_card?
+        if card.trash
+          card.trash=false
+        elsif opts[:skip_virtual] || !card.virtual?
+          return nil
+        end
       end
+      #return nil if card.new_card? and ( card.trash || opts[:skip_virtual] || !card.virtual? )
 
-      return nil if card.new_card? and ( opts[:skip_virtual] || !card.virtual? )
-
-      #warn "fetch returning #{card.inspect}"
+      #warn "fetch returning #{cache_key} #{card.inspect}"
       card.include_set_modules unless opts[:skip_modules]
       card
 #      end
     end
 
     def fetch_or_new name, opts={}
-      #Rails.logger.info "fetch_or_new #{name.inspect}, #{opts.inspect}"
-      r= fetch( name, opts ) || new( opts.merge(:name=>name) )
-      #Rails.logger.info "f or new #{name}, WB #{opts.inspect}, #{r.inspect} #{caller*"\n"}" if name.to_cardname.key =='wagn_bot+*account'; r
+      fetch( name, opts ) || new( opts.merge(:name=>name) )
     end
 
     def fetch_or_create name, opts={}
@@ -97,7 +108,6 @@ module Wagn::Model::Fetch
 
     def [](name)
       c=fetch name, :skip_virtual=>true
-      #warn "[] returning #{c.inspect}"; c
     end
 
     def exists? name
@@ -117,8 +127,6 @@ module Wagn::Model::Fetch
     end
 
     def set_members set_names, key
-
-      #warn Rails.logger.warn("set_members #{set_names.inspect}, #{key}")
       set_names.compact.map(&:to_cardname).map(&:key).map do |set_key|
         skey = "$#{set_key}" # dollar sign avoids conflict with card keys
         h = Card.cache.read skey
@@ -129,7 +137,6 @@ module Wagn::Model::Fetch
         end
         h = h.dup if h.frozen?
         h[key] = true
-        #warn Rails.logger.warn("set_members w #{h.inspect}, #{skey.inspect}")
         Card.cache.write skey, h
       end
     end
@@ -138,7 +145,6 @@ module Wagn::Model::Fetch
 
   def expire_pieces
     cardname.pieces.each do |piece|
-      #warn "clearing for #{piece.inspect}"
       Card.expire piece
     end
   end

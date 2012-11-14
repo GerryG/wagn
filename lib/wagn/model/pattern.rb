@@ -33,8 +33,8 @@ module Wagn::Model
     def patterns kind=nil
       kind=:default if kind.nil?
       @patterns ||= {}
-      r=@patterns[kind] ||= @@subclasses.map { |sub| sub.new(self, kind) }.compact
-      #warn "pats K:#{kind.inspect}, N:#{name} R:#{r}"; r
+      @patterns[kind] ||= @@subclasses.map { |sub|
+        sub.new(self, kind) }.compact
     end
     def patterns_with_new kind=nil
       #warn "pw/new K:#{kind} N:#{name}"
@@ -43,16 +43,15 @@ module Wagn::Model
     alias_method_chain :patterns, :new
 
     def real_set_names kind=nil
-      set_names(kind).find_all &Card.method(:exists?)                              end
+      set_names(kind).find_all &Card.method(:exists?)
+    end
     def safe_keys()      patterns.map(&:safe_key).reverse*" "                                   end
     def set_modules()    @set_modules ||= patterns_without_new.reverse.map(&:set_const).compact end
     def set_names kind=nil
       kind=:default if kind.nil?
-      @set_names ||= {}
-      #warn "sn K:#{kind.inspect}"
-      if @set_names[kind].nil?
-        Card.set_members(@set_names[kind] = patterns(kind).map {|p| p.set_name(kind)}, key)
-      end
+      @set_names||={}
+      Card.set_members(@set_names[kind] = patterns(kind).map {|p| p.set_name(kind)}, key)
+      #warn "set_names #{kind.inspect}, #{@set_names.inspect}"
       @set_names[kind]
     end
     def method_keys()    @method_keys ||= patterns.map(&:get_method_key).compact                end
@@ -89,7 +88,7 @@ module Wagn::Model
         def junction_only?()  !!junction_only        end
         def trunkless?()      !!method_key           end # method key determined by class only when no trunk involved
         def new(card, kind=nil)
-          #warn "new #{card.name}, #{kind.nil?} || #{kind==:default} || #{!kinds.nil? && kinds[kind]}"
+          #Rails.logger.warn "new #{card.name}, #{kind.nil?} || #{kind==:default}" if card.name == 'A+B+T'
           super(card) if kind.nil? || kind==:default || !kinds.nil? && kinds[kind] and pattern_applies?(card)
         end
         def key_name()
@@ -247,12 +246,12 @@ module Wagn::Model
         end
         def prototype_args base
           { :name=>"*dummy+#{base.tag}",
-            :loaded_trunk=> Card.new( :name=>'*dummy', :type=>base.trunk_name )
+            :loaded_left=> Card.new( :name=>'*dummy', :type=>base.trunk_name )
           }
         end
         def trunk_name card
-          lft = card.loaded_trunk || card.left
-          type_name = (lft && lft.type_name) || Card[ Card::DefaultTypeID ].name
+          left = card.loaded_left || card.left
+          type_name = (left && left.type_name) || Card[ Card::DefaultTypeID ].name
           "#{type_name}+#{card.cardname.tag}"
         end
       end

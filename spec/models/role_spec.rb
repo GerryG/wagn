@@ -48,7 +48,6 @@ end
 describe User, 'Joe User' do
   before do
     Account.session = 'joe_user'
-    Account.cache.delete 'joe_user'
     @ju = Account.session
     @jucard = Account.authorized
     @r1 = Card['r1']

@@ -1,19 +1,19 @@
 # -*- encoding : utf-8 -*-
 
 class Card < ActiveRecord::Base
-  #Revision
-  #Reference
   require 'card/revision'
   require 'card/reference'
 end
 
 class Card < ActiveRecord::Base
+  Revision
+  Reference
 
   has_many :revisions, :order => :id #, :foreign_key=>'card_id'
 
   attr_accessor :comment, :comment_author, :selected_rev_id,
     :confirm_rename, :confirm_destroy, :update_referencers, :allow_type_change, # seems like wrong mechanisms for this
-    :cards, :loaded_trunk, :nested_edit, # should be possible to merge these concepts
+    :cards, :loaded_left, :nested_edit, # should be possible to merge these concepts
     :error_view, :error_status, #yuck
     :attachment_id #should build flexible handling for set-specific attributes
 
@@ -22,6 +22,7 @@ class Card < ActiveRecord::Base
 
   belongs_to :card, :class_name => 'Card', :foreign_key => :creator_id
   belongs_to :card, :class_name => 'Card', :foreign_key => :updater_id
+  has_one    :user, :class_name => 'User', :foreign_key => :account_id
 
   before_save :set_stamper, :base_before_save, :set_read_rule, :set_tracked_attributes
   after_save :base_after_save, :update_ruled_cards, :update_queue, :expire_related
@@ -48,7 +49,7 @@ class Card < ActiveRecord::Base
             args['type']          == cc.type_args[:type]      and
             args['typecode']      == cc.type_args[:typecode]  and
             args['type_id']       == cc.type_args[:type_id]   and
-            args['loaded_trunk']  == cc.loaded_trunk
+            args['loaded_left']   == cc.loaded_left
 
           args['type_id'] = cc.type_id
           return cc.send( :initialize, args )
@@ -75,8 +76,9 @@ class Card < ActiveRecord::Base
       else
         super
       end
-    rescue NameError
-      warn "#{e.inspect}, #{const_name} R:#{x}\n#{caller*"\n"}" if const_name.to_sym==:Card; x
+    rescue NameError=>e
+      return self if const.to_sym == :Card
+      nil
     end
 
     def setting name
@@ -244,7 +246,6 @@ class Card < ActiveRecord::Base
   rescue Exception=>e
     expire_pieces
     @subcards.each{ |card| card.expire_pieces }
-    Rails.logger.info "after save issue: #{e.message}"
     raise e
   end
 
@@ -344,17 +345,25 @@ class Card < ActiveRecord::Base
 
 
   # FIXME: use delegations and include all cardname functions
-  def simple?()     cardname.simple?              end
-  def junction?()   cardname.junction?            end
+  def simple?()    cardname.simple?                        end
+  def junction?()  cardname.junction?                      end
 
-  def left()      Card.fetch cardname.left        end
-  def right()     Card.fetch cardname.right       end
+  def left()       Card.fetch left_id  || cardname.left    end
+  def right()      Card.fetch right_id || cardname.right   end
 
-  def trunk()     Card.fetch cardname.trunk       end
-  def tag()       Card.fetch cardname.tag         end
+  def trunk()      Card.fetch trunk_id || cardname.trunk   end
+  def tag()        Card.fetch tag_id   || cardname.tag     end
 
-  def tag_id()   !@tag_id.nil?   ? @tag_id   : @tag_id   = (x=tag)   ? x.id : nil end
-  def trunk_id() !@trunk_id.nil? ? @trunk_id : @trunk_id = (x=trunk) ? x.id : nil end
+  # this is a hack so to fix the internal rep while the attributes are missnamed in the db table
+  # it sets @tag/trunk_id for simple? cards
+  def tag_id()   (r=read_attribute :tag_id).nil? && simple? ? id : r   end
+  def trunk_id() (r=read_attribute :trunk_id).nil? && simple? ? id : r end
+  def right_id()   read_attribute(:tag_id)                 end
+  def left_id()    read_attribute(:trunk_id)               end
+  def trunk_name() x=trunk and x.name                      end
+  def tag_name()   x=tag  and x.name                       end
+  def left_name()  x=left  and x.name                      end
+  def right_name() x=right  and x.name                     end
 
   def dependents
     new_card? ? [] : !@dependents.nil? ? @dependents : Account.as_bot do
@@ -497,12 +506,11 @@ class Card < ActiveRecord::Base
   end
 
   def parties
-    @parties ||= (all_roles << trunk_id).flatten.reject(&:blank?)
+    @parties ||= (trunk.all_roles << trunk_id).flatten.reject(&:blank?)
   end
 
   def read_rules
     @read_rules ||= begin
-      Rails.logger.info "read_rules #{trunk_id ==Card::WagnBotID ? 'WBAcct:::' : ''} #{inspect}"
       if id==Card::WagnBotID or trunk_id ==Card::WagnBotID
         [] # avoids infinite loop
       else
@@ -512,14 +520,12 @@ class Card < ActiveRecord::Base
         end
       end
     end
-    #Rails.logger.debug "read_rules rr:#{@read_rules.map{|i| Card[i].name||''}*", "}"; @read_rules
   end
 
   def all_roles
-    ids = Account.as_bot {
-      trait_card(:roles).item_cards(:limit=>0).map(&:id)
-    }
-    @all_roles ||= (id==Card::AnonID || trunk_id==Card::AnonID ? [] : [Card::AuthID] + ids)
+    #warn "all roles #{inspect}, #{trait_card(:roles).content}, #{caller[0..10]*"\n"}"
+    @all_roles ||= (id==Card::AnonID ? [] : [Card::AuthID]) +
+            Account.as_bot { trait_card(:roles).item_cards(:limit=>0).map(&:id) }
   end
 
   def to_user
@@ -563,11 +569,12 @@ class Card < ActiveRecord::Base
   end
 
   def inspect
-    "#<#{self.class.name}" + "##{self.id}" +
-    "K#{self.tag_id}G#{self.tag_id}" +
+    "#<#{self.class.name}" + "##{id}" +
+    "###{object_id}" + #"k#{tag_id}g#{tag_id}" +
     "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
     "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{virtual? &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }} " +
-    "Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}>"
+    #"Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}>" +
+    ''
   end
 
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -654,7 +661,9 @@ class Card < ActiveRecord::Base
           "may not contain any of the following characters: #{ Wagn::Cardname::BANNED_ARRAY.join ' ' }"
       end
       # this is to protect against using a plus card as a tag
-      if cdname.junction? and rec.simple? and Account.as_bot { Card.count_by_wql :tag_id=>rec.id } > 0
+      # if right_id is non-nil, and it has a simple cardname, we must be in a rename from junction to
+      # existing simple? card.
+      if rec.right_id and rec.cardname.simple? and Account.as_bot { Card.count_by_wql :tag_id=>rec.id } > 0
         rec.errors.add :name, "#{value} in use as a tag"
       end
 

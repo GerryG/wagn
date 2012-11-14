@@ -27,10 +27,9 @@ class Account
       end
     end
     # can these just be delegations:
-    # delegate @@acount_class, :new, :cache, :from_email, :from_login, :from_id, :save_card
+    # delegate @@acount_class, :new, :from_email, :from_login, :from_id, :save_card
     def new(args)              @@session_class.new(args)                                    end
     def save_card(card, email) @@session_class.save_card(card, email)                       end
-    def cache()                @@session_class.cache()                                      end
     def from_email(email)      @@session_class.from_email(email)                            end
     def from_login(login)      @@session_class.from_login(login)                            end
     def from_id(card_id)       @@session_class.from_id(card_id) || ANONUSER                 end
@@ -40,7 +39,7 @@ class Account
     def reset()                @@session = ANONCARD; @@as_card = nil                        end
     def session()              @@session || ANONCARD                                        end
     def authorized_name()      authorized.name                                              end
-    def session=(account)      @@session = get_account account                              end
+    def session=(account)      @@session = Account[account]                                 end
     def as_card()              @@as_card || session                                         end
     # We only need to test for the tag presence for migrations, we are going to  make sure it
     # exists and is indestructable (add tests for that)
@@ -52,7 +51,7 @@ class Account
 
     def as given_account
       save_as = @@as_card
-      @@as_card = get_account given_account
+      @@as_card = Account[given_account]
       #Rails.logger.info "set ac #{@@as_card.inspect}"
 
       if block_given?
@@ -83,7 +82,7 @@ class Account
      always[as_id]
     end
 
-    def get_account account
+    def [] account
       Rails.logger.debug "account lookup: #{account.inspect}"
       return Card[account.account_id] if @@session_class===account
       account = acct = Card===account ? account : Card[account]

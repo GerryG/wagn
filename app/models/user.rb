@@ -3,9 +3,10 @@ require 'digest/sha1'
 
 class User < ActiveRecord::Base
   #FIXME: THIS WHOLE MODEL SHOULD BE CALLED ACCOUNT
-  # actually, most of this is elsewhere already, what remains is the AR model part for storing
-  # local auth information.  We will just replace this with other plugins (auth suppliers)
-  # and this one get's a better name if we still use it (WagnAccount maybe)
+  # The codename and constant Account, :account, etc. is used for +*account
+  # This model is used by Account as a provider and will
+  # be externalized next as a Warden provider
+  # maybe WagnAccount ?
 
   # Virtual attribute for the unencrypted password
   attr_accessor :password, :name
@@ -21,13 +22,11 @@ class User < ActiveRecord::Base
 
   before_validation :downcase_email!
   before_save :encrypt_password
-  after_save :reset_cache
 
   class << self
     def from_email(email) User.where(:email=>email.strip.downcase).first           end
     def from_login(login) User.where(:login=>login).first                          end
     def from_id(card_id)  User.where(:account_id=>card_id).first                   end
-    def cache()           Wagn::Cache[User]                                        end
 
     # Encrypts some data with the salt.
     def encrypt(password, salt)
@@ -35,29 +34,6 @@ class User < ActiveRecord::Base
       Rails.logger.warn "encrypt #{salt}, #{password}, #{r}"; r
     end
 
-    # User caching, needs work
-    def [] key
-      #Rails.logger.info "Looking up USER[ #{key}]"
-
-      key = 3 if key == :first
-      @card = Card===key ? key : Card[key]
-      key = case key
-        when Integer; "##{key}"
-        when Card   ; key.key
-        when Symbol ; key.to_s
-        when String ; key
-        else raise "bad class for user key #{key.class}"
-        end
-
-      usr = self.cache.read(key)
-      return usr if usr
-
-      # cache it (on codename too if there is one)
-      card_id ||= @card && @card.id
-      self.cache.write key, usr
-      code = Wagn::Codename[card_id].to_s and code != key and self.cache.write(code.to_s, usr)
-      usr
-    end
   end
 
 #~~~~~~~ Instance
@@ -110,12 +86,6 @@ class User < ActiveRecord::Base
       self.send_account_info(email_args) if errors.empty? && !email_args.empty?
     end
     @card
-  end
-
-  def reset_cache
-    self.class.cache.reset
-    #Rails.logger.debug "User reset cache"
-    true
   end
 
   def accept card, email_args

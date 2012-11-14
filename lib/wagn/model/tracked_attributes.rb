@@ -1,7 +1,6 @@
 module Wagn::Model::TrackedAttributes
 
   def set_tracked_attributes
-    #Rails.logger.debug "Card(#{name})#set_tracked_attributes begin"
     @was_new_card = self.new_card?
     updates.each_pair do |attrib, value|
       #Rails.logger.debug "updates #{attrib} = #{value}"
@@ -19,6 +18,7 @@ module Wagn::Model::TrackedAttributes
   def set_name newname
     @old_name = self.name_without_tracking
     return if @old_name == newname.to_s
+    #Rails.logger.warn "rename . #{inspect}, N:#{newname}, O:#{@old_name}"
 
     @cardname, name_without_tracking = if Wagn::Cardname===newname
       [ newname, newname.to_s]
@@ -35,11 +35,11 @@ module Wagn::Model::TrackedAttributes
     if @cardname.junction?
       [:trunk, :tag].each do |side|
         sidename = @cardname.send "#{side}_name"
-        #warn "sidename #{newname}, #{@old_name}, #{sidename}"
+        #Rails.logger.warn "sidename #{newname}, #{@old_name}, #{sidename}"
         sidecard = Card[sidename]
         old_name_in_way = (sidecard && sidecard.id==self.id) # eg, renaming A to A+B
         suspend_name(sidename) if old_name_in_way
-        new_id=self.send "#{side}_id=", begin
+        self.send "#{side}_id=", begin
           if !sidecard || old_name_in_way
             Card.create! :name=>sidename
           else
@@ -52,9 +52,8 @@ module Wagn::Model::TrackedAttributes
       #self.left_id = self.right_id = nil
       # FIXME: technically it should be one of the above, but the names are wrong
       # either way we need a migration and to extend/fix wql
-      @tag_id = @trunk_id =
+      # for now, tag_id and trunk_id methods fix it internally so wql is ok
       self.trunk_id = self.tag_id = nil
-      #warn "Simple, no tk/tg #{inspect}, N:#{newname}, O:#{@old_name}"
     end
 
     return if new_card?
@@ -63,7 +62,7 @@ module Wagn::Model::TrackedAttributes
         existing_card.name = tr_name = existing_card.name+'*trash'
         existing_card.instance_variable_set :@cardname, tr_name.to_cardname
         existing_card.set_tracked_attributes
-        Rails.logger.debug "trash renamed collision: #{tr_name}, #{existing_card.name}, #{existing_card.cardname.key}"
+        #Rails.logger.debug "trash renamed collision: #{tr_name}, #{existing_card.name}, #{existing_card.cardname.key}"
         existing_card.update_attributes! :confirm_rename=>true
       #else note -- else case happens when changing to a name variant.  any special handling needed?
       end
@@ -84,7 +83,7 @@ module Wagn::Model::TrackedAttributes
   end
 
   def set_type_id(new_type_id)
-#    Rails.logger.debug "set_typecde No type code for #{name}, #{type_id}" unless new_type_id
+    #Rails.logger.debug "set_typecde No type code for #{name}, #{type_id}" unless new_type_id
     #warn "set_type_id(#{new_type_id}) #{self.type_id_without_tracking}"
     self.type_id_without_tracking= new_type_id
     return true if new_card?

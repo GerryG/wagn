@@ -6,7 +6,6 @@ module WagnTestHelper
   include CardBuilderMethods
 
   def setup_default_user
-    Account.cache.reset
     Account.reset
 
     Account.session = 'joe_user'
@@ -48,7 +47,6 @@ module WagnTestHelper
   }
 
   def integration_login_as(user, functional=nil)
-    Account.cache.reset
 
     raise "Don't know email & password for #{user}, #{Card[user].inspect}" unless uc=Card[user] and
         uc=uc.trait_card(:account) and u=Account.from_id(uc.id) and

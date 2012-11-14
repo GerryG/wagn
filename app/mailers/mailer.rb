@@ -42,12 +42,12 @@ class Mailer < ActionMailer::Base
       :subject      => "#{invite_request.name} signed up for #{@site}",
       :content_type => 'text/html',
     }
-    mail_from args, Card.setting('*request+*from') || "#{@name} <#{@email}"
+    mail_from args, Card.setting('*request+*from') || "#{@name} <#{@email}>"
   end
 
 
   def change_notice user, card, action, watched, subedits=[], updated_card=nil
-    return unless user =Account.get_account(user)
+    return unless user = Account[user]
     #Rails.logger.info "change_notice( #{user.email(true)}, #{card.inspect}, #{action.inspect}, #{watched.inspect} Uc:#{updated_card.inspect}...)"
 
     updated_card ||= card
@@ -66,7 +66,7 @@ class Mailer < ActionMailer::Base
       :subject      => "[#{Card.setting :title} notice] #{@updater} #{action} \"#{card.name}\"" ,
       :content_type => 'text/html',
     }
-    mail_from args, Account.get_account(Card::WagnBotID).email(true)
+    mail_from args, Account::BOTCARD.email(true)
   end
 
   def flexmail config

@@ -252,13 +252,15 @@ describe Card do
 
     describe "Specail rules recognized" do
       it "should find a default rule" do
+        pending "Need a trait setting to test :account is now special"
         #warn "rcard : #{@ucard.rule_card(:account).inspect}, #{@ucard.inspect}"
         @ucard.rule_card(:account).should be
         @ucard.rule_card(:account).name.should == '*all+*account'
         @pluscard.rule_card(:account).name.should == '*all+*account'
       end
        
-      it "should find new self ruls" do
+      it "should find new self rules" do
+        pending "Need a trait setting to test :account is now special"
         Account.as_bot do
           @ucard_rule.save
           @pluscard_rule.save

@@ -29,7 +29,7 @@ describe AccountController do
       Rails.logger.info "invitation #{@new_user.inspect}, #{@user_card.inspect}, #{@account_card.inspect}"
       @new_user = Account.from_email 'joe@new.com'
       @user_card = Card['Joe New']
-      @account_card = @user_card.trait_card :account
+      @account_card = @user_card.fetch_or_new_trait :account
       Rails.logger.info "invitation b #{@new_user.inspect}, #{@user_card.inspect}, #{@account_card.inspect}"
 
     end
@@ -61,7 +61,7 @@ describe AccountController do
 
       @new_user = Account.from_email 'joe@new.com'
       @user_card = Card['Joe New']
-      @account_card = @user_card.trait_card :account
+      @account_card = @user_card.fetch_or_new_trait :account
 
     end
 

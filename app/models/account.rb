@@ -1,8 +1,8 @@
 class Account
   # FIXME: check for this in boot and don't start if newcard?
   # these might be newcard?, but only in migrations
-  ANONCARD = Card[Card::AnonID].trait_card :account
-  BOTCARD  = Card[Card::WagnBotID].trait_card :account
+  ANONCARD = Card[Card::AnonID].fetch_trait :account
+  BOTCARD  = Card[Card::WagnBotID].fetch_trait :account
 
   # This will probably have a hash of possible account classes and a value for the class
   @@session_class = User
@@ -64,9 +64,10 @@ class Account
  
     def no_logins?
       cache = Card.cache
-     r=( !!(rd=cache.read('no_logins')) ? rd : cache.write( 'no_logins',
-               (Card.search({:right=>Card::AccountID, :left=>{:type=>Card::UserID }}).count == 0 )) )
-      Rails.logger.warn "Logins? #{r}"; r
+     #r=(
+      !!(rd=cache.read('no_logins')) ? rd : cache.write( 'no_logins',
+               (Card.search({:right=>Card::AccountID, :left=>{:type=>Card::UserID }}).count == 0 ))
+     #); Rails.logger.warn "Logins? #{r}"; r
     end
  
     def always_ok?
@@ -87,9 +88,10 @@ class Account
       return Card[account.account_id] if @@session_class===account
       account = acct = Card===account ? account : Card[account]
       # if this isn't a Right::Account yet, fetch it
-      acct = acct.trait_card(:account) unless acct.id == ANONCARD.id || acct.tag_id==Card::AccountID
+      acct = acct.fetch_trait(:account) unless acct.id == ANONCARD.id || acct.tag_id==Card::AccountID
+      raise "no account #{account}" if acct.nil?
       # if it is new, then A: no WagnBot account, so accept the WagnBot card for migrations to work
-      acct = account.id == Card::WagnBotID ? account : Account::ANONCARD if acct.new_card? 
+      acct = account.id == Card::WagnBotID ? account : Account::ANONCARD if acct.nil?
       #Rails.logger.info "account lookup: acct:#{acct.inspect} cd:#{account.inspect}"
       acct
     end

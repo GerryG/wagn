@@ -67,6 +67,10 @@ module Wagn::Model::Permissions
     end
   end
 
+  def trait_ok? tagcode, operation
+    trait = fetch_trait(tagcode) and trait.ok?(operation)
+  end
+
   def who_can(operation)
     #Rails.logger.info "who_can[#{name}] #{(prc=permission_rule_card(operation)).inspect}, #{prc.first.item_cards.map(&:name)}" #if operation == :delete
     permission_rule_card(operation).first.item_cards.map(&:id)

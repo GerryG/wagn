@@ -29,9 +29,7 @@ class AccountController < ApplicationController
     #Rails.logger.warn "signup UA:#{@user.inspect}, CA:#{@card.inspect}"
     return render_user_errors if @user.errors.any?
 
-    tr_card = @card.trait_card :account
-    #warn "check for account #{@card.name} #{tr_card.inspect}"
-    if tr_card.ok?(:create)       #complete the signup now
+    if @card.trait_ok?(:account, :create)       #complete the signup now
       email_args = { :message => Card.setting('*signup+*message') || "Thanks for signing up to #{Card.setting('*title')}!",
                      :subject => Card.setting('*signup+*subject') || "Account info for #{Card.setting('*title')}!" }
       @user.accept(@card, email_args)
@@ -57,7 +55,7 @@ class AccountController < ApplicationController
     raise(Wagn::Oops, "I don't understand whom to accept") unless params[:card]
     @card = Card[card_key] or raise(Wagn::NotFound, "Can't find this Account Request")
     Rails.logger.debug "accept #{Account.session.inspect}, #{@card.inspect}"
-    @card=@card.trait_card(:account) and !@card.new_card? and @user = Account.from_id(@card.id) or
+    @card=@card.fetch_trait(:account) and @user = Account.from_id(@card.id) or
       raise(Wagn::Oops, "This card doesn't have an account to approve")
     #warn "accept #{@user.inspect}"
     @card.ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create accounts")

@@ -92,7 +92,7 @@ class CardController < ApplicationController
 
 
   def watch
-    watchers = @card.trait_card(:watchers )
+    watchers = @card.fetch_or_new_trait(:watchers )
     watchers = watchers.refresh
     myname = Account.authorized.name
     #warn "watch (#{myname}) #{watchers.inspect}, #{watchers.item_names.inspect}"
@@ -110,7 +110,7 @@ class CardController < ApplicationController
   def update_account
 
     if params[:save_roles]
-      role_card = @card.trait_card :roles
+      role_card = @card.fetch_or_new_trait :roles
       role_card.ok! :update
 
       role_hash = params[:user_roles] || {}
@@ -118,8 +118,8 @@ class CardController < ApplicationController
       role_card.items= role_hash.keys.map &:to_i
     end
 
-    account = @card.trait_card(:account) and user = Account.from_id(account.id)
-    if user and account_args = params[:account]
+    if account = @card.fetch_trait(:account) and user = Account.from_id(account.id) and
+           account_args = params[:account]
       unless Account.authorized.id == account.id and !account_args[:blocked]
         @card.ok! :update
       end
@@ -138,7 +138,7 @@ class CardController < ApplicationController
 
   # FIXME: make this part of create
   def create_account
-    @card.trait_card(:account).ok! :create
+    @card.fetch_or_new_trait(:account).ok! :create
     email_args = { :subject => "Your new #{Card.setting :title} account.",   #ENGLISH
                    :message => "Welcome!  You now have an account on #{Card.setting :title}." } #ENGLISH
     Rails.logger.info "create_account #{params[:user].inspect}, #{email_args.inspect}"

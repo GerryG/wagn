@@ -3,7 +3,7 @@ module Wagn
     module Model
       def email perm=false
         Rails.logger.info "Right::Account#email perm:#{perm}, #{name}"
-        perm = perm || Account.session.id == id || trunk.trait_card(:email).ok?(:read)
+        perm = perm || Account.session.id == id || (trunk.trait_ok?(:email, :read))
         Rails.logger.info "Right::Account#email perm:#{perm}, #{inspect}"
         perm && (user = Account.from_id(id)) && user.email || ''
       end

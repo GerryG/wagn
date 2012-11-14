@@ -59,7 +59,7 @@ class User < ActiveRecord::Base
           #warn "save with_card #{inspect}, cd:#{@card.inspect}"
           @card.errors.each { |key,err| errors.add key,err }
           if (cn=@card.cardname).simple? || Codename[cn.right] == Card::AccountID
-            @account = @card.trait_card :account
+            @account = @card.fetch_or_new_trait :account
             newcard ||= @account.new_card?
             @account.save
             @account.errors.each { |key,err| errors.add key,err }

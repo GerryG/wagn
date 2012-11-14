@@ -40,13 +40,13 @@ module Wagn::Model::Fetch
       result = Card.cache.read cache_key if Card.cache
       card = (result && Integer===mark) ? Card.cache.read(result) : result
 
-      #warn "fetch 1 #{cache_key}, #{method}, #{val} #{card.inspect}" if val=='a'
+      #warn "fetch 1 #{cache_key}, #{method}, #{val} #{card}" # if val=='a'
       unless card
         # DB lookup
         needs_caching = true
         card = Card.send method, val
       end
-      #warn "fetch 2 #{card.inspect}" if val=='a'
+      #warn "fetch 2 #{card.class}"
 
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       opts[:skip_virtual] = true if opts[:loaded_left]
@@ -142,6 +142,21 @@ module Wagn::Model::Fetch
     end
 
   end
+
+
+  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  # TRAIT METHODS
+
+  def fetch_trait tagcode
+    Card.fetch cardname.trait_name(tagcode)
+  end
+
+  def fetch_or_new_trait tagcode
+    Card.fetch_or_new cardname.trait_name(tagcode), :skip_virtual=>true
+  end
+
+  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  # CACHE FRESHNESS
 
   def expire_pieces
     cardname.pieces.each do |piece|

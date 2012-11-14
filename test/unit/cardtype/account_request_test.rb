@@ -27,7 +27,7 @@ class AccountRequestTest < ActiveSupport::TestCase
     #Account.as_bot  do
     #  auth_user_card = Card[Card::AuthID]
       # FIXME: change from task ...
-      #auth_user_card.trait_card(:tasks).content = '[[deny_account_requests]]'
+      #auth_user_card.fetch_or_new_trait(:tasks).content = '[[deny_account_requests]]'
     #end
     c=Card.fetch('Ron Request')
     Account.as 'joe_admin' do c.destroy!  end

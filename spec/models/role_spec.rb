@@ -51,7 +51,7 @@ describe User, 'Joe User' do
     @ju = Account.session
     @jucard = Account.authorized
     @r1 = Card['r1']
-    @roles_card=@jucard.trait_card(:roles)
+    @roles_card=@jucard.fetch_or_new_trait(:roles)
   end
 
   it "should initially have no roles" do
@@ -70,7 +70,7 @@ describe User, 'Joe User' do
       @roles_card << @r1;
     }
     @ju = Account.from_id Card['joe_user+*account']
-    @roles_card = Card[@jucard.trait_card(:roles).id]
+    @roles_card = Card[@jucard.fetch_or_new_trait(:roles).id]
     @roles_card.item_names.length.should==1
     @jucard.parties.should == [Card::AuthID, Card['r1'].id, Card[@ju.account_id].trunk_id]
   end

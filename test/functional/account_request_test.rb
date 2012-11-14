@@ -46,7 +46,7 @@ class Wagn::Set::Type::AccountRequestTest < ActionController::TestCase
     Rails.logger.warn "testing created account #{Card['word third'].inspect}"
 
     assert (@card = Card["Word Third"]), "should be created"
-    assert (@acard =  @card.trait_card(:account)), "with +*account card"
+    assert (@acard =  @card.fetch_trait(:account)), "with +*account card"
     @user = Account.from_email(@jaymail)
     assert @user, "User is created"
 

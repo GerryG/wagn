@@ -6,7 +6,7 @@ Given /^I log in as (.+)$/ do |user_card_name|
   # FIXME: define a faster simulate method ("I am logged in as")
   account=Card[user_card_name]
   @session_user = account.id
-  account=account.trait_card :account
+  account=account.fetch_trait :account
   user = Account.from_id(account.id)
   email = user.email
   visit "/account/signin"

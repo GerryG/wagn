@@ -36,7 +36,7 @@ describe Mailer do
         assert_equal ["sara@user.com"],  @mail.to
       end
       it "is from Wag bot email" do
-        assert_equal [Card[Card::WagnBotID].trait_card(:account).email(true)], @mail.from
+        assert_equal [Card[Card::WagnBotID].fetch_trait(:account).email(true)], @mail.from
       end
     end
   end

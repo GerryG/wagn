@@ -290,8 +290,8 @@ module Wagn
     define_view :options, :perms=>:none do |args|
       attribute = params[:attribute]
 
-      attribute ||= if card.to_user and ( Account.as_card.id==card.id or card.trait_card(:account).ok?(:update) )
-        'account'; else; 'settings'; end
+      attribute ||= if card.to_user and ( Account.as_card.id==card.id or (tc=card.fetch_or_new_trait(:account) and tc.ok?(:update)) )
+        'account' else 'settings' end
       render "option_#{attribute}"
     end
 
@@ -352,7 +352,7 @@ module Wagn
                   #{ raw subrenderer( Card.fetch current_set).render_content }
                 </div>
              
-                #{ if Card.toggle(card.rule(:accountable)) && card.trait_card(:account).ok?(:create)
+                #{ if Card.toggle(card.rule(:accountable)) && tc.card.trait_ok?(:account,:create)
                     %{<div class="new-account-link">
                     #{ link_to %{Add a sign-in account for "#{card.name}"},
                         path(:options, :attrib=>:new_account),
@@ -365,7 +365,6 @@ module Wagn
             #{ notice }
          }
        end
-       # should be just if !card.trait_card(:account) and Card.new( :name=>"#{card.name}+Card[:account].name").ok?(create)
     end
 
     define_view :option_roles do |args|
@@ -373,8 +372,8 @@ module Wagn
         [Card::AnyoneID, Card::AuthID].member? x.id.to_i
       end
 
-      traitc = card.trait_card :roles
-     user_roles = traitc.item_cards :limit=>0
+      traitc = card.fetch_or_new_trait :roles
+      user_roles = traitc.item_cards :limit=>0
 
       option_content = if traitc.ok? :update
         user_role_ids = user_roles.map &:id
@@ -402,7 +401,7 @@ module Wagn
          option(option_content, :name=>"roles",
         :help=>%{ <span class="small">"#{ link_to_page 'Roles' }" are used to set user permissions</span>}, #ENGLISH
         :label=>"#{card.name}'s Roles",
-        :editable=>card.trait_card(:roles).ok?(:update)
+        :editable=>card.fetch_or_new_trait(:roles).ok?(:update)
       )}}
     end
 
@@ -627,6 +626,7 @@ module Wagn
                 </div>
                #{
 
+                # FIXME: this looks funny, not sure it is what we want
                 if !Account.logged_in? && Card.new(:type_id=>Card::AccountRequestID).ok?(:create)
                   %{<p>#{ link_to 'Sign up for a new account', :controller=>'account', :action=>'signup' }.</p>}
                 end }}

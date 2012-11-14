@@ -524,26 +524,15 @@ class Card < ActiveRecord::Base
   end
 
   def all_roles
-    #warn "all roles #{inspect}, #{trait_card(:roles).content}, #{caller[0..10]*"\n"}"
-    @all_roles ||= (id==Card::AnonID ? [] : [Card::AuthID]) +
-            Account.as_bot { trait_card(:roles).item_cards(:limit=>0).map(&:id) }
+    @all_roles ||= (id==Card::AnonID ? [] : [Card::AuthID])
+    Account.as_bot { rcard=fetch_trait(:roles) and
+      items = rcard.item_cards(:limit=>0).map(&:id) and @all_roles += items }
+    @all_roles
   end
 
   def to_user
     Account.from_id id
   end # should be obsolete soon.
-
-
-  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  # TRAIT METHODS
-
-  def existing_trait_card tagcode
-    Card.fetch cardname.trait_name(tagcode), :skip_modules=>true, :skip_virtual=>true
-  end
-
-  def trait_card tagcode
-    Card.fetch_or_new cardname.trait_name(tagcode), :skip_virtual=>true
-  end
 
 
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -573,9 +562,9 @@ class Card < ActiveRecord::Base
     "#<#{self.class.name}" + "##{id}" +
     "###{object_id}" + #"k#{tag_id}g#{tag_id}" +
     "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
-    "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{virtual? &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }} " +
-    #"Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}>" +
-    ''
+    "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{virtual? &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }}" +
+    #" Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}" +
+    '>'
   end
 
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

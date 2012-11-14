@@ -77,6 +77,7 @@ class Card < ActiveRecord::Base
         super
       end
     rescue NameError=>e
+      Rails.logger.warn "Card not defined, return self #{caller*"\n"}" if const.to_sym == :Card
       return self if const.to_sym == :Card
       nil
     end

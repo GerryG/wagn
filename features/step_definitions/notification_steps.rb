@@ -9,7 +9,6 @@ Then /^(.*) should be notified that "(.*)"$/ do |username, subject|
   account = username=='I' ? Account.authorized : Card[username].trait_card(:account)
   user = Account.from_id account.id
   email = user.email
-  warn "sbe notified #{account.inspect}, #{user.inspect}, #{email.inspect}"
   begin
     step %{"#{email}" should receive 1 email}
   rescue RSpec::Expectations::ExpectationNotMetError=>e

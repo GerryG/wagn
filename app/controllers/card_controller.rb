@@ -14,8 +14,11 @@ class CardController < ApplicationController
 
 
   def create
-    if @card.save; success
-    else           errors end
+    if @card.save
+      success
+    else
+      errors
+    end
   end
 
   def read
@@ -59,16 +62,25 @@ class CardController < ApplicationController
 
   def comment
     raise Wagn::BadAddress, "comment without card" unless params[:card]
+
+    # FIXME: need this loaded like an inflector, this can't be the only place that would use this
+    # or maybe wrap it with the split, map, join too, and why not strip it in any case?
+    to_html = lambda {|line| "<p>#{line.strip.empty? ? '&nbsp;' : line}</p>"}
+
     # this previously failed unless request.post?, but it is now (properly) a PUT.
     # if we enforce RESTful http methods, we should do it consistently,
     # and error should be 405 Method Not Allowed
+    author = Account.logged_in? ? "[[#{Account.authorized.name}]]" :
+              "#{session[:comment_author] = params[:card][:comment_author]} (Not signed in)"
+    comment = params[:card][:comment].split(/\n/).map(&to_html) * "\n"
 
-    @card.comment = %{<hr>#{ params[:card][:comment].split(/\n/).map{|c| "<p>#{c.strip.empty? ? '&nbsp;' : c}</p>"} * "\n"
-        }<p><em>&nbsp;&nbsp;--#{ Account.logged_in? ? "[[#{Account.authorized.name}]]" :
-        "#{session[:comment_author] = params[:card][:comment_author]} (Not signed in)" }.....#{Time.now}</em></p>}
+    @card.comment = %{<hr>#{ comment }<p><em>&nbsp;&nbsp;--#{ author }.....#{Time.now}</em></p>}
 
-    if @card.save; show
-    else           errors end
+    if @card.save
+      show
+    else
+      errors
+    end
   end
 
   def rollback
@@ -186,7 +198,10 @@ class CardController < ApplicationController
     Wagn::Conf[:main_name] = params[:main] || (@card && @card.name) || ''
     true
   end
-  def refresh_card() @card = @card.refresh end
+
+  def refresh_card
+    @card = @card.refresh
+  end
 
   #-------( REDIRECTION )
 

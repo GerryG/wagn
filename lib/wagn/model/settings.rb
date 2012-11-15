@@ -13,7 +13,7 @@ module Wagn::Model::Settings
     #warn "rule_card[#{name}] #{setting_name}, #{options.inspect} K:#{setting_kind}, RSN:#{real_set_names(setting_kind).inspect}" if setting_name == :autoname
     real_set_names(setting_kind).each do |set_name|
       #warn "rule_card search #{set_name.inspect}" if setting_name == :autoname
-      set_name=set_name.to_cardname
+      set_name=set_name.to_name
       card = Card.fetch(set_name.trait_name( setting_name ), fetch_args)
       card ||= fallback && Card.fetch(set_name.trait_name(fallback), fetch_args)
       #warn "rule #{name} [#{set_name}] rc:#{card.inspect}" if setting_name == :autoname
@@ -53,7 +53,7 @@ module Wagn::Model::Settings
     end
 
     def default_rule_card setting_name, fallback=nil
-      Card["*all".to_cardname.trait_name(setting_name)] or
+      Card["*all".to_name.trait_name(setting_name)] or
         fallback ? default_rule_card(fallback) : nil
     end
 

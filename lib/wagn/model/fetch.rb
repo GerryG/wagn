@@ -29,7 +29,7 @@ module Wagn::Model::Fetch
       cache_key, method, val = if Integer===mark
         [ "~#{mark}", :find, mark ]
       else
-        key = mark.to_cardname.key
+        key = mark.to_name.key
         [ key, :find_by_key, key ]
       end
 
@@ -116,7 +116,7 @@ module Wagn::Model::Fetch
     end
 
     def expire name
-      if card = Card.cache.read( name.to_cardname.key )
+      if card = Card.cache.read( name.to_name.key )
         card.expire
       end
     end
@@ -127,7 +127,7 @@ module Wagn::Model::Fetch
     end
 
     def set_members set_names, key
-      set_names.compact.map(&:to_cardname).map(&:key).map do |set_key|
+      set_names.compact.map(&:to_name).map(&:key).map do |set_key|
         skey = "$#{set_key}" # dollar sign avoids conflict with card keys
         h = Card.cache.read skey
         if h.nil?

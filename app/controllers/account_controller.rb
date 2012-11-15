@@ -8,9 +8,8 @@ class AccountController < ApplicationController
   #ENGLISH many messages throughout this file
   def signup
     raise(Wagn::Oops, "You have to sign out before signing up for a new Account") if logged_in?
-    c=Card.new(:type_id=>Card::AccountRequestID)
-    #warn Rails.logger.warn("signup ok? #{c.inspect}, #{c.ok? :create}")
-    raise(Wagn::PermissionDenied, "Sorry, no Signup allowed") unless c.ok? :create
+    signup_card=Card.new(:type_id=>Card::AccountRequestID)
+    raise(Wagn::PermissionDenied, "Sorry, no Signup allowed") unless signup_card.ok? :create
 
     #does not validate password
     user_args = (user_args = params[:user]) && user_args.symbolize_keys || {}
@@ -24,9 +23,7 @@ class AccountController < ApplicationController
     end
 
     return render_user_errors if @user.errors.any?
-    #Rails.logger.warn "signup UA:#{user_args.inspect}, CA:#{card_args.inspect}"
     @card = @user.save_card( card_args )
-    #Rails.logger.warn "signup UA:#{@user.inspect}, CA:#{@card.inspect}"
     return render_user_errors if @user.errors.any?
 
     if @card.trait_ok?(:account, :create)       #complete the signup now
@@ -51,13 +48,10 @@ class AccountController < ApplicationController
 
   def accept
     card_key=params[:card][:key]
-    Rails.logger.info "accept #{card_key.inspect}, #{Card[card_key]}, #{params.inspect}"
     raise(Wagn::Oops, "I don't understand whom to accept") unless params[:card]
     @card = Card[card_key] or raise(Wagn::NotFound, "Can't find this Account Request")
-    Rails.logger.debug "accept #{Account.session.inspect}, #{@card.inspect}"
     @card=@card.fetch_trait(:account) and @user = Account.from_id(@card.id) or
       raise(Wagn::Oops, "This card doesn't have an account to approve")
-    #warn "accept #{@user.inspect}"
     @card.ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create accounts")
 
     if request.post?
@@ -72,7 +66,6 @@ class AccountController < ApplicationController
   end
 
   def invite
-    #warn "invite: ok? #{Card.new(:name=>'dummy+*account').ok?(:create)}"
     cok=Card.new(:name=>'dummy+*account').ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create")
     if request.post?
       @user = Account.new params[:user]
@@ -81,7 +74,6 @@ class AccountController < ApplicationController
     else
       @user = Account.new; @card = Card.new
     end
-    Rails.logger.debug "invite U:#{@user.inspect} C:#{@card.inspect}"
     if request.post? and @user.errors.empty?
       @user.send_account_info(params[:email])
       redirect_to Card.path_setting(Card.setting '*invite+*thanks')
@@ -94,7 +86,6 @@ class AccountController < ApplicationController
 
 
   def signin
-    Rails.logger.info "signin #{params[:login]}"
     if user=Account.from_params(params) and user.authenticated?(params)
       self.session_user = user.account_id
       flash[:notice] = "Successfully signed in"

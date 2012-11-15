@@ -30,8 +30,7 @@ class User < ActiveRecord::Base
 
     # Encrypts some data with the salt.
     def encrypt(password, salt)
-      r= Digest::SHA1.hexdigest("#{salt}--#{password}--")
-      Rails.logger.warn "encrypt #{salt}, #{password}, #{r}"; r
+      Digest::SHA1.hexdigest("#{salt}--#{password}--")
     end
 
   end
@@ -41,7 +40,6 @@ class User < ActiveRecord::Base
   def save_card args, email_args={}
     #Rails.logger.info  "create with(#{inspect}, #{args.inspect})"
     @card = Card===args ?  args : Card.fetch_or_new(args[:name], args)
-    #warn "card: #{@card.inspect}"
 
     #Rails.logger.debug "save_card saving #{inspect}, #{args.inspect}, #{Account.session.inspect}"
     active() if status.blank?
@@ -49,14 +47,12 @@ class User < ActiveRecord::Base
 
     Account.as_bot do
       begin
-        #warn "save with card #{@card.inspect}, #{inspect}"
         User.transaction do
           @card = @card.refresh
           @card.type_id = Card::UserID unless @card.type_id == Card::UserID ||
                                       @card.type_id == Card::AccountRequestID
           newcard = @card.new_card?
           @card.save
-          #warn "save with_card #{inspect}, cd:#{@card.inspect}"
           @card.errors.each { |key,err| errors.add key,err }
           if (cn=@card.cardname).simple? || Codename[cn.right] == Card::AccountID
             @account = @card.fetch_or_new_trait :account
@@ -67,20 +63,14 @@ class User < ActiveRecord::Base
 
           self.card_id = @card.id
           self.account_id = @account.id
-          #warn "save user #{inspect}"
           if newcard && errors.any? || !(sv=save)
             self.account_id=nil; save
-            Rails.logger.warn "RB #{sv}, #{inspect} #{caller*"\n"}"
-            Rails.logger.warn "RB #{errors.inspect}"
             raise ActiveRecord::Rollback # ROLLBACK should undo any changes made
           end
-          #Rails.logger.debug "save with_card error? #{inspect}, card:#{@card.inspect}"
-          #Rails.logger.debug "save with_card error #{errors.to_a.inspect}, card:#{@card.inspect}" if errors.any?
           true
         end
       rescue Exception => e
         Rails.logger.info "save with card failed. #{e.inspect},  #{@card.inspect} Bt:#{e.backtrace*"\n"}"
-        warn "save with card failed. #{e.inspect},  #{@card.inspect} Bt:#{e.backtrace*"\n"}"
       end
 
       self.send_account_info(email_args) if errors.empty? && !email_args.empty?
@@ -137,18 +127,16 @@ class User < ActiveRecord::Base
   def authenticated? params
     r=(
     password = params[:password].strip and crypted_password == encrypt(password) and active?
-    ) ; Rails.logger.warn "auth? #{params[:password]}, #{crypted_password} #{active?} R:#{r}"; r
+    ) ; Rails.logger.warn "auth? #{encrypt(password)}, #{password}, #{crypted_password} #{active?} R:#{r}"; r
   end
 
  protected
   def encrypt(password) self.class.encrypt(password, salt)                             end
 
   def encrypt_password
-    Rails.logger.warn "epw #{password.blank?}"
     return true if password.blank?
     self.salt = Digest::SHA1.hexdigest("--#{Time.now.to_s}--#{login}--") if new_record?
     self.crypted_password = encrypt(password)
-    Rails.logger.warn "epw #{crypted_password.blank?}"
     true
   end
 

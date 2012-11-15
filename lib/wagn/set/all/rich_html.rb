@@ -677,11 +677,9 @@ module Wagn
       opts
     end
 
-    private
-
     def fancy_title name=nil
       name ||= showname
-      title = name.to_name.parts.join %{<span class="joint">+</span>}
+      title = name.to_name.parts * %{<span class="joint">+</span>}
       raw title
     end
 

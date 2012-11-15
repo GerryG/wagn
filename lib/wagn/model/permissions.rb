@@ -76,10 +76,8 @@ module Wagn::Model::Permissions
     permission_rule_card(operation).first.item_cards.map(&:id)
   end
 
-  def permission_rule_card operation
-    #raise "prc[#{name}]#{operation} #{caller*"\n"}" if caller.size > 500  # stack lossage finder
-    opcard = rule_card operation
-    #Rails.logger.warn "prc[#{name}]#{operation} #{opcard.inspect}" if operation==:create and name=='Yorba+Torga'
+  def permission_rule_card(operation)
+    opcard = rule_card(operation)
     unless opcard
       errors.add :permission_denied, "No #{operation} setting card for #{name}"
       raise Card::PermissionDenied.new(self)
@@ -88,12 +86,9 @@ module Wagn::Model::Permissions
     rcard = begin
       Account.as_bot do
         if opcard.content == '_left' && self.junction?
-          lcard = (loaded_left ||
-             Card.fetch_or_new(trunk_name, :skip_virtual=>true, :skip_modules=>true)).permission_rule_card(operation).first 
-          # lcard ?   : opcard
-        else
-          opcard
-        end
+          (loaded_left || Card.fetch_or_new(trunk_name, :skip_virtual=>true, :skip_modules=>true)).
+            permission_rule_card(operation).first 
+        else opcard end
       end
     end
     #Rails.logger.warn "permission_rule_card[#{name}] #{rcard&&rcard.name}, #{opcard.rule_name.inspect}, #{opcard.inspect}" #if opcard.name == '*logo+*self+*read'
@@ -243,7 +238,6 @@ module Wagn::Model::Permissions
   # fifo of cards that need read rules updated
   def update_read_rule_list() @update_read_rule_list ||= [] end
   def read_rule_updates updates
-    #Rails.logger.info "read_rule_updates #{updates.inspect}"
     #warn "rrups #{updates.inspect}"
     @update_read_rule_list = update_read_rule_list.concat updates
     # to short circuite the queue mechanism, just each the new list here and update

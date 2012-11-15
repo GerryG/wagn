@@ -535,10 +535,6 @@ class Card < ActiveRecord::Base
     @all_roles
   end
 
-  def to_user
-    Account.from_id id
-  end # should be obsolete soon.
-
 
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   # METHODS FOR OVERRIDE

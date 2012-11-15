@@ -241,7 +241,7 @@ module Wagn
       eform = form_for_multi
 
       %{
-<div class="edit-area in-multi card-editor RIGHT-#{ card.cardname.tag.to_cardname.safe_key }">
+<div class="edit-area in-multi card-editor RIGHT-#{ card.cardname.tag.to_name.safe_key }">
   <div class="label-in-multi">
     <span class="title">
       #{ link_to_page fancy_title, (card.new_card? ? card.cardname.tag : card.name) }
@@ -263,17 +263,17 @@ module Wagn
       # FIXME codename *account
       sources.unshift '*account' if [Card::WagnBotID, Card::AnonID].member?(card.id) || card.typecode==:user
       items = sources.map do |source|
-        c = Card.fetch(source ? source.to_cardname.trait_name(:related) : Card::RelatedID)
+        c = Card.fetch(source ? source.to_name.trait_name(:related) : Card::RelatedID)
         c && c.item_names
       end.flatten.compact
 
-      current = params[:attribute] || items.first.to_cardname.key
+      current = params[:attribute] || items.first.to_name.key
 
       wrap :related, args do
         %{#{ _render_header }
           <div class="submenu"> #{
             items.map do |item|
-              key = item.to_cardname.key
+              key = item.to_name.key
               text = item.gsub('*','').gsub('subtab','').strip
               link_to text, path(:related, :attrib=>key), :remote=>true,
                 :class=>"slotter #{key==current ? 'current-subtab' : ''}"
@@ -290,7 +290,7 @@ module Wagn
     define_view :options, :perms=>:none do |args|
       attribute = params[:attribute]
 
-      attribute ||= if card.to_user and ( Account.as_card.id==card.id or (tc=card.fetch_or_new_trait(:account) and tc.ok?(:update)) )
+      attribute ||= if card.user and ( Account.as_card.id==card.id or (tc=card.fetch_or_new_trait(:account) and tc.ok?(:update)) )
         'account' else 'settings' end
       render "option_#{attribute}"
     end
@@ -331,7 +331,7 @@ module Wagn
       current_set = params[:current_set] || related_sets[(card.type_id==Card::CardtypeID ? 1 : 0)]  #FIXME - explicit cardtype reference
       set_options = related_sets.map do |set_name|
         set_card = Card.fetch set_name
-        selected = set_card.key == current_set.to_cardname.key ? 'selected="selected"' : ''
+        selected = set_card.key == current_set.to_name.key ? 'selected="selected"' : ''
         %{<option value="#{ set_card.key }" #{ selected }>#{ set_card.label }</option>}
       end.join
       wrap :options, args do
@@ -681,7 +681,7 @@ module Wagn
 
     def fancy_title name=nil
       name ||= showname
-      title = name.to_cardname.parts.join %{<span class="joint">+</span>}
+      title = name.to_name.parts.join %{<span class="joint">+</span>}
       raw title
     end
 

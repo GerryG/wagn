@@ -1,12 +1,20 @@
-module Wagn::Set::Right::Account
+module Wagn
+  module Set::Right::Account
+    module Model
+      def email perm=false
+        Rails.logger.info "Right::Account#email perm:#{perm}, #{name}"
+        perm = perm || Account.session.id == id || (trunk.trait_ok?(:email, :read))
+        Rails.logger.info "Right::Account#email perm:#{perm}, #{inspect}"
+        perm && (user = Account.from_id(id)) && user.email || ''
+      end
 
-  def self.included(base)
-    super
-#    base.register_trait('*account', :account)
-#    Rails.logger.debug "including +*account #{base}"
+      def before_destroy
+        block_user
+      end
 
-#    base.class_eval { attr_accessor :attribute }
-#    base.send :before_save, :save_account
+      def block_user
+        account = Account.from_id(id) and account.block!  
+      end
+    end
   end
-
 end

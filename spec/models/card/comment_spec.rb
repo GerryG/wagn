@@ -2,32 +2,33 @@ require File.expand_path('../../spec_helper', File.dirname(__FILE__))
 
 
 # FIXME: this test is breaking; I can cut and paste the code into console and it works great. wtf?
-=begin
 describe Card, "record appender" do
   before do
-    Session.as(Card::WagnBotID)
-    @r = Role.find(:first)
-    @c = Card.find(:first)
-    @c.permit(:comment,@r)
-    @c.save!
+    @r = Card.where(:type_id=>Card::RoleID).first
+    @rule = Card.new :name=>'A+*self+*comment', :type_id=>Card::PointerID, :content=>"[[#{@r.name}]]"
   end
 
   it "should have appender immediately" do
-    Session.as(Card::WagnBotID)
-    @c.ok?(:comment).should be_true
+    Card['a'].ok?(:comment).should_not be_true
+    Account.as_bot do
+      @rule.save!
+    end
+    Card['a'].ok?(:comment).should be_true
   end
 
-  it "should have appender after save" do
-    Session.as(Card::WagnBotID)
-    Card.find(@c.id).ok?(:comment).should be_true
+  it "should have appender immediately" do
+    Account.as_bot do
+      Card['a'].ok?(:comment).should_not be_true
+      @rule.save!
+      Card['a'].ok?(:comment).should be_true
+    end
   end
 end
-=end
 
 
 describe Card, "comment addition" do
   before do
-    Session.as_bot do
+    Account.as_bot do
       Card.create :name => 'basicname+*self+*comment', :content=>'[[Anyone Signed In]]'
       @c = Card.fetch "basicname"
       @c.comment = " and more"

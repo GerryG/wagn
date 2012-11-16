@@ -37,13 +37,15 @@ module Wagn::Model::Attach
   def attachment_style type_id, style
     case type_id
     when Card::FileID
-      ''
+      nil
     when Card::ImageID
       if style.nil? || style.to_sym == :full
         :original
       else
         style
       end
+    else
+      :error
     end
   end
 
@@ -123,7 +125,7 @@ module Paperclip::Interpolations
   def card_id(  at, style_name )  at.instance.id                       end
 
   def basename(at, style_name)
-    at.instance.name.to_cardname.url_key
+    at.instance.name.to_name.url_key
   end
 
   def size(at, style_name)

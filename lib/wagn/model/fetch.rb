@@ -19,7 +19,7 @@ module Wagn::Model::Fetch
       # "mark" here means a generic identifier -- can be a numeric id, a name, a string name, etc.
 #      ActiveSupport::Notifications.instrument 'wagn.fetch', :message=>"fetch #{cardname}" do
       return nil if mark.nil?
-      #warn "fetch #{mark.inspect}"
+      #warn "fetch #{mark.inspect}, #{opts.inspect}"
       # Symbol (codename) handling
       if Symbol===mark
         mark = Wagn::Codename[mark] || raise("Missing codename for #{mark.inspect}")
@@ -27,10 +27,10 @@ module Wagn::Model::Fetch
 
 
       cache_key, method, val = if Integer===mark
-        [ "~#{mark}", :find_by_id_and_trash, mark ]
+        [ "~#{mark}", :find, mark ]
       else
-        key = mark.to_cardname.key
-        [ key, :find_by_key_and_trash, key ]
+        key = mark.to_name.key
+        [ key, :find_by_key, key ]
       end
 
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -40,52 +40,65 @@ module Wagn::Model::Fetch
       result = Card.cache.read cache_key if Card.cache
       card = (result && Integer===mark) ? Card.cache.read(result) : result
 
+      #warn "fetch 1 #{cache_key}, #{method}, #{val} #{card}" # if val=='a'
       unless card
         # DB lookup
         needs_caching = true
-        card = Card.send method, val, false
+        card = Card.send method, val
       end
+      #warn "fetch 2 #{card.class}"
 
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-      opts[:skip_virtual] = true if opts[:loaded_trunk]
+      opts[:skip_virtual] = true if opts[:loaded_left]
 
-      if Integer===mark
-        raise "fetch of missing card_id #{mark}" if card.nil?
-      else
+      if not Integer===mark
         return nil if card && opts[:skip_virtual] && card.new_card?
+      elsif card.nil?
+        raise "fetch of missing card_id #{mark}"
+      end
+      #warn "fetch 3 #{card.inspect}" if val=='a'
 
         # NEW card -- (either virtual or missing)
-        if card.nil? or ( !opts[:skip_virtual] && card.type_id==-1 )
-          # The -1 type_id allows us to skip all the type lookup and flag the need for
-          # reinitialization later.  *** It should NEVER be seen elsewhere ***
-          needs_caching = true
-          new_args = { :name=>mark.to_s, :skip_modules=>true }
-          new_args[:type_id] = -1 if opts[:skip_virtual]
-          card = new new_args
+      if card.nil? or card.trash or ( !opts[:skip_virtual] && card.type_id==-1 )
+        # The -1 type_id allows us to skip all the type lookup and flag the need for
+        # reinitialization later.  *** It should NEVER be seen elsewhere ***
+        needs_caching = true
+        new_args = { :name=>mark.to_s, :skip_modules=>true }
+        new_args[:type_id] = -1 if opts[:skip_virtual]
+        card = new new_args
+      end
+      #warn "fetch 4 #{card.inspect}" if val=='a'
+
+      if needs_caching
+        Card.cache.write card.key, card
+        if not card.nil? and cid=card.id
+          unless card.trash; Card.cache.write "~#{cid}", card.key
+          else               Card.cache.delete "~#{cid}"  end
         end
       end
 
-      if Card.cache && needs_caching
-        Card.cache.write card.key, card
-        Card.cache.write "~#{card.id}", card.key if card.id and card.id != 0
+      if card.new_card?
+        if card.trash
+          card.trash=false
+        elsif opts[:skip_virtual] || !card.virtual?
+          return nil
+        end
       end
+      #return nil if card.new_card? and ( card.trash || opts[:skip_virtual] || !card.virtual? )
 
-      return nil if card.new_card? and ( opts[:skip_virtual] || !card.virtual? )
-
-      #warn "fetch returning #{card.inspect}"
+      #warn "fetch returning #{cache_key} #{card.inspect}"
       card.include_set_modules unless opts[:skip_modules]
       card
 #      end
     end
 
-    def fetch_or_new cardname, opts={}
-      #warn "fetch_or_new #{cardname.inspect}, #{opts.inspect}"
-      fetch( cardname, opts ) || new( opts.merge(:name=>cardname) )
+    def fetch_or_new name, opts={}
+      fetch( name, opts ) || new( opts.merge(:name=>name) )
     end
 
-    def fetch_or_create cardname, opts={}
+    def fetch_or_create name, opts={}
       opts[:skip_virtual] ||= true
-      fetch( cardname, opts ) || create( opts.merge(:name=>cardname) )
+      fetch( name, opts ) || create( opts.merge(:name=>name) )
     end
 
     def fetch_id mark #should optimize this.  what if mark is int?  or codename?
@@ -94,16 +107,16 @@ module Wagn::Model::Fetch
     end
 
     def [](name)
-      fetch name, :skip_virtual=>true
+      c=fetch name, :skip_virtual=>true
     end
 
-    def exists? cardname
-      card = fetch cardname, :skip_virtual=>true, :skip_modules=>true
+    def exists? name
+      card = fetch name, :skip_virtual=>true, :skip_modules=>true
       card.present?
     end
 
     def expire name
-      if card = Card.cache.read( name.to_cardname.key )
+      if card = Card.cache.read( name.to_name.key )
         card.expire
       end
     end
@@ -114,8 +127,7 @@ module Wagn::Model::Fetch
     end
 
     def set_members set_names, key
-      #warn Rails.logger.warn("set_members #{set_names.inspect}, #{key}")
-      set_names.compact.map(&:to_cardname).map(&:key).map do |set_key|
+      set_names.compact.map(&:to_name).map(&:key).map do |set_key|
         skey = "$#{set_key}" # dollar sign avoids conflict with card keys
         h = Card.cache.read skey
         if h.nil?
@@ -130,6 +142,21 @@ module Wagn::Model::Fetch
     end
 
   end
+
+
+  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  # TRAIT METHODS
+
+  def fetch_trait tagcode
+    Card.fetch cardname.trait_name(tagcode)
+  end
+
+  def fetch_or_new_trait tagcode
+    Card.fetch_or_new cardname.trait_name(tagcode), :skip_virtual=>true
+  end
+
+  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  # CACHE FRESHNESS
 
   def expire_pieces
     cardname.pieces.each do |piece|
@@ -159,9 +186,11 @@ module Wagn::Model::Fetch
   end
 
   def refresh
-    fresh_card = self.class.find(self.id)
-    fresh_card.include_set_modules
-    fresh_card
+    if frozen?()
+      fresh_card = self.class.find id()
+      fresh_card.include_set_modules
+      fresh_card
+    else self end
   end
 
   def self.included(base)

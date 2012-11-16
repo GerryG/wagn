@@ -43,7 +43,7 @@ module Wagn
         'internal-link'
       else
         known_card = !!Card.fetch(href, :skip_modules=>true) if known_card.nil?
-        cardname = Cardname===href ? href : href.to_cardname
+        cardname = href.to_name
         text = cardname.to_show(card.name) unless text
         #href+= "?type=#{type.url_key}" if type && card && card.new_card?  WANT THIS; NEED TEST
         href = full_uri Wagn::Conf[:root_path] + '/' +
@@ -78,7 +78,7 @@ module Wagn
   end
 
   def get_layout_content(args)
-    Session.as_bot do
+    Account.as_bot do
       case
         when (params[:layout] || args[:layout]) ;  layout_from_name
         when card                               ;  layout_from_card

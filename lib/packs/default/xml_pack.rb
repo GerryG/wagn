@@ -35,7 +35,7 @@ class Wagn::Renderer::Xml < Wagn::Renderer
 
   define_view(:closed) do |args|
     @state = :line
-    self.wrap(:closed, args) { _render_line(args) }
+    self.wrap(:closed, args) { _render_closed(args) }
   end
 
 =begin

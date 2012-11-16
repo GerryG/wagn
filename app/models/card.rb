@@ -1,20 +1,24 @@
 # -*- encoding : utf-8 -*-
 
 class Card < ActiveRecord::Base
-  #Revision
-  #Reference
   require 'card/revision'
   require 'card/reference'
 end
-class Card < ActiveRecord::Base
 
-  cattr_accessor :cache
+require 'smart_name'
+SmartName.codes= Wagn::Codename
+SmartName.params= Wagn::Conf
+SmartName.lookup= Card
+
+class Card < ActiveRecord::Base
+  Revision
+  Reference
 
   has_many :revisions, :order => :id #, :foreign_key=>'card_id'
 
   attr_accessor :comment, :comment_author, :selected_rev_id,
     :confirm_rename, :confirm_destroy, :update_referencers, :allow_type_change, # seems like wrong mechanisms for this
-    :cards, :loaded_trunk, :nested_edit, # should be possible to merge these concepts
+    :cards, :loaded_left, :nested_edit, # should be possible to merge these concepts
     :error_view, :error_status, #yuck
     :attachment_id #should build flexible handling for set-specific attributes
 
@@ -23,6 +27,7 @@ class Card < ActiveRecord::Base
 
   belongs_to :card, :class_name => 'Card', :foreign_key => :creator_id
   belongs_to :card, :class_name => 'Card', :foreign_key => :updater_id
+  has_one    :user, :class_name => 'User', :foreign_key => :account_id
 
   before_save :set_stamper, :base_before_save, :set_read_rule, :set_tracked_attributes
   after_save :base_after_save, :update_ruled_cards, :update_queue, :expire_related
@@ -34,6 +39,8 @@ class Card < ActiveRecord::Base
   class << self
     JUNK_INIT_ARGS = %w{ missing skip_virtual id }
 
+    def cache()          Wagn::Cache[Card]                           end
+
     def new args={}, options={}
       args = (args || {}).stringify_keys
       JUNK_INIT_ARGS.each { |a| args.delete(a) }
@@ -42,12 +49,12 @@ class Card < ActiveRecord::Base
 
       if name = args['name'] and !name.blank?
         if  Card.cache                                        and
-            cc = Card.cache.read_local(name.to_cardname.key)  and
+            cc = Card.cache.read_local(name.to_name.key)  and
             cc.type_args                                      and
             args['type']          == cc.type_args[:type]      and
             args['typecode']      == cc.type_args[:typecode]  and
             args['type_id']       == cc.type_args[:type_id]   and
-            args['loaded_trunk']  == cc.loaded_trunk
+            args['loaded_left']   == cc.loaded_left
 
           args['type_id'] = cc.type_id
           return cc.send( :initialize, args )
@@ -72,13 +79,16 @@ class Card < ActiveRecord::Base
           raise "Missing codename #{code} (#{const}) #{caller*"\n"}"
         end
       else
-        Rails.logger.debug "need to load #{const.inspect}?"
         super
       end
+    rescue NameError=>e
+      Rails.logger.warn "Card not defined, return self #{caller*"\n"}" if const.to_sym == :Card
+      return self if const.to_sym == :Card
+      nil
     end
 
     def setting name
-      Session.as_bot do
+      Account.as_bot do
         card=Card[name] and !card.content.strip.empty? and card.content
       end
     end
@@ -152,6 +162,7 @@ class Card < ActiveRecord::Base
   def include_set_modules
     unless @set_mods_loaded
       set_modules.each do |m|
+        #warn "ism #{m}"
         singleton_class.send :include, m
       end
       @set_mods_loaded=true
@@ -159,10 +170,7 @@ class Card < ActiveRecord::Base
     self
   end
 
-  def reset_mods
-    #does this really do anything if it doesn't reset @set_modules???  can we get rid of this?
-    @set_mods_loaded=false
-  end
+  # reset_mods: resets with patterns in model/pattern
 
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   # STATES
@@ -192,7 +200,7 @@ class Card < ActiveRecord::Base
   end
 
   def set_stamper
-    self.updater_id = Session.user_id
+    self.updater_id = Account.authorized.id
     self.creator_id = self.updater_id if new_card?
   end
 
@@ -244,7 +252,6 @@ class Card < ActiveRecord::Base
   rescue Exception=>e
     expire_pieces
     @subcards.each{ |card| card.expire_pieces }
-    Rails.logger.info "after save issue: #{e.message}"
     raise e
   end
 
@@ -253,9 +260,9 @@ class Card < ActiveRecord::Base
     return unless cards
     cards.each_pair do |sub_name, opts|
       opts[:nested_edit] = self
-      absolute_name = sub_name.to_cardname.post_cgi.to_cardname.to_absolute cardname
+      absolute_name = sub_name.to_name.post_cgi.to_name.to_absolute cardname
       if card = Card[absolute_name]
-        card = card.refresh if card.frozen?
+        card = card.refresh
         card.update_attributes opts
       elsif opts[:content].present? and opts[:content].strip.present?
         opts[:name] = absolute_name
@@ -293,6 +300,7 @@ class Card < ActiveRecord::Base
         dep.confirm_destroy = true
         dep.destroy
       end
+      expire
       true
     end
   end
@@ -343,27 +351,37 @@ class Card < ActiveRecord::Base
 
 
   # FIXME: use delegations and include all cardname functions
-  def simple?()     cardname.simple?              end
-  def junction?()   cardname.junction?            end
+  def simple?()    cardname.simple?                        end
+  def junction?()  cardname.junction?                      end
 
-  def left()      Card.fetch cardname.left        end
-  def right()     Card.fetch cardname.right       end
+  def left()       Card.fetch left_id  || cardname.left    end
+  def right()      Card.fetch right_id || cardname.right   end
 
-  def trunk()     Card.fetch cardname.trunk       end
-  def tag()       Card.fetch cardname.tag         end
+  def trunk()      Card.fetch trunk_id || cardname.trunk   end
+  def tag()        Card.fetch tag_id   || cardname.tag     end
 
+  # this is a hack so to fix the internal rep while the attributes are missnamed in the db table
+  # it sets @tag/trunk_id for simple? cards
+  def tag_id()   (r=read_attribute :tag_id).nil? && simple? ? id : r   end
+  def trunk_id() (r=read_attribute :trunk_id).nil? && simple? ? id : r end
+  def right_id()   read_attribute(:tag_id)                 end
+  def left_id()    read_attribute(:trunk_id)               end
+  def trunk_name() x=trunk and x.name                      end
+  def tag_name()   x=tag  and x.name                       end
+  def left_name()  x=left  and x.name                      end
+  def right_name() x=right  and x.name                     end
 
   def dependents
-    return [] if new_card?
-    Session.as_bot do
-      Card.search( :part=>name ).map do |c|
-        [ c ] + c.dependents
-      end.flatten
-    end
+    new_card? ? [] : !@dependents.nil? ? @dependents : Account.as_bot do
+        Card.search( :part=> id ).inject [] do |a,c|
+          #id == c.id ? a : a << c << *(c.dependents)
+          id == c.id ? a : (a << c) + (c.dependents)
+        end
+      end
   end
 
   def repair_key
-    Session.as_bot do
+    Account.as_bot do
       correct_key = cardname.key
       current_key = key
       return self if current_key==correct_key
@@ -488,21 +506,22 @@ class Card < ActiveRecord::Base
 
   def among? authzed
     prties = parties
+    #Rails.logger.debug "among? #{prties.map{|x|Card[x].name}*', '} athzd:#{authzed.map{|x|Card[x].name}*', '}"
     authzed.each { |auth| return true if prties.member? auth }
     authzed.member? Card::AnyoneID
   end
 
   def parties
-    @parties ||= (all_roles << self.id).flatten.reject(&:blank?)
+    @parties ||= (trunk.all_roles << trunk_id).flatten.reject(&:blank?)
   end
 
   def read_rules
     @read_rules ||= begin
-      if id==Card::WagnBotID
+      if id==Card::WagnBotID or trunk_id ==Card::WagnBotID
         [] # avoids infinite loop
       else
         party_keys = ['in', Card::AnyoneID] + parties
-        Session.as_bot do
+        Account.as_bot do
           Card.search(:right=>{:codename=>'read'}, :refer_to=>{:id=>party_keys}, :return=>:id).map &:to_i
         end
       end
@@ -510,24 +529,10 @@ class Card < ActiveRecord::Base
   end
 
   def all_roles
-    ids = Session.as_bot { trait_card(:roles).item_cards(:limit=>0).map(&:id) }
-    @all_roles ||= (id==Card::AnonID ? [] : [Card::AuthID] + ids)
-  end
-
-  def to_user
-    User.where( :card_id => id ).first
-  end # should be obsolete soon.
-
-
-  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  # TRAIT METHODS
-
-  def existing_trait_card tagcode
-    Card.fetch cardname.trait_name(tagcode), :skip_modules=>true, :skip_virtual=>true
-  end
-
-  def trait_card tagcode
-    Card.fetch_or_new cardname.trait_name(tagcode), :skip_virtual=>true
+    @all_roles ||= (id==Card::AnonID ? [] : [Card::AuthID])
+    Account.as_bot { rcard=fetch_trait(:roles) and
+      items = rcard.item_cards(:limit=>0).map(&:id) and @all_roles += items }
+    @all_roles
   end
 
 
@@ -546,15 +551,21 @@ class Card < ActiveRecord::Base
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   # MISCELLANEOUS
 
+  #def debug_type() type_id end
+  def debug_type() "#{typecode||'no code'}:#{type_id}" end
+  #def debug_type() "#{typename}:#{type_id}" end # this can cause infinite recursion
+
   def to_s
-    "#<#{self.class.name}[#{type_id < 1 ? 'bogus': type_name}:#{type_id}]#{self.attributes['name']}>"
+    "#<#{self.class.name}[#{debug_type}]#{self.attributes['name']}>"
   end
 
   def inspect
-    "#<#{self.class.name}" + "(#{object_id})" + "##{self.id}" +
-    "[#{type_id < 1 ? 'bogus': type_name}:#{type_id}]" +
-    "!#{self.name}!{n:#{new_card?}:v:#{virtual?}:I:#{@set_mods_loaded}} " +
-    "R:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}>"
+    "#<#{self.class.name}" + "##{id}" +
+    "###{object_id}" + #"k#{tag_id}g#{tag_id}" +
+    "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
+    "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{virtual? &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }}" +
+    #" Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}" +
+    '>'
   end
 
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -579,7 +590,7 @@ class Card < ActiveRecord::Base
   # must therefore be defined after the #tracks call
 
   def name_with_resets= newname
-    newkey = newname.to_cardname.key
+    newkey = newname.to_name.key
     if key != newkey
       self.key = newkey
       reset_patterns_if_rule # reset the old name - should be handled in tracked_attributes!!
@@ -592,7 +603,7 @@ class Card < ActiveRecord::Base
   alias cardname= name=
 
   def cardname
-    @cardname ||= name.to_cardname
+    @cardname ||= name.to_name
   end
 
   def autoname name
@@ -621,8 +632,8 @@ class Card < ActiveRecord::Base
   validates_each :name do |rec, attr, value|
     if rec.new_card? && value.blank?
       if autoname_card = rec.rule_card(:autoname)
-        Session.as_bot do
-          autoname_card = autoname_card.refresh if autoname_card.frozen?
+        Account.as_bot do
+          autoname_card = autoname_card.refresh
           value = rec.name = rec.autoname( autoname_card.content )
           autoname_card.content = value  #fixme, should give placeholder on new, do next and save on create
           autoname_card.save!
@@ -630,7 +641,7 @@ class Card < ActiveRecord::Base
       end
     end
 
-    cdname = value.to_cardname
+    cdname = value.to_name
     if cdname.blank?
       rec.errors.add :name, "can't be blank"
     elsif rec.updates.for?(:name)
@@ -638,10 +649,12 @@ class Card < ActiveRecord::Base
 
       unless cdname.valid?
         rec.errors.add :name,
-          "may not contain any of the following characters: #{ Wagn::Cardname::BANNED_ARRAY.join ' ' }"
+          "may not contain any of the following characters: #{ SmartName.banned_array * ' ' }"
       end
       # this is to protect against using a plus card as a tag
-      if cdname.junction? and rec.simple? and Session.as_bot { Card.count_by_wql :tag_id=>rec.id } > 0
+      # if right_id is non-nil, and it has a simple cardname, we must be in a rename from junction to
+      # existing simple? card.
+      if rec.right_id and rec.cardname.simple? and Account.as_bot { Card.count_by_wql :tag_id=>rec.id } > 0
         rec.errors.add :name, "#{value} in use as a tag"
       end
 

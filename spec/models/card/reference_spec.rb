@@ -5,7 +5,7 @@ describe "Card::Reference" do
 
   before do
     #setup_default_user
-    Session.as(Card::WagnBotID) # FIXME: as without a block deprecated
+    Account.as(Card::WagnBotID) # FIXME: as without a block deprecated
   end
 
   describe "references on hard templated cards should get updated" do
@@ -55,7 +55,6 @@ describe "Card::Reference" do
     Card["Yellow"].referencers.plot(:name).sort.should == %w{ Banana Submarine Sun }
   end
 
-
   it "container transclusion" do
     Card.create :name=>'bob+city'
     Card.create :name=>'address+*right+*default',:content=>"{{_L+city}}"
@@ -86,6 +85,15 @@ describe "Card::Reference" do
     lew.reload.content.should == "likes [[grapefruit]] and [[grapefruit+seeds|seeds]]"
   end
 
+  it "should update referencers on rename when requested (case 2)" do
+    card = Card['Administrator links+*self+*read']
+    refs = Card::Reference.where(:referenced_card_id => Card::AdminID).map(&:card_id).sort
+    card.update_referencers = true
+    card.name='Administrator links+*type+*read'
+    card.save
+    Card::Reference.where(:referenced_card_id => Card::AdminID).map(&:card_id).sort.should == refs
+  end
+
   it "should not update references when not requested" do
     watermelon = newcard('watermelon', 'mmmm')
     watermelon_seeds = newcard('watermelon+seeds', 'black')
@@ -97,7 +105,7 @@ describe "Card::Reference" do
     watermelon.name="grapefruit"
     watermelon.save!
     lew.reload.content.should == "likes [[watermelon]] and [[watermelon+seeds|seeds]]"
-    w = ReferenceTypes::WANTED_LINK
+    w = Wagn::ReferenceTypes::WANTED_LINK
     assert_equal [w,w], lew.out_references.plot(:link_type), "links should be Wanted"
   end
 
@@ -175,7 +183,7 @@ describe "Card::Reference" do
   # This test doesn't make much sense to me... LWH
   it "revise changes references from wanted to linked for new cards" do
     new_card = Card.create(:name=>'NewCard')
-    new_card.revise('Reference to [[WantedCard]], and to [[WantedCard2]]', Time.now, Card['quentin'].to_user),
+    new_card.revise('Reference to [[WantedCard]], and to [[WantedCard2]]', Time.now, Card['quentin'].user),
         get_renderer)
 
     references = new_card.card_references(true)
@@ -186,7 +194,7 @@ describe "Card::Reference" do
     references[1].link_type.should == Card::Reference::WANTED_PAGE
 
     wanted_card = Card.create(:name=>'WantedCard')
-    wanted_card.revise('And here it is!', Time.now, Card['quentin'].to_user), get_renderer)
+    wanted_card.revise('And here it is!', Time.now, Card['quentin'].user), get_renderer)
 
     # link type stored for NewCard -> WantedCard reference should change from WANTED to LINKED
     # reference NewCard -> WantedCard2 should remain the same

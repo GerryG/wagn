@@ -1,10 +1,14 @@
-module Wagn::Model::References
-  include ReferenceTypes
+
+
+module Wagn
+ module Model::References
+  ::Card  # is this needed still?
+  include  Wagn::ReferenceTypes
 
   def name_referencers(rname = key)
     Card.find_by_sql(
       "SELECT DISTINCT c.* FROM cards c JOIN card_references r ON c.id = r.card_id "+
-      "WHERE (r.referenced_name = #{ActiveRecord::Base.connection.quote(rname.to_cardname.key)})"
+      "WHERE (r.referenced_name = #{ActiveRecord::Base.connection.quote(rname.to_name.key)})"
     )
   end
 
@@ -51,8 +55,8 @@ module Wagn::Model::References
       has_many :in_references,:class_name=>'Card::Reference', :foreign_key=>'referenced_card_id'
       has_many :out_references,:class_name=>'Card::Reference', :foreign_key=>'card_id', :dependent=>:destroy
 
-      has_many :in_transclusions, :class_name=>'Card::Reference', :foreign_key=>'referenced_card_id',:conditions=>["link_type in (?,?)",Card::Reference::TRANSCLUSION, Card::Reference::WANTED_TRANSCLUSION]
-      has_many :out_transclusions,:class_name=>'Card::Reference', :foreign_key=>'card_id',           :conditions=>["link_type in (?,?)",Card::Reference::TRANSCLUSION, Card::Reference::WANTED_TRANSCLUSION]
+      has_many :in_transclusions, :class_name=>'Card::Reference', :foreign_key=>'referenced_card_id',:conditions=>["link_type in (?,?)",TRANSCLUSION, WANTED_TRANSCLUSION]
+      has_many :out_transclusions,:class_name=>'Card::Reference', :foreign_key=>'card_id',           :conditions=>["link_type in (?,?)",TRANSCLUSION, WANTED_TRANSCLUSION]
 
       has_many :referencers, :through=>:in_references
       has_many :transcluders, :through=>:in_transclusions, :source=>:referencer
@@ -89,4 +93,5 @@ module Wagn::Model::References
     expire_templatee_references
   end
 
+ end
 end

@@ -61,5 +61,6 @@ module Chunk
       configs = "|#{configs}" unless configs.blank?
       @text = "{{#{cardname.to_s}#{configs}}}"
     end
+
   end
 end

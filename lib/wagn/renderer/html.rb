@@ -2,7 +2,7 @@ module Wagn
   class Renderer::Html < Renderer
 
     attr_accessor  :options_need_save, :start_time, :skip_autosave
-    DEFAULT_ITEM_VIEW = :closed
+    DEFAULT_ITEM_VIEW = :closed  #FIXME: It can't access this default
 
     # these initialize the content of missing builtin layouts
     LAYOUTS = { 'default' => %{
@@ -70,7 +70,7 @@ module Wagn
 
 
     def get_layout_content(args)
-      Session.as_bot do
+      Account.as_bot do
         case
           when (params[:layout] || args[:layout]) ;  layout_from_name
           when card                               ;  layout_from_card
@@ -224,7 +224,7 @@ module Wagn
     end
 
     def type_field args={}
-      typelist = Session.createable_types
+      typelist = Account.createable_types
       typelist << card.type_name if !card.new_card?
       # current type should be an option on existing cards, regardless of create perms
 
@@ -268,8 +268,8 @@ module Wagn
       }
     end
 
-    def option_header(title)
-      %{<tr><th colspan="3" class="option-header"><h2>#{title}</h2></th></tr>}
+    def option_header title
+      raw %{<tr><th colspan="3" class="option-header"><h2>#{title}</h2></th></tr>}
     end
 
     # navigation for revisions -

@@ -126,6 +126,8 @@ class Wql
       self
     end
 
+    def inspect() %{<#{self.class}:#{@sql}>} end
+
     def table_alias
       case
         when @mods[:return]=='condition';   @parent ? @parent.table_alias : "t"
@@ -139,7 +141,7 @@ class Wql
     def selfname()  @selfname                      end
 
     def absolute_name(name)
-      name =~ /\b_/ ? name.to_cardname.to_absolute(root.selfname) : name
+      name =~ /\b_/ ? name.to_name.to_absolute(root.selfname) : name
     end
 
     def clean query
@@ -159,7 +161,7 @@ class Wql
           val = @vars[$1.to_sym].to_s.strip
         end
         absolute_name val
-      when Wagn::Cardname         ; clean_val val.s
+      when SmartName         ; clean_val val.s
       when Hash                   ; clean val
       when Array                  ; val.map { |v| clean_val v }
       when Integer, Float, Symbol ; val
@@ -170,8 +172,8 @@ class Wql
     def merge(spec)
 #      spec = spec.clone
       spec = case spec
-        when String;   { :key => spec.to_cardname.key }
-        when Integer;  { :id  => spec                    }
+        when String;   { :key => spec.to_name.key }
+        when Integer;  { :id  => spec             }
         when Hash;     spec
         else raise("Invalid cardspec args #{spec.inspect}")
       end
@@ -215,7 +217,7 @@ class Wql
 
     def left(val)  merge field(:trunk_id) => subspec(val)                           end
     def right(val) merge field(:tag_id  ) => subspec(val)                           end
-    def part(val)  subcondition({ :left => val, :right => val.clone }, :conj=>:or)  end
+    def part(val)  subcondition({ :left => val, :right => (Integer===val) ? val : val.clone }, :conj=>:or)  end
 
     def left_plus(val)
       part_spec, junc_spec = val.is_a?(Array) ? val : [ val, {} ]
@@ -364,11 +366,12 @@ class Wql
       return "(" + sql.conditions.last + ")" if @mods[:return]=='condition'
 
       # Permissions
-      unless Session.always_ok? or (Wql.root_perms_only && !root?)
+      #Rails.logger.debug "wql perms? [#{inspect}] #{Account.authorized.inspect} #{Account.always_ok?} #{root?}" 
+      unless Account.always_ok? or (Wql.root_perms_only && !root?)
         sql.conditions <<
-         "(#{table_alias}.read_rule_id IN (#{(rr=Session.as_card.read_rules).nil? ? 1 : rr*','}))"
+         "(#{table_alias}.read_rule_id IN (#{(rr=Account.authorized.read_rules).nil? ? 1 : rr*','}))"
+        #Rails.logger.debug "wql perms? #{Account.always_ok?} #{Account.authorized.id}, #{rr.inspect} SqCond: #{sql.conditions.inspect}" 
       end
-      #warn "wql perms? #{Session.always_ok?} #{Session.as_id}, #{Session.as_card.read_rules*','} SqCond: #{sql.conditions.inspect}"
 
       sql.fields.unshift fields_to_sql
       sql.order = sort_to_sql  # has side effects!
@@ -497,7 +500,7 @@ class Wql
       #warn "to_sql #{field}, #{v} (#{op})"
       field, v = case field
         when "cond";     return "(#{sqlize(v)})"
-        when "name";     ["#{table}.key",      [v].flatten.map(&:to_cardname).map(&:key)]
+        when "name";     ["#{table}.key",      [v].flatten.map(&:to_name).map(&:key)]
 
         when "type";     ["#{table}.type_id", [v].flatten.map{ |val| Card.fetch_id( val )||0 }]
         when "content";   join_alias = @cardspec.add_revision_join

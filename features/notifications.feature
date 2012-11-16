@@ -29,4 +29,3 @@ Feature: Notifications
     When Joe Admin deletes "Home"
     Then Joe User should be notified that "Joe Admin deleted \"Home\""
 
-

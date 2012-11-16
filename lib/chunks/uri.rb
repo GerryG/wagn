@@ -138,7 +138,7 @@ class URIChunk < Chunk::Abstract
 
   def uri
     [scheme, scheme_delimiter, user, user_delimiter, host, port_delimiter, port, path,
-      query_delimiter, query, fragment] * ''
+      query_delimiter, query, fragment].compact.join
   end
 
 end

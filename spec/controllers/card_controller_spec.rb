@@ -131,14 +131,14 @@ describe CardController do
 
     it "redirects to card if thanks is blank" do
       login_as 'joe_admin'
-      post :create, :success => 'REDIRECT: TO-CARD', "card" => { "name" => "Joe+boop" }
+      post :create, :success => 'REDIRECT: _self', "card" => { "name" => "Joe+boop" }
       assert_redirected_to "/Joe+boop"
     end
 
     it "redirects to previous" do
       # Fruits (from shared_data) are anon creatable but not readable
       login_as :anonymous
-      post :create, { :success=>'REDIRECT: TO-PREVIOUS', "card" => { "type"=>"Fruit", :name=>"papaya" } }, :history=>['/blam']
+      post :create, { :success=>'REDIRECT: *previous', "card" => { "type"=>"Fruit", :name=>"papaya" } }, :history=>['/blam']
       assert_redirected_to "/blam"
     end
   end
@@ -164,8 +164,8 @@ describe CardController do
     include AuthenticatedTestHelper
 
     before do
-      Session.as 'joe_user'
-      @user = User['joe_user']
+      #Account.as 'joe_user'
+      @user = Account.from_id Account['joe_user'].id
       @request    = ActionController::TestRequest.new
       @response   = ActionController::TestResponse.new
       @controller = CardController.new
@@ -247,7 +247,7 @@ describe CardController do
 
 
     it "rename without update references should work" do
-      Session.as 'joe_user'
+      Account.as 'joe_user'
       f = Card.create! :type=>"Cardtype", :name=>"Apple"
       xhr :post, :update, :id => "~#{f.id}", :card => {
         :confirm_rename => true,
@@ -260,7 +260,7 @@ describe CardController do
     end
 
     it "update typecode" do
-      Session.as 'joe_user'
+      Account.as 'joe_user'
       xhr :post, :update, :id=>"~#{@simple_card.id}", :card=>{ :type=>"Date" }
       assert_response :success, "changed card type"
       Card['Sample Basic'].typecode.should == :date
@@ -273,7 +273,7 @@ describe CardController do
     #  for now.
     #
     #  def test_update_cardtype_no_stripping
-    #    Session.as 'joe_user'
+    #    Account.as 'joe_user'
     #    post :update, {:id=>@simple_card.id, :card=>{ :type=>"CardtypeA",:content=>"<br/>" } }
     #    #assert_equal "boo", assigns['card'].content
     #    assert_equal "<br/>", assigns['card'].content

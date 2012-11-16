@@ -27,5 +27,3 @@ Feature: templates
 
 
 
-
-

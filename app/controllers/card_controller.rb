@@ -2,13 +2,15 @@
 require 'xmlscan/processor'
 
 class CardController < ApplicationController
+  Card
   helper :wagn
 
   before_filter :index_preload, :only=> [ :index ]
   before_filter :read_file_preload, :only=> [ :read_file ]
 
   before_filter :load_card
-  before_filter :read_ok,   :only=> [ :read_file ]
+  before_filter :refresh_card, :only=> [ :create, :update, :delete, :comment, :rollback ]
+  before_filter :read_ok,      :only=> [ :read_file ]
 
   # rest XML put/post
   def read_xml(io)
@@ -103,27 +105,18 @@ Done"
   end
 
   def delete
-    @card = @card.refresh if @card.frozen? # put in model
     @card.confirm_destroy = params[:confirm_destroy]
     @card.destroy
 
     return show(:delete) if @card.errors[:confirmation_required].any?
 
     discard_locations_for(@card)
-
-    success 'REDIRECT: TO-PREVIOUS'
+    success 'REDIRECT: *previous'
   end
 
 
-  def index
-    read
-  end # handle in load card?
-
-
-  def read_file
-    show_file
-  end #FIXME!  move to pack
-
+  alias index read
+  alias read_file show_file
 
 
 
@@ -139,16 +132,19 @@ Done"
 
   def comment
     raise Wagn::BadAddress, "comment without card" unless params[:card]
+
+    # FIXME: need this loaded like an inflector, this can't be the only place that would use this
+    # or maybe wrap it with the split, map, join too, and why not strip it in any case?
+    to_html = lambda {|line| "<p>#{line.strip.empty? ? '&nbsp;' : line}</p>"}
+
     # this previously failed unless request.post?, but it is now (properly) a PUT.
     # if we enforce RESTful http methods, we should do it consistently,
     # and error should be 405 Method Not Allowed
+    author = Account.logged_in? ? "[[#{Account.authorized.name}]]" :
+              "#{session[:comment_author] = params[:card][:comment_author]} (Not signed in)"
+    comment = params[:card][:comment].split(/\n/).map(&to_html) * "\n"
 
-    @card = @card.refresh if @card.frozen?
-
-    author = Session.user_id == Card::AnonID ?
-        "#{session[:comment_author] = params[:card][:comment_author]} (Not signed in)" : "[[#{Session.user.card.name}]]"
-    comment = params[:card][:comment].split(/\n/).map{|c| "<p>#{c.strip.empty? ? '&nbsp;' : c}</p>"} * "\n"
-    @card.comment = "<hr>#{comment}<p><em>&nbsp;&nbsp;--#{author}.....#{Time.now}</em></p>"
+    @card.comment = %{<hr>#{ comment }<p><em>&nbsp;&nbsp;--#{ author }.....#{Time.now}</em></p>}
 
     if @card.save
       show
@@ -158,7 +154,6 @@ Done"
   end
 
   def rollback
-    @card = @card.refresh if @card.frozen?
     revision = @card.revisions[params[:rev].to_i - 1]
     @card.update_attributes! :content=>revision.content
     @card.attachment_link revision.id
@@ -167,9 +162,10 @@ Done"
 
 
   def watch
-    watchers = @card.trait_card(:watchers )
-    watchers = watchers.refresh if watchers.frozen?
-    myname = Card[Session.user_id].name
+    watchers = @card.fetch_or_new_trait(:watchers )
+    watchers = watchers.refresh
+    myname = Account.authorized.name
+    #warn "watch (#{myname}) #{watchers.inspect}, #{watchers.item_names.inspect}"
     watchers.send((params[:toggle]=='on' ? :add_item : :drop_item), myname)
     ajax? ? show(:watch) : read
   end
@@ -184,39 +180,42 @@ Done"
   def update_account
 
     if params[:save_roles]
-      role_card = @card.trait_card :roles
+      role_card = @card.fetch_or_new_trait :roles
       role_card.ok! :update
 
       role_hash = params[:user_roles] || {}
-      role_card = role_card.refresh if role_card.frozen?
+      role_card = role_card.refresh
       role_card.items= role_hash.keys.map &:to_i
     end
 
-    account = @card.to_user
-    if account and account_args = params[:account]
-      unless Session.as_id == @card.id and !account_args[:blocked]
-        @card.trait_card(:account).ok! :update
+    if account = @card.fetch_trait(:account) and user = Account.from_id(account.id) and
+           account_args = params[:account]
+      unless Account.authorized.id == account.id and !account_args[:blocked]
+        @card.ok! :update
       end
-      account.update_attributes account_args
+      user.update_attributes account_args
     end
 
-    if account && account.errors.any?
-      account.errors.each do |field, err|
+    if user && user.errors.any?
+      user.errors.each do |field, err|
         @card.errors.add field, err
       end
       errors
     else
-      show
+      success
     end
   end
 
+  # FIXME: make this part of create
   def create_account
-    @card.trait_card(:account).ok! :create
+    @card.fetch_or_new_trait(:account).ok! :create
     email_args = { :subject => "Your new #{Card.setting :title} account.",   #ENGLISH
                    :message => "Welcome!  You now have an account on #{Card.setting :title}." } #ENGLISH
-    @user, @card = User.create_with_card(params[:user],@card, email_args)
+    Rails.logger.info "create_account #{params[:user].inspect}, #{email_args.inspect}"
+    @user = Account.new params[:user]
+    @user.active
+    @card = @user.save_card(@card, email_args)
     raise ActiveRecord::RecordInvalid.new(@user) if !@user.errors.empty?
-    #@account = User.new(:email=>@user.email)
 #    flash[:notice] ||= "Done.  A password has been sent to that email." #ENGLISH
     params[:attribute] = :account
     show :options
@@ -240,11 +239,10 @@ Done"
   end
 
   def index_preload
-    Session.no_logins? ?
+    Account.no_logins? ?
       redirect_to( Card.path_setting '/admin/setup' ) :
-      params[:id] = (Card.setting(:home) || 'Home').to_cardname.url_key
+      params[:id] = (Card.setting(:home) || 'Home').to_name.url_key
   end
-
 
   def load_card
     # do content type processing, if it is an object, json or xml, parse that now and
@@ -257,8 +255,8 @@ Done"
       else
         opts = params[:card] ? params[:card].clone : (obj = params[:object]) ? obj : {}
         opts[:type] ||= params[:type] # for /new/:type shortcut.  we should fix and deprecate this.
-        name = params[:id] ? Wagn::Cardname.unescape( params[:id] ) : opts[:name]
-
+        name = params[:id] ? SmartName.unescape( params[:id] ) : opts[:name]
+        
         if @action == 'create'
           # FIXME we currently need a "new" card to catch duplicates (otherwise #save will just act like a normal update)
           # I think we may need to create a "#create" instance method that handles this checking.
@@ -274,27 +272,43 @@ Done"
     true
   end
 
+  def refresh_card
+    @card = @card.refresh
+  end
 
-  def success(default_target='TO-CARD')
+  #-------( REDIRECTION )
+
+  def success default_target='_self'
     target = params[:success] || default_target
     redirect = !ajax?
-
+    new_params = {}
+    
+    if Hash === target
+      new_params = target
+      target = new_params.delete :id # should be some error handling here
+      redirect ||= !!(new_params.delete :redirect)
+    end
+      
     if target =~ /^REDIRECT:\s*(.+)/
       redirect, target = true, $1
     end
 
     target = case target
-      when 'TO-PREVIOUS'   ;  previous_location
-      when 'TO-CARD'       ;  @card
+      when '*previous'     ;  previous_location #could do as *previous
+      when '_self  '       ;  @card #could do as _self
       when /^(http|\/)/    ;  target
       when /^TEXT:\s*(.+)/ ;  $1
-      else                 ;  Card.fetch_or_new(target)
+      else                 ;  Card.fetch_or_new target.to_name.to_absolute(@card.cardname)
       end
 
+    Rails.logger.info "redirect = #{redirect}, target = #{target}, new_params = #{new_params}"
     case
-    when  redirect        ; wagn_redirect ( Card===target ? wagn_path(target) : target )
+    when  redirect        ; wagn_redirect ( Card===target ? url_for_page(target.cardname, new_params) : target )
     when  String===target ; render :text => target
-    else  @card = target  ; show
+    else
+      @card = target
+      Rails.logger.info "view = #{new_params[:view]}"
+      show new_params[:view]
     end
   end
 

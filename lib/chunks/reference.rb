@@ -4,11 +4,11 @@ module Chunk
 
     def cardname=(name)
       return @cardname=nil unless name
-      @cardname = name.to_cardname
+      @cardname = name.to_name
     end
 
     def refcardname()
-      cardname && self.cardname = cardname.to_absolute(card.cardname).to_cardname
+      cardname && self.cardname = cardname.to_absolute(card.cardname).to_name
     end
 
     def reference_card()
@@ -24,3 +24,4 @@ module Chunk
     end
   end
 end
+

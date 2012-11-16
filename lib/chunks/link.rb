@@ -13,12 +13,12 @@ module Chunk
     def initialize match, card_params, params
       super
       if name=params[0]
-        self.cardname = name.to_cardname
+        self.cardname = name.to_name
         ltext=params[1]
         self.link_text= ltext.nil? ? name :
           ltext =~ /(^|[^\\]){{/ ? ObjectContent.new(ltext, @card_params) : ltext
       else
-        self.link_text= params[2]; self.cardname = params[3].to_cardname #.gsub(/_/,' ')
+        self.link_text= params[2]; self.cardname = params[3].to_name #.gsub(/_/,' ')
       end
       self
     end

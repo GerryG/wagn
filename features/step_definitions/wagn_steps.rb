@@ -4,11 +4,14 @@ require File.expand_path(File.join(File.dirname(__FILE__), "..", "support", "pat
 
 Given /^I log in as (.+)$/ do |user_card_name|
   # FIXME: define a faster simulate method ("I am logged in as")
-  @session_user = ucid = Card[user_card_name].id
-  user_object = User.where(:card_id=>ucid).first
+  account=Card[user_card_name]
+  @session_user = account.id
+  account=account.fetch_trait :account
+  user = Account.from_id(account.id)
+  email = user.email
   visit "/account/signin"
-  fill_in("login", :with=> user_object.email )
-  fill_in("password", :with=> user_object.login.split("_")[0]+"_pass")
+  fill_in("login", :with=> email )
+  fill_in("password", :with=> Account.from_id(account.id).login.split("_")[0]+"_pass")
   click_button("Sign me in")
   page.should have_content(user_card_name)
 end
@@ -20,7 +23,7 @@ Given /^I log out/ do
 end
 
 Given /^the card (.*) contains "([^\"]*)"$/ do |cardname, content|
-  Session.as_bot do
+  Account.as_bot do
     card = Card.fetch_or_create cardname
     card.content = content
     card.save!
@@ -29,13 +32,13 @@ end
 
 When /^(.*) edits? "([^\"]*)"$/ do |username, cardname|
   logged_in_as(username) do
-    visit "/card/edit/#{cardname.to_cardname.url_key}"
+    visit "/card/edit/#{cardname.to_name.url_key}"
   end
 end
 
 When /^(.*) edits? "([^\"]*)" entering "([^\"]*)" into wysiwyg$/ do |username, cardname, content|
   logged_in_as(username) do
-    visit "/card/edit/#{cardname.to_cardname.url_key}"
+    visit "/card/edit/#{cardname.to_name.url_key}"
     page.execute_script "$('#main .card-content').val('#{content}')"
     click_button("Submit")
   end
@@ -43,18 +46,18 @@ end
 
 
 When /^(.*) edits? "([^\"]*)" setting (.*) to "([^\"]*)"$/ do |username, cardname, field, content|
-  logged_in_as(username) do
-    visit "/card/edit/#{cardname.to_cardname.url_key}"
-    fill_in 'card[content]', :with=>content
+  logged_in_as(username) do 
+    visit "/card/edit/#{cardname.to_name.url_key}"
+    fill_in 'card[content]', :with=>content 
     click_button("Submit")
   end
 end
 
 When /^(.*) edits? "([^\"]*)" with plusses:/ do |username, cardname, plusses|
   logged_in_as(username) do
-    visit "/card/edit/#{cardname.to_cardname.url_key}"
+    visit "/card/edit/#{cardname.to_name.url_key}"
     plusses.hashes.first.each do |name, content|
-      fill_in "card[cards][#{(cardname+'+'+name).to_cardname.pre_cgi}][content]", :with=>content
+      fill_in "card[cards][#{(cardname+'+'+name).to_name.pre_cgi}][content]", :with=>content
     end
     click_button("Submit")
   end
@@ -86,7 +89,7 @@ end
 
 When /^(.*) deletes? "([^\"]*)"$/ do |username, cardname|
   logged_in_as(username) do
-    visit "/card/delete/#{cardname.to_cardname.url_key}?confirm_destroy=true"
+    visit "/card/delete/#{cardname.to_name.url_key}?confirm_destroy=true"
   end
 end
 

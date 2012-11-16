@@ -38,7 +38,7 @@ class Wagn::Renderer::JsonRenderer < Wagn::Renderer
 
   define_view :closed do |args|
     @state = :line
-    wrap(:closed, args) { _render_line args }
+    wrap(:closed, args) { _render_closed args }
   end
 
   define_view :array do |args|

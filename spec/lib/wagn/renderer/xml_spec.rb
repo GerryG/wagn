@@ -4,7 +4,7 @@ require File.dirname(__FILE__) + '/../../../packs/pack_spec_helper'
 describe Wagn::Renderer::Xml, "" do
   before do
     Wagn::Conf[:base_url] = nil
-    Session.user= :joe_user
+    Account.session = 'joe_user'
     Wagn::Renderer::Xml.current_slot = nil
   end
 
@@ -12,7 +12,7 @@ describe Wagn::Renderer::Xml, "" do
 
   context "special syntax handling should render" do
     #before do
-    #  Session.as_bot do
+    #  Account.as_bot do
     #  end
     #end
 
@@ -69,13 +69,13 @@ describe Wagn::Renderer::Xml, "" do
     end
 
     it "renders deny for unpermitted cards" do
-      #pending "with html"
-      Session.as_bot do
+      pending "with html"
+      Account.as_bot do
         Card.create(:name=>'Joe no see me', :type=>'Html', :content=>'secret')
         Card.create(:name=>'Joe no see me+*self+*read', :type=>'Pointer', :content=>'[[Administrator]]')
       end
-      Session.as :joe_user do
-        Wagn::Renderer::Xml.new(Card.fetch('Joe no see me')).render(:core).should == '' # { no_card(:status=>"deny view") }
+      Account.as 'joe_user' do
+        Wagn::Renderer::Xml.new(Card.fetch('Joe no see me')).render(:core).should be_html_with { no_card(:status=>"deny view") }
       end
     end
   end
@@ -245,7 +245,7 @@ describe Wagn::Renderer::Xml, "" do
     it "skips *content if narrower *default is present" do  #this seems more like a settings test
       pending
       content_card = default_card = nil
-      Session.as_bot do
+      Account.as_bot do
         content_card = Card.create!(:name=>"Phrase+*type+*content", :content=>"Content Foo" )
         default_card = Card.create!(:name=>"templated+*right+*default", :content=>"Default Bar" )
       end
@@ -296,7 +296,7 @@ describe Wagn::Renderer::Xml, "" do
 
     context "HTML" do
       before do
-        Session.user= Card::WagnBotID
+        Account.session = Card::WagnBotID
       end
 
       it "should have special editor" do
@@ -407,7 +407,7 @@ describe Wagn::Renderer::Xml, "" do
     context "*account link" do
       it "should have a 'my card' link" do
         pending
-        Session.as :joe_user do
+        Account.as 'joe_user' do
           render_card(:raw, :name=>'*account links').should be_html_with { span( :id=>'logging' ) {
               a( :id=>'my-card-link') { 'My Card: Joe User' }
             }
@@ -427,4 +427,17 @@ describe Wagn::Renderer::Xml, "" do
       xml_render_content('{{+cardipoo|open}}').match(/\<no_card status=\"missing\"\>Tempo Rary 2\+cardipoo\<\/no_card\>/ ).should_not be_nil
     end
   end
+
+
+  context "replace refs" do
+    before do
+      Account.session = Card::WagnBotID
+    end
+
+    it "replace references should work on inclusions inside links" do
+      card = Card.create!(:name=>"test", :content=>"[[test{{test}}]]"  )
+      assert_equal "[[test{{best}}]]", Wagn::Renderer::Xml.new(card).replace_references("test", "best" )
+    end
+  end
+
 end

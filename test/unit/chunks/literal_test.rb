@@ -1,6 +1,7 @@
 require File.expand_path('../../test_helper', File.dirname(__FILE__))
 
 class LiteralTest < ActiveSupport::TestCase
+
   def setup
     super
     setup_default_user
@@ -18,3 +19,4 @@ class LiteralTest < ActiveSupport::TestCase
   end
 
 end
+

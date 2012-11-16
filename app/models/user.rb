@@ -24,31 +24,9 @@ class User < ActiveRecord::Base
   before_save :encrypt_password
 
   class << self
-    def admin()          User.where(:card_id=>Card::WagnBotID).first end
-    def as_user()        User.where(:card_id=>Session.as_id).first   end
-    def user()           User.where(:card_id=>Session.user_id).first end
-    def from_id(card_id) User.where(:card_id=>card_id).first         end
-    def cache()          Wagn::Cache[User]                           end
-
-    # FIXME: args=params.  should be less coupled..
-    def create_with_card user_args, card_args, email_args={}
-      card_args[:type_id] ||= Card::UserID
-      @card = Card.fetch_or_new(card_args[:name], card_args)
-      Session.as_bot do
-        @user = User.new({:invite_sender=>Session.user_card, :status=>'active'}.merge(user_args))
-        #warn "user is #{@user.inspect}" unless @user.email
-        @user.generate_password if @user.password.blank?
-        @user.save_with_card(@card)
-        @user.send_account_info(email_args) if @user.errors.empty? && !email_args.empty?
-      end
-      [@user, @card]
-    end
-
-    # Authenticates a user by their login name and unencrypted password.  Returns the user or nil.
-    def authenticate(email, password)
-      u = self.find_by_email(email.strip.downcase)
-      u && u.authenticated?(password.strip) ? u : nil
-    end
+    def from_email(email) User.where(:email=>email.strip.downcase).first           end
+    def from_login(login) User.where(:login=>login).first                          end
+    def from_id(card_id)  User.where(:account_id=>card_id).first                   end
 
     # Encrypts some data with the salt.
     def encrypt(password, salt)
@@ -61,7 +39,7 @@ class User < ActiveRecord::Base
 
   def save_card args, email_args={}
     #Rails.logger.info  "create with(#{inspect}, #{args.inspect})"
-    @card = Card===args ?  args : Card.fetch_or_new(args[:name], args)
+    card = Card===args ?  args : Card.fetch_or_new(args[:name], args)
 
     #Rails.logger.debug "save_card saving #{inspect}, #{args.inspect}, #{Account.session.inspect}"
     active() if status.blank?
@@ -70,51 +48,31 @@ class User < ActiveRecord::Base
     Account.as_bot do
       begin
         User.transaction do
-          @card = @card.refresh
-          @card.type_id = Card::UserID unless @card.type_id == Card::UserID ||
-                                      @card.type_id == Card::AccountRequestID
-          newcard = @card.new_card?
-          @card.save
-          @card.errors.each { |key,err| errors.add key,err }
-          if (cn=@card.cardname).simple? || Codename[cn.right] == Card::AccountID
-            @account = @card.fetch_or_new_trait :account
-            newcard ||= @account.new_card?
-            @account.save
-            @account.errors.each { |key,err| errors.add key,err }
-          end
+          card = card.refresh
+          account = card.fetch_or_new_trait :account
 
-          self.card_id = @card.id
-          self.account_id = @account.id
-          if newcard && errors.any? || !(sv=save)
-            self.account_id=nil; save
-            raise ActiveRecord::Rollback # ROLLBACK should undo any changes made
+          card.type_id = Card::UserID unless card.type_id == Card::UserID ||
+                                      card.type_id == Card::AccountRequestID
+
+          if card.save && account.save
+            self.card_id = card.id
+            self.account_id = account.id
+            save
+          else
+            valid?
           end
+          card.errors.each { |key,err| errors.add key,err }
+          account.errors.each { |key,err| errors.add key,err }
+          raise ActiveRecord::Rollback if errors.any?
           true
         end
       rescue Exception => e
-        Rails.logger.info "save with card failed. #{e.inspect},  #{@card.inspect} Bt:#{e.backtrace*"\n"}"
+        Rails.logger.info "save with card failed. #{e.inspect},  #{card.inspect} Bt:#{e.backtrace*"\n"}"
       end
 
       self.send_account_info(email_args) if errors.empty? && !email_args.empty?
     end
-    @card
-  end
-
-  def save_with_card card
-    User.transaction do
-      card = card.refresh
-      if card.save
-        self.card_id = card.id
-        save
-      else
-        valid?
-      end
-      card.errors.each do |key,err|
-        self.errors.add key,err
-      end
-      raise ActiveRecord::Rollback if errors.any?
-      true
-    end
+    card
   end
 
   def accept card, email_args

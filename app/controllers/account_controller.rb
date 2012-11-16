@@ -8,22 +8,17 @@ class AccountController < ApplicationController
   #ENGLISH many messages throughout this file
   def signup
     raise(Wagn::Oops, "You have to sign out before signing up for a new Account") if logged_in?
-    signup_card=Card.new(:type_id=>Card::AccountRequestID)
-    raise(Wagn::PermissionDenied, "Sorry, no Signup allowed") unless signup_card.ok? :create
+    @card=Card.new((params[:card]||{}).merge(:type_id=>Card::AccountRequestID))
+    raise(Wagn::PermissionDenied, "Sorry, no Signup allowed") unless @card.ok? :create
 
     #does not validate password
     user_args = (user_args = params[:user]) && user_args.symbolize_keys || {}
     @user = Account.new user_args
     @user.pending
-    card_args = (params[:card]||{}).merge(:type_id=>Card::AccountRequestID)
 
-    unless request.post?
-      @card = Card.new( card_args )
-      return
-    end
+    return unless request.post?
 
-    return user_errors if @user.errors.any?
-    @user, @card = User.create_with_card( user_args, card_args )
+    @user.save_card( @card )
     return user_errors if @user.errors.any?
 
     if @card.trait_ok?(:account, :create)       #complete the signup now

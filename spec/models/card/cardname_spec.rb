@@ -31,10 +31,10 @@ describe SmartName, "changing from plus card to simple" do
     c.save
   end
 
-  it "should erase trunk and tag ids" do
+  it "should erase left and right ids (tag/trunk in db)" do
     c = Card['nine']
-    c.trunk_id.should== c.id
-    c.tag_id.should== c.id
+    c.left_id.should be_nil
+    c.right_id.should be_nil
   end
 
 end

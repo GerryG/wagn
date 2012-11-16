@@ -351,25 +351,32 @@ class Card < ActiveRecord::Base
 
 
   # FIXME: use delegations and include all cardname functions
-  def simple?()    cardname.simple?                        end
-  def junction?()  cardname.junction?                      end
 
-  def left()       Card.fetch left_id  || cardname.left    end
-  def right()      Card.fetch right_id || cardname.right   end
+  def simple?()        cardname.simple?                     end
+  def junction?()      cardname.junction?                   end
 
-  def trunk()      Card.fetch trunk_id || cardname.trunk   end
-  def tag()        Card.fetch tag_id   || cardname.tag     end
+  def left *args
+    unless updates.for? :name and name_without_tracking.to_name.key == cardname.left_name.key
+      #the ugly code above is to prevent recursion when, eg, renaming A+B to A+B+C
+      #it should really be testing for any trunk
+      Card.fetch cardname.left, *args
+    end
+  end
+  def right(*args)     Card.fetch cardname.right, *args     end
 
-  # this is a hack so to fix the internal rep while the attributes are missnamed in the db table
-  # it sets @tag/trunk_id for simple? cards
-  def tag_id()   (r=read_attribute :tag_id).nil? && simple? ? id : r   end
-  def trunk_id() (r=read_attribute :trunk_id).nil? && simple? ? id : r end
-  def right_id()   read_attribute(:tag_id)                 end
-  def left_id()    read_attribute(:trunk_id)               end
-  def trunk_name() x=trunk and x.name                      end
-  def tag_name()   x=tag  and x.name                       end
-  def left_name()  x=left  and x.name                      end
-  def right_name() x=right  and x.name                     end
+  def trunk(*args)     Card.fetch cardname.trunk, *args     end
+  def tag(*args)       Card.fetch cardname.tag,   *args     end
+
+  def left_or_new args={}
+    left args or Card.new args.merge(:name=>cardname.left)
+  end
+
+  # fixing the attributes internally
+  def right_id()        read_attribute :tag_id              end
+  def left_id()         read_attribute :trunk_id            end
+  # but the db field is still wrong, so AR will use these, can't remove these yet
+  #def tag_id()         raise "Deprecated, use right_id"     end
+  #def trunk_id()       raise "Deprecated, use left_id"      end
 
   def dependents
     new_card? ? [] : !@dependents.nil? ? @dependents : Account.as_bot do
@@ -512,12 +519,12 @@ class Card < ActiveRecord::Base
   end
 
   def parties
-    @parties ||= (trunk.all_roles << trunk_id).flatten.reject(&:blank?)
+    @parties ||= (trunk.all_roles << left_id).flatten.reject(&:blank?)
   end
 
   def read_rules
     @read_rules ||= begin
-      if id==Card::WagnBotID or trunk_id ==Card::WagnBotID
+      if id==Card::WagnBotID or left_id ==Card::WagnBotID
         [] # avoids infinite loop
       else
         party_keys = ['in', Card::AnyoneID] + parties
@@ -561,7 +568,7 @@ class Card < ActiveRecord::Base
 
   def inspect
     "#<#{self.class.name}" + "##{id}" +
-    "###{object_id}" + #"k#{tag_id}g#{tag_id}" +
+    "###{object_id}" + #":l:#{left_id}r:#{right_id}" +
     "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
     "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{virtual? &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }}" +
     #" Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}" +

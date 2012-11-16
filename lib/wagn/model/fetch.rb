@@ -51,10 +51,9 @@ module Wagn::Model::Fetch
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       opts[:skip_virtual] = true if opts[:loaded_left]
 
-      if not Integer===mark
+      if Integer===mark
+        raise "fetch of missing card_id #{mark}" if card.nil?
         return nil if card && opts[:skip_virtual] && card.new_card?
-      elsif card.nil?
-        raise "fetch of missing card_id #{mark}"
       end
       #warn "fetch 3 #{card.inspect}" if val=='a'
 
@@ -186,11 +185,13 @@ module Wagn::Model::Fetch
   end
 
   def refresh
-    if frozen?()
-      fresh_card = self.class.find id()
+    if self.frozen?
+      fresh_card = self.class.find id
       fresh_card.include_set_modules
       fresh_card
-    else self end
+    else
+      self
+    end
   end
 
   def self.included(base)

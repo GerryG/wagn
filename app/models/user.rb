@@ -24,9 +24,31 @@ class User < ActiveRecord::Base
   before_save :encrypt_password
 
   class << self
-    def from_email(email) User.where(:email=>email.strip.downcase).first           end
-    def from_login(login) User.where(:login=>login).first                          end
-    def from_id(card_id)  User.where(:account_id=>card_id).first                   end
+    def admin()          User.where(:card_id=>Card::WagnBotID).first end
+    def as_user()        User.where(:card_id=>Session.as_id).first   end
+    def user()           User.where(:card_id=>Session.user_id).first end
+    def from_id(card_id) User.where(:card_id=>card_id).first         end
+    def cache()          Wagn::Cache[User]                           end
+
+    # FIXME: args=params.  should be less coupled..
+    def create_with_card user_args, card_args, email_args={}
+      card_args[:type_id] ||= Card::UserID
+      @card = Card.fetch_or_new(card_args[:name], card_args)
+      Session.as_bot do
+        @user = User.new({:invite_sender=>Session.user_card, :status=>'active'}.merge(user_args))
+        #warn "user is #{@user.inspect}" unless @user.email
+        @user.generate_password if @user.password.blank?
+        @user.save_with_card(@card)
+        @user.send_account_info(email_args) if @user.errors.empty? && !email_args.empty?
+      end
+      [@user, @card]
+    end
+
+    # Authenticates a user by their login name and unencrypted password.  Returns the user or nil.
+    def authenticate(email, password)
+      u = self.find_by_email(email.strip.downcase)
+      u && u.authenticated?(password.strip) ? u : nil
+    end
 
     # Encrypts some data with the salt.
     def encrypt(password, salt)
@@ -76,6 +98,22 @@ class User < ActiveRecord::Base
       self.send_account_info(email_args) if errors.empty? && !email_args.empty?
     end
     @card
+
+  def save_with_card card
+    User.transaction do
+      card = card.refresh
+      if card.save
+        self.card_id = card.id
+        save
+      else
+        valid?
+      end
+      card.errors.each do |key,err|
+        self.errors.add key,err
+      end
+      raise ActiveRecord::Rollback if errors.any?
+      true
+    end
   end
 
   def accept card, email_args

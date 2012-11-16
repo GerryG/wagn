@@ -98,6 +98,7 @@ class User < ActiveRecord::Base
       self.send_account_info(email_args) if errors.empty? && !email_args.empty?
     end
     @card
+  end
 
   def save_with_card card
     User.transaction do

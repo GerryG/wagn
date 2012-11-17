@@ -41,7 +41,6 @@ class User < ActiveRecord::Base
     #Rails.logger.info  "create with(#{inspect}, #{args.inspect})"
     card = Card===args ?  args : Card.fetch_or_new(args[:name], args)
 
-    warn "save_card saving #{inspect}, #{args.inspect}, #{Account.session.inspect}"
     active() if status.blank?
     generate_password if password.blank?
 
@@ -54,23 +53,25 @@ class User < ActiveRecord::Base
           card.type_id = Card::UserID unless card.type_id == Card::UserID ||
                                       card.type_id == Card::AccountRequestID
 
-          if card.save && account.save
-            warn "save_card saved #{card.inspect}, #{account.inspect}, #{inspect}"
+          if card.save
+            valid? and account.save
             self.card_id = card.id
             self.account_id = account.id
             save
           else
-            warn "failed card save, validating user too #{errors.map{|k,v| "#{k} #{v}"}*", "}"
             valid?
           end
           card.errors.each { |key,err| errors.add key,err }
           account.errors.each { |key,err| errors.add key,err }
-          warn "retruning or raising #{errors.map{|k,v| "#{k} #{v}"}*", "}"
-          raise ActiveRecord::Rollback if errors.any?
+          if errors.any?
+            raise ActiveRecord::Rollback
+          end
           true
         end
       rescue Exception => e
-        Rails.logger.info "save with card failed. #{e.inspect},  #{card.inspect} Bt:#{e.backtrace*"\n"}"
+        Rails.logger.warn "except errs: #{errors.map{|k,v| "#{k} #{v}"}*", "}"
+        Rails.logger.warn "save with card failed. #{e.inspect},  #{card.inspect} Bt:#{e.backtrace*"\n"}"
+        false
       end
 
       self.send_account_info(email_args) if errors.empty? && !email_args.empty?

@@ -513,13 +513,12 @@ class Card < ActiveRecord::Base
 
   def among? authzed
     prties = parties
-    #Rails.logger.debug "among? #{prties.map{|x|Card[x].name}*', '} athzd:#{authzed.map{|x|Card[x].name}*', '}"
     authzed.each { |auth| return true if prties.member? auth }
     authzed.member? Card::AnyoneID
   end
 
   def parties
-    @parties ||= (trunk.all_roles << left_id).flatten.reject(&:blank?)
+    @parties ||= (trunk.all_roles << id).flatten.reject(&:blank?)
   end
 
   def read_rules
@@ -536,9 +535,15 @@ class Card < ActiveRecord::Base
   end
 
   def all_roles
-    @all_roles ||= (id==Card::AnonID ? [] : [Card::AuthID])
-    Account.as_bot { rcard=fetch_trait(:roles) and
-      items = rcard.item_cards(:limit=>0).map(&:id) and @all_roles += items }
+    if @all_roles.nil?
+      @all_roles = (id==Card::AnonID ? [] : [Card::AuthID])
+      Account.as_bot do
+        rcard=fetch_trait(:roles) and
+          items = rcard.item_cards(:limit=>0).map(&:id) and
+          @all_roles += items 
+      end
+    end
+    #warn "aroles #{inspect}, #{@all_roles.inspect}"
     @all_roles
   end
 
@@ -567,8 +572,8 @@ class Card < ActiveRecord::Base
   end
 
   def inspect
-    "#<#{self.class.name}" + "##{id}" +
-    "###{object_id}" + #":l:#{left_id}r:#{right_id}" +
+    "#<#{self.class.name}" + "##{id}" + # "###{object_id}" +
+    ":l:#{left_id}r:#{right_id}" +
     "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
     "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{virtual? &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }}" +
     #" Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}" +

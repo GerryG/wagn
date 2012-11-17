@@ -72,7 +72,7 @@ module Wagn::Model::Permissions
   end
 
   def who_can operation
-    #warn "who_can[#{name}] #{(prc=permission_rule_card(operation)).inspect}, #{prc.first.item_cards.map(&:name)}" if operation == :update
+    #warn "who_can[#{name}] #{(prc=permission_rule_card(operation)).inspect}, #{prc.first.item_cards.map(&:id)}" if operation == :update
     permission_rule_card(operation).first.item_cards.map(&:id)
   end
 
@@ -86,6 +86,7 @@ module Wagn::Model::Permissions
     rcard = Account.as_bot do
       if opcard.content == '_left' && self.junction?
         lcard = loaded_left || left_or_new( :skip_virtual=>true, :skip_modules=>true )
+        #warn "lcard #{lcard.inspect}, #{lcard.content}"
         lcard.permission_rule_card(operation).first
       else
         opcard
@@ -111,20 +112,19 @@ module Wagn::Model::Permissions
 
   def lets_user operation
     #warn "creating *account ??? #{caller[0..25]*"\n"}" if name == '*account' && operation==:create
-    #Rails.logger.warn "lets_user[#{operation}]#{inspect}" #if name=='Buffalo'
+    #warn "lets_user[#{operation}]#{inspect}" #if name=='Buffalo'
     return false if operation != :read    and Wagn::Conf[:read_only]
     return true  if operation != :comment and Account.always_ok?
 
     permitted_ids = who_can operation
 
-    r=
     if operation == :comment && Account.always_ok?
       # admin can comment if anyone can
       !permitted_ids.empty?
     else
+      #warn "lets_user[#{operation}]#{name} permitted:#{permitted_ids.map {|id|Card[id].name}*', '} " if name=='c1' and operation==:update
       Account.among? permitted_ids
     end
-    #warn "lets_user[#{operation}]#{name} #{Account.as_card.name}, #{permitted_ids.map {|id|Card[id].name}*', '} R:#{r}" if id == Card::WagnBotID || left_id== Card::WagnBotID; r
   end
 
   def approve_task operation, verb=nil

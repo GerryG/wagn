@@ -8,50 +8,39 @@ class AccountController < ApplicationController
   #ENGLISH many messages throughout this file
   def signup
     raise(Wagn::Oops, "You have to sign out before signing up for a new Account") if logged_in?
-    signup_card=Card.new(:type_id=>Card::AccountRequestID)
-    raise(Wagn::PermissionDenied, "Sorry, no Signup allowed") unless signup_card.ok? :create
-
+    @card=Card.new((params[:card]||{}).merge(:type_id=>Card::AccountRequestID))
+    #warn Rails.logger.warn("signup ok? #{@card.inspect}, #{@card.ok? :create}")
+    raise(Wagn::PermissionDenied, "Sorry, no Signup allowed") unless @card.ok? :create
+ 
     #does not validate password
-    user_args = (user_args = params[:user]) && user_args.symbolize_keys || {}
-    @user = Account.new user_args
+    @user = Account.new params[:user]
     @user.pending
-    card_args = (params[:card]||{}).merge(:type_id=>Card::AccountRequestID)
+ 
+    return unless request.post?
 
-    unless request.post?
-      @card = Card.new( card_args )
-      return
-    end
+    @user.save_card @card
+    return user_errors if @user.errors.any?
 
-    return render_user_errors if @user.errors.any?
-    @card = @user.save_card( card_args )
-    return render_user_errors if @user.errors.any?
-
-    if @card.trait_ok?(:account, :create)       #complete the signup now
+    if @card.trait_ok? :account, :create        #complete the signup now
       email_args = { :message => Card.setting('*signup+*message') || "Thanks for signing up to #{Card.setting('*title')}!",
                      :subject => Card.setting('*signup+*subject') || "Account info for #{Card.setting('*title')}!" }
       @user.accept(@card, email_args)
-      return wagn_redirect Card.path_setting(Card.setting('*signup+*thanks'))
+      return wagn_redirect Card.path_setting(Card.setting '*signup+*thanks')
     else
       Account.as_bot do
-        Mailer.signup_alert(@card).deliver if Card.setting('*request+*to')
+        Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'
       end
-      return wagn_redirect Card.path_setting(Card.setting('*request+*thanks'))
+      return wagn_redirect Card.path_setting(Card.setting '*request+*thanks')
     end
   end
-
-  def render_user_errors
-    @card.errors += @user.errors
-    errors
-  end
-
-
 
   def accept
     card_key=params[:card][:key]
     raise(Wagn::Oops, "I don't understand whom to accept") unless params[:card]
     @card = Card[card_key] or raise(Wagn::NotFound, "Can't find this Account Request")
-    @card=@card.fetch_trait(:account) and @user = Account.from_id(@card.id) or
-      raise(Wagn::Oops, "This card doesn't have an account to approve")
+    #warn "accept #{Account.user_id}, #{@card.inspect}"
+    @user = @card.fetch_trait(:account).user or raise(Wagn::Oops, "This card doesn't have an account to approve")
+    #warn "accept #{@user.inspect}"
     @card.ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create accounts")
 
     if request.post?
@@ -129,9 +118,9 @@ class AccountController < ApplicationController
 
   protected
 
-  def render_user_errors
+  def user_errors
     @user.errors.each do |field, err|
-      @card.errors.add field, err unless @card.errors[field]
+      @card.errors.add field, err unless @card.errors[field].any?
       # needed to prevent duplicates because User adds them in the other direction in user.rb
     end
     errors

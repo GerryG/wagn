@@ -37,7 +37,8 @@ class Wql
   def sql()                @sql ||= @card_spec.to_sql            end
 
   def run
-    rows = ActiveRecord::Base.connection.select_all( sql )
+    #warn "run wql[#{sql}] #{query.inspect} #{caller*"\n"}"
+    rows = ActiveRecord::Base.connection.select_all sql
     qr=query[:return]
     case qr = qr.nil? ? 'card' : qr.to_s
     when 'card'
@@ -493,11 +494,9 @@ class Wql
 
     def to_sql(field)
       op,v = @spec
-      #warn "to_sql(#{field}), #{op}, #{v}, #{@cardspec.inspect}"
       v=@cardspec.selfname if v=='_self'
       table = @cardspec.table_alias
 
-      #warn "to_sql #{field}, #{v} (#{op})"
       field, v = case field
         when "cond";     return "(#{sqlize(v)})"
         when "name";     ["#{table}.key",      [v].flatten.map(&:to_name).map(&:key)]
@@ -508,7 +507,7 @@ class Wql
         else;            ["#{table}.#{safe_sql(field)}", v]
         end
 
-      v = v[0] if Array===v && v.length==1
+      v = v[0] if Array===v && v.length==1 && Array===v[0]
       if op=='~'
         cxn, v = match_prep(v,@cardspec)
         %{#{field} #{cxn.match(sqlize(v))}}

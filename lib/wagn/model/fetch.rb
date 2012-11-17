@@ -40,7 +40,7 @@ module Wagn::Model::Fetch
       result = Card.cache.read cache_key if Card.cache
       card = (result && Integer===mark) ? Card.cache.read(result) : result
 
-      #warn "fetch 1 #{cache_key}, #{method}, #{val} #{card}" # if val=='a'
+      #Rails.logger.warn "fetch 1 #{cache_key}, #{method}, #{val} #{card.inspect}" if val=='joe_duplicate'
       unless card
         # DB lookup
         needs_caching = true
@@ -51,12 +51,11 @@ module Wagn::Model::Fetch
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       opts[:skip_virtual] = true if opts[:loaded_left]
 
-      if not Integer===mark
+      if Integer===mark
+        raise "fetch of missing card_id #{mark}" if card.nil?
         return nil if card && opts[:skip_virtual] && card.new_card?
-      elsif card.nil?
-        raise "fetch of missing card_id #{mark}"
       end
-      #warn "fetch 3 #{card.inspect}" if val=='a'
+      #Rails.logger.warn "fetch 3 #{card.inspect}" if val=='joe_duplicate'
 
         # NEW card -- (either virtual or missing)
       if card.nil? or card.trash or ( !opts[:skip_virtual] && card.type_id==-1 )
@@ -67,7 +66,7 @@ module Wagn::Model::Fetch
         new_args[:type_id] = -1 if opts[:skip_virtual]
         card = new new_args
       end
-      #warn "fetch 4 #{card.inspect}" if val=='a'
+      #Rails.logger.warn "fetch 4 #{card.inspect}" if val=='joe_duplicate'
 
       if needs_caching
         Card.cache.write card.key, card
@@ -86,7 +85,7 @@ module Wagn::Model::Fetch
       end
       #return nil if card.new_card? and ( card.trash || opts[:skip_virtual] || !card.virtual? )
 
-      #warn "fetch returning #{cache_key} #{card.inspect}"
+      #Rails.logger.warn "fetch returning #{cache_key} #{card.inspect}" if val=='joe_duplicate'
       card.include_set_modules unless opts[:skip_modules]
       card
 #      end
@@ -186,11 +185,13 @@ module Wagn::Model::Fetch
   end
 
   def refresh
-    if frozen?()
-      fresh_card = self.class.find id()
+    if self.frozen?
+      fresh_card = self.class.find id
       fresh_card.include_set_modules
       fresh_card
-    else self end
+    else
+      self
+    end
   end
 
   def self.included(base)

@@ -193,6 +193,7 @@ describe Card, "Cardtype with Existing Cards" do
     @ct = Card['Cardtype F']
   end
   it "should have existing cards of that type" do
+    Card.search(:type=>@ct.id).should_not be_empty
     Card.search(:type=>@ct.name).should_not be_empty
   end
 

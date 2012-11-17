@@ -39,43 +39,44 @@ class User < ActiveRecord::Base
 
   def save_card args, email_args={}
     #Rails.logger.info  "create with(#{inspect}, #{args.inspect})"
-    @card = Card===args ?  args : Card.fetch_or_new(args[:name], args)
+    card = Card===args ?  args : Card.fetch_or_new(args[:name], args)
 
-    #Rails.logger.debug "save_card saving #{inspect}, #{args.inspect}, #{Account.session.inspect}"
     active() if status.blank?
     generate_password if password.blank?
 
     Account.as_bot do
       begin
         User.transaction do
-          @card = @card.refresh
-          @card.type_id = Card::UserID unless @card.type_id == Card::UserID ||
-                                      @card.type_id == Card::AccountRequestID
-          newcard = @card.new_card?
-          @card.save
-          @card.errors.each { |key,err| errors.add key,err }
-          if (cn=@card.cardname).simple? || Codename[cn.right] == Card::AccountID
-            @account = @card.fetch_or_new_trait :account
-            newcard ||= @account.new_card?
-            @account.save
-            @account.errors.each { |key,err| errors.add key,err }
-          end
+          card = card.refresh
+          account = card.fetch_or_new_trait :account
 
-          self.card_id = @card.id
-          self.account_id = @account.id
-          if newcard && errors.any? || !(sv=save)
-            self.account_id=nil; save
-            raise ActiveRecord::Rollback # ROLLBACK should undo any changes made
+          card.type_id = Card::UserID unless card.type_id == Card::UserID ||
+                                      card.type_id == Card::AccountRequestID
+
+          if card.save
+            valid? and account.save
+            self.card_id = card.id
+            self.account_id = account.id
+            save
+          else
+            valid?
+          end
+          card.errors.each { |key,err| errors.add key,err }
+          account.errors.each { |key,err| errors.add key,err }
+          if errors.any?
+            raise ActiveRecord::Rollback
           end
           true
         end
       rescue Exception => e
-        Rails.logger.info "save with card failed. #{e.inspect},  #{@card.inspect} Bt:#{e.backtrace*"\n"}"
+        Rails.logger.warn "except errs: #{errors.map{|k,v| "#{k} #{v}"}*", "}"
+        Rails.logger.warn "save with card failed. #{e.inspect},  #{card.inspect} Bt:#{e.backtrace*"\n"}"
+        false
       end
 
       self.send_account_info(email_args) if errors.empty? && !email_args.empty?
     end
-    @card
+    card
   end
 
   def accept card, email_args

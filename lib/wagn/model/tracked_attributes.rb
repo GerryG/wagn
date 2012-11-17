@@ -16,6 +16,7 @@ module Wagn::Model::TrackedAttributes
 
   protected
   def set_name newname
+    Rails.logger.info "set_name #{newname}"
     @old_name = self.name_without_tracking
     return if @old_name == newname.to_s
     #Rails.logger.warn "rename . #{inspect}, N:#{newname}, O:#{@old_name}"

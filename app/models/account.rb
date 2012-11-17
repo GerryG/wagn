@@ -35,7 +35,7 @@ class Account
     def from_id(card_id)       @@session_class.from_id(card_id) || ANONUSER                 end
 
     def admin?()
-      acid = (ac=as_card).new_card? ? ac.trunk_id : ac.id
+      acid = (ac=as_card).new_card? ? ac.left_id : ac.id
       acid==BOTCARD.id || acid == Card::WagnBotID
     end
 
@@ -47,7 +47,7 @@ class Account
     # We only need to test for the tag presence for migrations, we are going to  make sure it
     # exists and is indestructable (add tests for that)
     #def authorized()          as_card.trunk                                                 end
-    def authorized() (ac=as_card).tag_id == Card::AccountID || ac.new_card? ? ac.trunk : ac  end
+    def authorized()           (ac=as_card).right_id == Card::AccountID ? ac.trunk : ac     end
     def as_bot(&block)         as Card::WagnBotID, &block                                   end
     def among?(authzed)        authorized.among? authzed                                    end
     def logged_in?()           session.id != ANONCARD.id                                    end
@@ -87,16 +87,17 @@ class Account
     end
 
     def [] account
-      Rails.logger.debug "account lookup: #{account.inspect}"
-      return Card[account.account_id] if @@session_class===account
-      account = acct = Card===account ? account : Card[account]
-      # if this isn't a Right::Account yet, fetch it
-      acct = acct.fetch_trait(:account) unless acct.id == ANONCARD.id || acct.tag_id==Card::AccountID
-      raise "no account #{account}" if acct.nil?
-      # if it is new, then A: no WagnBot account, so accept the WagnBot card for migrations to work
-      acct = account.id == Card::WagnBotID ? account : Account::ANONCARD if acct.nil?
-      #Rails.logger.info "account lookup: acct:#{acct.inspect} cd:#{account.inspect}"
-      acct
+      if @@session_class===account
+        Card[account.account_id]
+      else
+        account = acct = Card===account ? account : Card[account]
+        # if this isn't a Right::Account yet, fetch it
+        if acct.right_id == Card::AccountID; acct
+        else # no WagnBot account, accept WagnBot card for migrations to work
+          acct = acct.fetch_trait(:account) and acct or
+            (account.id == Card::WagnBotID ? account : Account::ANONCARD)
+        end
+      end
     end
 
   protected

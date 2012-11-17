@@ -71,24 +71,25 @@ module Wagn::Model::Permissions
     trait = fetch_trait(tagcode) and trait.ok?(operation)
   end
 
-  def who_can(operation)
-    #Rails.logger.info "who_can[#{name}] #{(prc=permission_rule_card(operation)).inspect}, #{prc.first.item_cards.map(&:name)}" #if operation == :delete
+  def who_can operation
+    #warn "who_can[#{name}] #{(prc=permission_rule_card(operation)).inspect}, #{prc.first.item_cards.map(&:id)}" if operation == :update
     permission_rule_card(operation).first.item_cards.map(&:id)
   end
 
-  def permission_rule_card(operation)
-    opcard = rule_card(operation)
+  def permission_rule_card operation
+    opcard = rule_card operation
     unless opcard
       errors.add :permission_denied, "No #{operation} setting card for #{name}"
       raise Card::PermissionDenied.new(self)
     end
 
-    rcard = begin
-      Account.as_bot do
-        if opcard.content == '_left' && self.junction?
-          (loaded_left || Card.fetch_or_new(trunk_name, :skip_virtual=>true, :skip_modules=>true)).
-            permission_rule_card(operation).first 
-        else opcard end
+    rcard = Account.as_bot do
+      if opcard.content == '_left' && self.junction?
+        lcard = loaded_left || left_or_new( :skip_virtual=>true, :skip_modules=>true )
+        #warn "lcard #{lcard.inspect}, #{lcard.content}"
+        lcard.permission_rule_card(operation).first
+      else
+        opcard
       end
     end
     #Rails.logger.warn "permission_rule_card[#{name}] #{rcard&&rcard.name}, #{opcard.rule_name.inspect}, #{opcard.inspect}" #if opcard.name == '*logo+*self+*read'
@@ -100,7 +101,7 @@ module Wagn::Model::Permissions
   end
 
   protected
-  def you_cant(what)
+  def you_cant what
     "#{ydhpt} #{what}"
   end
 
@@ -111,20 +112,19 @@ module Wagn::Model::Permissions
 
   def lets_user operation
     #warn "creating *account ??? #{caller[0..25]*"\n"}" if name == '*account' && operation==:create
-    #Rails.logger.warn "lets_user[#{operation}]#{inspect}" #if name=='Buffalo'
+    #warn "lets_user[#{operation}]#{inspect}" #if name=='Buffalo'
     return false if operation != :read    and Wagn::Conf[:read_only]
     return true  if operation != :comment and Account.always_ok?
 
     permitted_ids = who_can operation
 
-    r=
     if operation == :comment && Account.always_ok?
       # admin can comment if anyone can
       !permitted_ids.empty?
     else
+      #warn "lets_user[#{operation}]#{name} permitted:#{permitted_ids.map {|id|Card[id].name}*', '} " if name=='c1' and operation==:update
       Account.among? permitted_ids
     end
-    #warn "lets_user[#{operation}]#{name} #{Account.as_card.name}, #{permitted_ids.map {|id|Card[id].name}*', '} R:#{r}" if id == Card::WagnBotID || trunk_id== Card::WagnBotID; r
   end
 
   def approve_task operation, verb=nil
@@ -254,7 +254,7 @@ module Wagn::Model::Permissions
 
   def update_ruled_cards
     # FIXME: codename
-    if junction? && tag_id==Card::ReadID && (@name_or_content_changed || @trash_changed)
+    if junction? && right_id==Card::ReadID && (@name_or_content_changed || @trash_changed)
       # These instance vars are messy.  should use tracked attributes' @changed variable
       # and get rid of @name_changed, @name_or_content_changed, and @trash_changed.
       # Above should look like [:name, :content, :trash].member?( @changed.keys ).

@@ -52,7 +52,7 @@ module Wagn
     end
 
     define_view :comment_box, :denial=>:blank,
-          :perms=>lambda { |r| r.card.ok?(:comment) } do |args|
+          :perms=>lambda { |r| r.card.ok? :comment } do |args|
       %{<div class="comment-box nodblclick"> #{
         card_form :comment do |f|
           %{#{f.text_area :comment, :rows=>3 }<br/> #{
@@ -472,7 +472,7 @@ module Wagn
     define_view :delete do |args|
       wrap :delete, args do
       %{#{ _render_header}
-      #{card_form :delete, '', 'data-type'=>'html', 'main-success'=>'REDIRECT: TO-PREVIOUS' do |f|
+      #{card_form :delete, '', 'data-type'=>'html', 'main-success'=>'REDIRECT: *previous' do |f|
 
         %{#{ hidden_field_tag 'confirm_destroy', 'true' }#{
           hidden_field_tag 'success', "TEXT: #{card.name} deleted" }

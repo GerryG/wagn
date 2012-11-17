@@ -12,7 +12,7 @@ class Mailer < ActionMailer::Base
 
   def account_info user, args
     user_card, subject, message = Card[user.account_id], args[:subject], args[:message]
-    Rails.logger.info "account_info #{user.inspect}, #{user_card.inspect}, #{subject}"
+    #Rails.logger.info "account_info #{user.inspect}, #{user_card.inspect}, #{subject}"
     url_key = user_card.cardname.url_key
 
     @email    = (user.email    or raise Wagn::Oops.new("Oops didn't have user email"))

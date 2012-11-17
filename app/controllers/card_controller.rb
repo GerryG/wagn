@@ -110,8 +110,7 @@ class CardController < ApplicationController
   def update_account
 
     if params[:save_roles]
-      role_card = @card.fetch_or_new_trait :roles
-      role_card.ok! :update
+      @card.trait_ok! :roles, :update
 
       role_hash = params[:user_roles] || {}
       role_card = role_card.refresh
@@ -138,7 +137,7 @@ class CardController < ApplicationController
 
   # FIXME: make this part of create
   def create_account
-    @card.fetch_or_new_trait(:account).ok! :create
+    @card.trait_ok! :account, :create
     email_args = { :subject => "Your new #{Card.setting :title} account.",   #ENGLISH
                    :message => "Welcome!  You now have an account on #{Card.setting :title}." } #ENGLISH
     Rails.logger.info "create_account #{params[:user].inspect}, #{email_args.inspect}"

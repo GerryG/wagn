@@ -14,78 +14,67 @@ module Wagn::Model::Fetch
     #   - cache
     #   - database
     #   - virtual cards
-
+    #
+    # "mark" here means a generic identifier -- can be a numeric id, a name, a string name, etc.
+    #
     def fetch mark, opts = {}
-      # "mark" here means a generic identifier -- can be a numeric id, a name, a string name, etc.
 #      ActiveSupport::Notifications.instrument 'wagn.fetch', :message=>"fetch #{cardname}" do
       return nil if mark.nil?
-      #warn "fetch #{mark.inspect}, #{opts.inspect}"
       # Symbol (codename) handling
       if Symbol===mark
         mark = Wagn::Codename[mark] || raise("Missing codename for #{mark.inspect}")
       end
 
 
-      cache_key, method, val = if Integer===mark
-        [ "~#{mark}", :find, mark ]
-      else
-        key = mark.to_name.key
-        [ key, :find_by_key, key ]
-      end
+      key = Integer===mark ? "~#{mark}" : mark.to_name.key
 
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       # lookup card
 
+      #warn "fetch #{key}, #{mark}"
       #Cache lookup
-      result = Card.cache.read cache_key if Card.cache
-      card = (result && Integer===mark) ? Card.cache.read(result) : result
+      val = Card.cache.read key
+      card = (val && Integer===mark) ? Card.cache.read(val) : val
 
-      #Rails.logger.warn "fetch 1 #{cache_key}, #{method}, #{val} #{card.inspect}" if val=='joe_duplicate'
-      unless card
-        # DB lookup
+      # DB lookup
+      if card.nil?
         needs_caching = true
-        card = Card.send method, val
+        card = if Integer===mark
+            Card.find mark
+          else
+            Card.where(:key=> key, :trash=>false).first
+          end
       end
-      #warn "fetch 2 #{card.class}"
 
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       opts[:skip_virtual] = true if opts[:loaded_left]
 
       if Integer===mark
-        raise "fetch of missing card_id #{mark}" if card.nil?
+        raise "fetch of missing card_id #{mark}" if card.nil? || card.trash
+      else
         return nil if card && opts[:skip_virtual] && card.new_card?
-      end
-      #Rails.logger.warn "fetch 3 #{card.inspect}" if val=='joe_duplicate'
 
         # NEW card -- (either virtual or missing)
-      if card.nil? or card.trash or ( !opts[:skip_virtual] && card.type_id==-1 )
-        # The -1 type_id allows us to skip all the type lookup and flag the need for
-        # reinitialization later.  *** It should NEVER be seen elsewhere ***
-        needs_caching = true
-        new_args = { :name=>mark.to_s, :skip_modules=>true }
-        new_args[:type_id] = -1 if opts[:skip_virtual]
-        card = new new_args
+        if card.nil? or ( !opts[:skip_virtual] && card.type_id==-1 )
+          # The -1 type_id allows us to skip all the type lookup and flag the need for
+          # reinitialization later.  *** It should NEVER be seen elsewhere ***
+          needs_caching = true
+          new_args = { :name=>mark.to_s, :skip_modules=>true }
+          new_args[:type_id] = -1 if opts[:skip_virtual]
+          card = new new_args
+        end
       end
-      #Rails.logger.warn "fetch 4 #{card.inspect}" if val=='joe_duplicate'
 
       if needs_caching
         Card.cache.write card.key, card
-        if not card.nil? and cid=card.id
-          unless card.trash; Card.cache.write "~#{cid}", card.key
-          else               Card.cache.delete "~#{cid}"  end
+        if cid=card.id and cid != 0
+          Card.cache.write "~#{cid}", card.key
         end
       end
 
-      if card.new_card?
-        if card.trash
-          card.trash=false
-        elsif opts[:skip_virtual] || !card.virtual?
-          return nil
-        end
-      end
-      #return nil if card.new_card? and ( card.trash || opts[:skip_virtual] || !card.virtual? )
+      return nil if card.new_card? and (opts[:skip_virtual] || !card.virtual?)
 
-      #Rails.logger.warn "fetch returning #{cache_key} #{card.inspect}" if val=='joe_duplicate'
+      #warn "fetch returning #{card.inspect}"
       card.include_set_modules unless opts[:skip_modules]
       card
 #      end

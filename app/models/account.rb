@@ -46,8 +46,8 @@ class Account
     def as_card()              @@as_card || session                                         end
     # We only need to test for the tag presence for migrations, we are going to  make sure it
     # exists and is indestructable (add tests for that)
-    #def authorized()          as_card.trunk                                                 end
-    def authorized()           (ac=as_card).right_id == Card::AccountID ? ac.trunk : ac     end
+    def authorized()          as_card.trunk                                                 end
+    #def authorized()           (ac=as_card).right_id == Card::AccountID ? ac.trunk : ac     end
     def as_bot(&block)         as Card::WagnBotID, &block                                   end
     def among?(authzed)        authorized.among? authzed                                    end
     def logged_in?()           session.id != ANONCARD.id                                    end

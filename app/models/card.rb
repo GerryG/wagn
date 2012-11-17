@@ -201,6 +201,7 @@ class Card < ActiveRecord::Base
 
   def set_stamper
     self.updater_id = Account.authorized.id
+    Rails.logger.warn "sstamper #{Account.authorized.inspect}"
     self.creator_id = self.updater_id if new_card?
   end
 

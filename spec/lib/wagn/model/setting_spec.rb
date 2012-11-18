@@ -217,62 +217,6 @@ describe Card do
       end
     end
   end
-#end
-
-  context "*account rules follow alternate pattern search" do
-    before do
-      @ucard = Card['joe user']
-      @pluscard = Card['A+B']
-      Account.as_bot { Card.create :name=>'*all+*account', :content=>'Dummy Value' }
-      @ucard_rule = Card.new :name=>'Joe User+*account', :content=>'Dummy Value'
-      @pluscard_rule = Card.new :name=>'A+B+*account', :content=>'Dummy Value1'
-    end
-
-    describe "Real sets have only *all and self pattern" do
-      it "should give empty list for a bad kind" do
-        @ucard.real_set_names(:traits).should == []
-      end
-
-      it "should still have the default patterns and no self for a User card" do
-        @ucard.real_set_names(:default).should == ['User+*type', '*all']
-        @ucard.real_set_names.should == ['User+*type', '*all']
-      end
-
-      it "should still have the default patterns and no self for a plus card" do
-        @pluscard.real_set_names(:default).should == ['Basic+*type', '*all plus', '*all']
-        @pluscard.real_set_names.should == ['Basic+*type', '*all plus', '*all']
-      end
-
-      it "should not have a type pattern and special self key" do
-        @ucard.real_set_names(:trait).should == ['Joe User', '*all']
-      end
-
-      it "should not have a type pattern and special self key" do
-        @pluscard.real_set_names(:trait).should == ['A+B', '*all']
-      end
-    end
-
-    describe "Specail rules recognized" do
-      it "should find a default rule" do
-        pending "Need a trait setting to test :account is now special"
-        #warn "rcard : #{@ucard.rule_card(:account).inspect}, #{@ucard.inspect}"
-        @ucard.rule_card(:account).should be
-        @ucard.rule_card(:account).name.should == '*all+*account'
-        @pluscard.rule_card(:account).name.should == '*all+*account'
-      end
-       
-      it "should find new self rules" do
-        pending "Need a trait setting to test :account is now special"
-        Account.as_bot do
-          @ucard_rule.save
-          @pluscard_rule.save
-        end
-        #@ucard.rule_card(:account).should be
-        @ucard.rule_card(:account).name.should == 'Joe User+*account'
-        @pluscard.rule_card(:account).name.should == 'A+B+*account'
-      end
-    end
-  end
 
   context "when I change the general toc setting to 1" do
 

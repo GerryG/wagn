@@ -1,6 +1,11 @@
 module Wagn::Set::Self::Input
   module Model
-    def setting_group(e=nil) e==:pointer && :pointer end
-    def setting_seq() 19 end
+    def config key=nil
+      @configs||={
+        :group=>:pointer_group,
+        :seq=>19
+      }
+      key.nil? ? @configs : @configs[key.to_sym]
+    end
   end
 end

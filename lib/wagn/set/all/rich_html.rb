@@ -290,7 +290,7 @@ module Wagn
     define_view :options, :perms=>:none do |args|
       attribute = params[:attribute]
 
-      attribute ||= if card.user and ( Account.as_card.id==card.id or (tc=card.fetch_or_new_trait(:account) and tc.ok?(:update)) )
+      attribute ||= if card.user and ( Account.as_card.id==card.id or (card.trait_ok? :account, :update) )
         'account' else 'settings' end
       render "option_#{attribute}"
     end
@@ -352,7 +352,7 @@ module Wagn
                   #{ raw subrenderer( Card.fetch current_set).render_content }
                 </div>
              
-                #{ if Card.toggle(card.rule(:accountable)) && tc.card.trait_ok?(:account,:create)
+                #{ if (tc=card.fetch_or_new_trait :account).new_card? && tc.ok?(:create) && Card.toggle(card.rule :accountable)
                     %{<div class="new-account-link">
                     #{ link_to %{Add a sign-in account for "#{card.name}"},
                         path(:options, :attrib=>:new_account),
@@ -401,8 +401,16 @@ module Wagn
          option(option_content, :name=>"roles",
         :help=>%{ <span class="small">"#{ link_to_page 'Roles' }" are used to set user permissions</span>}, #ENGLISH
         :label=>"#{card.name}'s Roles",
-        :editable=>card.fetch_or_new_trait(:roles).ok?(:update)
+        :editable=>card.trait_ok?(:roles, :update)
       )}}
+    end
+
+    define_view :account_email do |args|
+      %{<tr>
+         <td class="label"><label for="email">Email</label></td>
+         <td class="field">#{text_field :user, :email }</td>
+         <td class="help"><strong>To verify account</strong><br/></td>
+       </tr>} #ENGLISH%>
     end
 
     define_view :option_new_account do |args|
@@ -411,7 +419,7 @@ module Wagn
         #ENGLISH below
 
           %{<table class="fieldset">
-          #{render :partial=>'account/email' }
+          #{_render_account_email }
              <tr><td colspan="3" style><p>
          A password for a new sign-in account will be sent to the above address.
              #{ submit_tag 'Create Account' }

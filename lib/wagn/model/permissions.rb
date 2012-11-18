@@ -67,8 +67,16 @@ module Wagn::Model::Permissions
     end
   end
 
+  def trait_ok! tagcode, operation
+    # it can be new? for create, others have to exist
+    operation == :create ? fetch_or_new_trait(tagcode).ok!(operation) :
+      (trait = fetch_trait(tagcode) and trait.ok!(operation))
+  end
+
   def trait_ok? tagcode, operation
-    trait = fetch_trait(tagcode) and trait.ok?(operation)
+    # it can be new? for create, others have to exist
+    operation == :create ? fetch_or_new_trait(tagcode).ok?(operation) :
+      (trait = fetch_trait(tagcode) and trait.ok?(operation))
   end
 
   def who_can operation

@@ -84,7 +84,7 @@ describe Card do
       c = Card.fetch_or_new('*account+*related+*self')
       c.save if c.new_card?
       c = Card.fetch_or_new('*account+*related+*self')
-      c.set_group.should == :pointer
+      c.set_group.should == :pointer_group
     end
 
   end

@@ -32,8 +32,9 @@ module Wagn
   end
 
   module Model
-    def setting_kind() :default end
-    def setting_group(extra=nil) :other end
-    def setting_seq() 9999 end
+    def config key=nil
+      @configs||= {:seq=>9999}
+      key.nil? ? @configs : @configs[key.to_sym]
+    end
   end
 end

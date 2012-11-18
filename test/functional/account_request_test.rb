@@ -14,7 +14,7 @@ class InvitationRequestTest < ActionController::TestCase
     @request    = ActionController::TestRequest.new
     @response   = ActionController::TestResponse.new
 
-    Session.as_bot do
+    Account.as_bot do
       Card.create(:name=>'Account Request+*type+*captcha', :content=>'0')
     end
   end

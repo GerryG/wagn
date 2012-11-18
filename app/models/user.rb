@@ -28,8 +28,8 @@ class User < ActiveRecord::Base
 
   class << self
     def admin()          User.where(:card_id=>Card::WagnBotID).first end
-    def as_user()        User.where(:card_id=>Session.as_id).first   end
-    def user()           User.where(:card_id=>Session.user_id).first end
+    def as_user()        User.where(:card_id=>Account.as_id).first   end
+    def user()           User.where(:card_id=>Account.user_id).first end
     def from_id(card_id) User.where(:card_id=>card_id).first         end
     def cache()          Wagn::Cache[User]                           end
 
@@ -37,8 +37,8 @@ class User < ActiveRecord::Base
     def create_with_card user_args, card_args, email_args={}
       card_args[:type_id] ||= Card::UserID
       @card = Card.fetch_or_new(card_args[:name], card_args)
-      Session.as_bot do
-        @user = User.new({:invite_sender=>Session.user_card, :status=>'active'}.merge(user_args))
+      Account.as_bot do
+        @user = User.new({:invite_sender=>Account.user_card, :status=>'active'}.merge(user_args))
         #warn "user is #{@user.inspect}" unless @user.email
         @user.generate_password if @user.password.blank?
         @user.save_with_card(@card)
@@ -108,10 +108,10 @@ class User < ActiveRecord::Base
   end
 
   def accept(card, email_args)
-    Session.as_bot do #what permissions does approver lack?  Should we check for them?
+    Account.as_bot do #what permissions does approver lack?  Should we check for them?
       card.type_id = Card::UserID # Invite Request -> User
       self.status='active'
-      self.invite_sender = Session.user_card
+      self.invite_sender = Account.user_card
       generate_password
       r=save_with_card(card)
     end

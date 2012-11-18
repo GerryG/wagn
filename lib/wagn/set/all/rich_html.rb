@@ -352,7 +352,7 @@ module Wagn
                   #{ raw subrenderer( Card.fetch current_set).render_content }
                 </div>
              
-                #{ if Card.toggle(card.rule(:accountable)) && tc.card.trait_ok?(:account,:create)
+                #{ if (tc=card.fetch_or_new_trait :account).new_card? && tc.ok?(:create) && Card.toggle(card.rule :accountable)
                     %{<div class="new-account-link">
                     #{ link_to %{Add a sign-in account for "#{card.name}"},
                         path(:options, :attrib=>:new_account),
@@ -405,13 +405,21 @@ module Wagn
       )}}
     end
 
+    define_view :account_email do |args|
+      %{<tr>
+         <td class="label"><label for="email">Email</label></td>
+         <td class="field">#{text_field :user, :email }</td>
+         <td class="help"><strong>To verify account</strong><br/></td>
+       </tr>} #ENGLISH%>
+    end
+
     define_view :option_new_account do |args|
       %{#{raw( options_submenu(:account) ) }#{
         card_form :create_account do |form|
         #ENGLISH below
 
           %{<table class="fieldset">
-          #{render :partial=>'account/email' }
+          #{_render_account_email }
              <tr><td colspan="3" style><p>
          A password for a new sign-in account will be sent to the above address.
              #{ submit_tag 'Create Account' }

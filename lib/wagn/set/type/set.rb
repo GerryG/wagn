@@ -13,25 +13,24 @@ module Wagn
     #  :look    => 'Look and Feel',
     #  :com     => 'Communication',
     #  :other   => 'Other',
-    #  :pointer => 'Pointer'
+    #  :pointer_group => 'Pointer'
     #}
     # should construct this from a search:
     # to  model/settings: Card class method
     def setting_groups
-      [:perms, :look, :com, :pointer, :other]
+      [:perms, :look, :com, :pointer_group, :other]
     end
 
     define_view :core , :type=>:set do |args|
       body = card.setting_names_by_group.map do |group, data|
-        next if data.nil?
+        next if group.nil? || data.nil?
         content_tag(:tr, :class=>"rule-group") do
           (["#{Card[group].name} Settings"]+%w{Content Type}).map do |heading|
             content_tag(:th, :class=>'rule-heading') { heading }
           end * "\n"
         end +
-        raw( data.map do |setting_code|
-          setting_name = (setting_card=Card[setting_code]).nil? ? "no setting ?" : setting_card.name
-          rule_card = card.fetch_or_new_trait setting_code
+        raw( data.map do |setting_card|
+          rule_card = card.fetch_or_new_trait setting_card.codename
           process_inclusion rule_card, :view=>:closed_rule
         end * "\n" )
       end.compact * ''
@@ -75,7 +74,7 @@ module Wagn
 
       def set_group
         Card::PointerID == ( templt = fetch_trait(:content) || fetch_trait(:default) and
-            templt.type_id or right_id == Card::TypeID ? left_id : trunk.type_id ) and :pointer or nil
+            templt.type_id or right_id == Card::TypeID ? left_id : trunk.type_id ) and :pointer_group or nil
       end
 
       def label
@@ -87,13 +86,12 @@ module Wagn
       end
 
       def setting_names_by_group
-        Card.universal_setting_names_by_group.clone.merge(
-          if Card::PointerID == ( templt = fetch_trait(:content) || fetch_trait(:default) and
-                templt.type_id or right_id == Card::TypeID ? left_id : trunk.type_id )
-           {:pointer => ['*options','*options label','*input']}
-          else
-            {} end
-        )
+        usnbg=Card.setting_names_by_group.clone
+        unless Card::PointerID == ( templt = fetch_trait(:content) || fetch_trait(:default) and
+                (templt.type_id or right_id == Card::TypeID ? left_id : trunk.type_id) )
+          usnbg.delete :pointer_group
+        end
+        usnbg
       end
 
       def prototype

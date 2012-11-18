@@ -1,6 +1,11 @@
 module Wagn::Set::Self::Send
   module Model
-    def setting_group(e=nil) :com end
-    def setting_seq() 12 end
+    def config key=nil
+      @configs||={
+        :group=>:com,
+        :seq=>12
+      }
+      key.nil? ? @configs : @configs[key.to_sym]
+    end
   end
 end

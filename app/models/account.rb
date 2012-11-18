@@ -28,7 +28,7 @@ class Account
     end
     # can these just be delegations:
     # delegate @@acount_class, :new, :from_email, :from_login, :from_id, :save_card
-    def new(args)              @@session_class.new(args)                                    end
+    def new(args={})           @@session_class.new(args)                                    end
     def save_card(card, email) @@session_class.save_card(card, email)                       end
     def from_email(email)      @@session_class.from_email(email)                            end
     def from_login(login)      @@session_class.from_login(login)                            end

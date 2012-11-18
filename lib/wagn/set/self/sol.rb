@@ -1,7 +1,12 @@
 
 module Wagn::Set::Self::Sol
   module Model
-    def setting_kind(e=nil) :trait end
-    def setting_seq() 99 end
+    def config key=nil
+      @configs||={
+        :trait=>true,
+        :seq=>99
+      }
+      key.nil? ? @configs : @configs[key.to_sym]
+    end
   end
 end

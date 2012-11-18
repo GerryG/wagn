@@ -1,6 +1,11 @@
 module Wagn::Set::Self::Default
   module Model
-    def setting_group(e=nil) :look end
-    def setting_seq() 6 end
+    def config key=nil
+      @configs||={
+        :group=>:look,
+        :seq=>6
+      }
+      key.nil? ? @configs : @configs[key.to_sym]
+    end
   end
 end

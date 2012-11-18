@@ -3,7 +3,7 @@ module Wagn::Set::Self::Autoname
     def config key=nil
       @configs||={
         :group=>:other,
-        :seq=>14
+        :seq=>97
       }
       key.nil? ? @configs : @configs[key.to_sym]
     end

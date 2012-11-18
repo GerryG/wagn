@@ -523,4 +523,16 @@ describe Wagn::Renderer, "" do
     end
   end
 
+#~~~~~~~~~~~~ card component views
+  context "Card menu and submenu" do
+    it "regular cards have only setting (no submenu)" do
+      # no accountable, no link
+    end
+    it "accountable cards show Add account link on settings sub-option" do
+    end
+    it "accountable cards with an account don't show link" do
+    end
+
+  end
+
 end

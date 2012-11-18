@@ -3,7 +3,7 @@ module Wagn::Set::Self::Captcha
     def config key=nil
       @configs||={
         :group=>:other,
-        :seq=>16
+        :seq=>98
       }
       key.nil? ? @configs : @configs[key.to_sym]
     end

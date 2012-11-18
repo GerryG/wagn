@@ -261,7 +261,7 @@ module Wagn
     define_view :related do |args|
       sources = [card.type_name,nil]
       # FIXME codename *account
-      sources.unshift '*account' if [Card::WagnBotID, Card::AnonID].member?(card.id) || card.typecode==:user
+      sources.unshift '*account' if [Card::WagnBotID, Card::AnonID].member?(card.id) || card.type_id==Card::UserID
       items = sources.map do |source|
         c = Card.fetch(source ? source.to_name.trait_name(:related) : Card::RelatedID)
         c && c.item_names
@@ -290,7 +290,8 @@ module Wagn
     define_view :options, :perms=>:none do |args|
       attribute = params[:attribute]
 
-      attribute ||= if card.user and ( Account.as_card.id==card.id or (card.trait_ok? :account, :update) )
+      Rails.logger.warn "opt attr #{attribute}, #{card.user.inspect}"
+      attribute ||= if card.trait_ok? :account, :update
         'account' else 'settings' end
       render "option_#{attribute}"
     end
@@ -328,7 +329,7 @@ module Wagn
 
     define_view :option_settings do |args|
       related_sets = card.related_sets
-      current_set = params[:current_set] || related_sets[(card.type_id==Card::CardtypeID ? 1 : 0)]  #FIXME - explicit cardtype reference
+      current_set = params[:current_set] || related_sets[card.type_id==Card::CardtypeID ? 1 : 0]  #FIXME - explicit cardtype reference
       set_options = related_sets.map do |set_name|
         set_card = Card.fetch set_name
         selected = set_card.key == current_set.to_name.key ? 'selected="selected"' : ''
@@ -408,7 +409,9 @@ module Wagn
     define_view :account_email do |args|
       %{<tr>
          <td class="label"><label for="email">Email</label></td>
-         <td class="field">#{text_field :user, :email }</td>
+         <td class="field">#{
+        #Rails.logger.warn "email field #{card.inspect} #{user.inspect}"
+text_field :user, :email }</td>
          <td class="help"><strong>To verify account</strong><br/></td>
        </tr>} #ENGLISH%>
     end

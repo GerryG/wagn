@@ -27,7 +27,8 @@ class Card < ActiveRecord::Base
 
   belongs_to :card, :class_name => 'Card', :foreign_key => :creator_id
   belongs_to :card, :class_name => 'Card', :foreign_key => :updater_id
-  has_one    :user, :class_name => 'User', :foreign_key => :account_id
+  has_one    :user, :class_name => 'User', :foreign_key => :card_id
+  has_one    :account, :class_name => 'User'
 
   before_save :set_stamper, :base_before_save, :set_read_rule, :set_tracked_attributes
   after_save :base_after_save, :update_ruled_cards, :update_queue, :expire_related

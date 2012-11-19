@@ -291,7 +291,7 @@ module Wagn
       attribute = params[:attribute]
 
       Rails.logger.warn "opt attr #{attribute}, #{card.user.inspect}"
-      attribute ||= if card.trait_ok? :account, :update
+      attribute ||= if card.user and (Account.authorized == card.id or card.trait_ok? :account, :update)
         'account' else 'settings' end
       render "option_#{attribute}"
     end

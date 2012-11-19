@@ -35,6 +35,7 @@ Spork.prefork do
     config.use_instantiated_fixtures  = false
 
     config.before(:each) do
+      Account.reset
       Wagn::Cache.restore
     end
     config.after(:each) do

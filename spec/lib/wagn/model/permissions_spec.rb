@@ -5,6 +5,7 @@ require File.expand_path('../../../packs/pack_spec_helper', File.dirname(__FILE_
 describe "reader rules" do
   before do
     @perm_card =  Card.new(:name=>'Home+*self+*read', :type=>'Pointer', :content=>'[[Anyone Signed In]]')
+    Rails.logger.info "perm card #{@perm_card.inspect}"
   end
 
   it "should be *all+*read by default" do
@@ -35,8 +36,8 @@ describe "reader rules" do
     card.read_rule_id.should == @perm_card.id
     card.who_can(:read).should == [Card['joe_admin'].id]
     Account.as(:anonymous) { card.ok?(:read).should be_false }
-    Account.as(:joe_user)  { card.ok?(:read).should be_false }
-    Account.as(:joe_admin) { card.ok?(:read).should be_true  }
+    Account.as('joe_user')  { card.ok?(:read).should be_false }
+    Account.as('joe_admin') { card.ok?(:read).should be_true  }
     Account.as_bot         { card.ok?(:read).should be_true  }
   end
 
@@ -93,11 +94,13 @@ describe "reader rules" do
   it "should get updated when trunk type change makes type-plus-right apply / unapply" do
     @perm_card.name = "Phrase+B+*type plus right+*read"
     Account.as_bot { @perm_card.save! }
+    Rails.logger.warn "renamed perm_card and saved #{@perm_card.inspect}"
     Card.fetch('A+B').read_rule_id.should == Card.fetch('*all+*read').id
     c = Card.fetch('A')
     c.type_id = Card::PhraseID
-    c.save!
+    Account.as_bot { c.save! }
     Card.fetch('A+B').read_rule_id.should == @perm_card.id
+    Rails.logger.warn "tested"
   end
 
   it "should work with relative settings" do
@@ -106,7 +109,7 @@ describe "reader rules" do
     c = Card.new(:name=>'Home+Heart')
     c.who_can(:read).should == [Card::AuthID]
     c.permission_rule_card(:read).first.id.should == @perm_card.id
-    c.save
+    Account.as_bot { c.save }
     c.read_rule_id.should == @perm_card.id
   end
 
@@ -115,7 +118,7 @@ describe "reader rules" do
     c = Card.new(:name=>'Home+Heart')
     c.who_can(:read).should == [Card::AnyoneID]
     c.permission_rule_card(:read).first.id.should == Card.fetch('*all+*read').id
-    c.save
+    Account.as_bot { c.save }
     c.read_rule_id.should == Card.fetch('*all+*read').id
     Account.as_bot { @perm_card.save! }
     c2 = Card.fetch('Home+Heart')
@@ -150,7 +153,6 @@ end
 describe "Permission", ActiveSupport::TestCase do
   before do
     Account.as_bot do
-      User.cache.reset
       @u1, @u2, @u3, @r1, @r2, @r3, @c1, @c2, @c3 =
         %w( u1 u2 u3 r1 r2 r3 c1 c2 c3 ).map do |x| Card[x] end
     end
@@ -161,10 +163,10 @@ describe "Permission", ActiveSupport::TestCase do
     Account.as_bot do
       Account.always_ok?.should == true
     end
-    Account.as(:joe_user) do
+    Account.as('joe_user') do
       Account.always_ok?.should == false
     end
-    Account.as(:joe_admin) do
+    Account.as('joe_admin') do
       Account.always_ok?.should == true
       Card.create! :name=>"Hidden"
       Card.create(:name=>'Hidden+*self+*read', :type=>'Pointer', :content=>'[[Anyone Signed In]]')
@@ -198,13 +200,13 @@ describe "Permission", ActiveSupport::TestCase do
 
   it "write user permissions" do
     Account.as_bot {
-      rc=@u1.trait_card(:roles)
+      rc=@u1.fetch_or_new_trait(:roles)
       rc.content = ''; rc << @r1 << @r2
       rc.save
-      rc=@u2.trait_card(:roles)
+      rc=@u2.fetch_or_new_trait(:roles)
       rc.content = ''; rc << @r1 << @r3
       rc.save
-      rc=@u3.trait_card(:roles)
+      rc=@u3.fetch_or_new_trait(:roles)
       rc.content = ''; rc << @r1 << @r2 << @r3
       rc.save
 
@@ -215,12 +217,10 @@ describe "Permission", ActiveSupport::TestCase do
 
     @c1 = Card['c1']
     assert_not_locked_from( @u1, @c1 )
-    Rails.logger.info "testing point 1 #{@u2.inspect}, #{@c1.inspect}"
     assert_locked_from( @u2, @c1 )
     assert_locked_from( @u3, @c1 )
 
     @c2 = Card['c2']
-    Rails.logger.info "testing point 2 #{@u1.inspect}, #{@c2.inspect}"
     assert_locked_from( @u1, @c2 )
     assert_not_locked_from( @u2, @c2 )
     assert_locked_from( @u3, @c2 )
@@ -228,10 +228,10 @@ describe "Permission", ActiveSupport::TestCase do
 
   it "read group permissions" do
     Account.as_bot do
-      rc=@u1.trait_card(:roles)
+      rc=@u1.fetch_or_new_trait(:roles)
       rc.content = ''; rc << @r1 << @r2
       rc.save
-      rc=@u2.trait_card(:roles)
+      rc=@u2.fetch_or_new_trait(:roles)
       rc.content = ''; rc << @r1 << @r3
       rc.save
 
@@ -255,7 +255,7 @@ describe "Permission", ActiveSupport::TestCase do
         Card.create(:name=>"c#{num}+*self+*update", :type=>'Pointer', :content=>"[[r#{num}]]")
       end
 
-      (rc=@u3.trait_card(:roles)).content =  ''
+      (rc=@u3.fetch_or_new_trait(:roles)).content =  ''
       rc << @r1
     end
 
@@ -278,11 +278,11 @@ describe "Permission", ActiveSupport::TestCase do
 
   it "read user permissions" do
     Account.as_bot {
-      (rc=@u1.trait_card(:roles)).content = ''
+      (rc=@u1.fetch_or_new_trait(:roles)).content = ''
       rc << @r1 << @r2
-      (rc=@u2.trait_card(:roles)).content = ''
+      (rc=@u2.fetch_or_new_trait(:roles)).content = ''
       rc << @r1 << @r3
-      (rc=@u3.trait_card(:roles)).content = ''
+      (rc=@u3.fetch_or_new_trait(:roles)).content = ''
       rc << @r1 << @r2 << @r3
 
       [1,2,3].each do |num|
@@ -320,7 +320,7 @@ describe "Permission", ActiveSupport::TestCase do
   end
 
   it "role wql" do
-    #warn "u1 roles #{Card[ @u1.id ].trait_card(:roles).item_names.inspect}"
+    #warn "u1 roles #{Card[ @u1.id ].fetch_or_new_trait(:roles).item_names.inspect}"
 
     # set up cards of type TestType, 2 with nil reader, 1 with role1 reader
     Account.as_bot do
@@ -333,7 +333,7 @@ describe "Permission", ActiveSupport::TestCase do
     Account.as(@u1) do
       Card.search(:content=>'WeirdWord').plot(:name).sort.should == %w( c1 c2 c3 )
     end
-    Account.user=nil # for Account.as to be effective, you can't have a logged in user
+    Account.session =Account::ANONCARD # for Account.as to be effective, you can't have a logged in user
     Account.as(@u2) do
       Card.search(:content=>'WeirdWord').plot(:name).sort.should == %w( c2 c3 )
     end
@@ -365,7 +365,7 @@ end
 
 
 describe Card, "new permissions" do
-  Account.as :joe_user
+  Account.as 'joe_user'
 
   it "should let joe view new cards" do
     @c = Card.new
@@ -377,7 +377,7 @@ end
 
 describe Card, "default permissions" do
   before do
-    Account.as :joe_user do
+    Account.as 'joe_user' do
       @c = Card.create! :name=>"sky blue"
     end
   end
@@ -389,7 +389,7 @@ describe Card, "default permissions" do
   end
 
   it "should let joe view basic cards" do
-    Account.as :joe_user do
+    Account.as 'joe_user' do
       @c.ok?(:read).should be_true
     end
   end
@@ -411,10 +411,10 @@ describe Card, "settings based permissions" do
   it "should handle delete as a setting" do
     c = Card.new :name=>'whatever'
     c.who_can(:delete).should == [Card['joe_user'].id]
-    Account.as(:joe_user) do
+    Account.as('joe_user') do
       c.ok?(:delete).should == true
     end
-    Account.as(:u1) do
+    Account.as('u1') do
       c.ok?(:delete).should == false
     end
     Account.as(:anonymous) do

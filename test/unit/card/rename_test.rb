@@ -1,5 +1,7 @@
 require File.expand_path('../../test_helper', File.dirname(__FILE__))
-class Card::RenameTest < ActiveSupport::TestCase
+
+class Card
+ class RenameTest < ActiveSupport::TestCase
 
 
   # FIXME: these tests are TOO SLOW!  8s against server, 12s from command line.
@@ -10,6 +12,7 @@ class Card::RenameTest < ActiveSupport::TestCase
 
   def setup
     super
+    setup_default_user
     Account.as_bot do
      Card.create! :name => "chuck_wagn+chuck"
      Card.create! :name => "Blue"
@@ -23,20 +26,16 @@ class Card::RenameTest < ActiveSupport::TestCase
      Card.create! :type=>"Cardtype", :name=>"Dairy", :content => "[[/new/{{_self|name}}|new]]"
      
      c3, c4 = Card["chuck_wagn+chuck"], Card["chuck"]
-     Rails.logger.info "testing point 0 #{c3.right}, #{c3}, #{c4}"
     end
-    setup_default_user
-    super
   end
 
   def test_subdivision
-    assert_rename card("A+B"), "A+B+T"  # re-uses the parent card: A+B
+    Account.as_bot do assert_rename card("A+B"), "A+B+T" end  # re-uses the parent card: A+B
   end
 
 
   def test_rename_name_substitution
     c1, c2 = Card["chuck_wagn+chuck"], Card["chuck"]
-    Rails.logger.info "testing point #{c1}, #{c2}"
     assert_rename c2, "buck"
     assert_equal "chuck_wagn+buck", Card.find(c1.id).name
   end
@@ -156,7 +155,8 @@ class Card::RenameTest < ActiveSupport::TestCase
   end
 
   def card(name)
-    Card[name].refresh or raise "Couldn't find card named #{name}"
+    c=Card.fetch name
+    c.refresh or raise "Couldn't find card named #{name}"
   end
 
   def test_renaming_card_with_self_link_should_not_hang
@@ -193,4 +193,5 @@ class Card::RenameTest < ActiveSupport::TestCase
     c.update_attributes! :name => "Seed", :update_referencers => true
     assert true  # just make sure nothing exploded
   end
+ end
 end

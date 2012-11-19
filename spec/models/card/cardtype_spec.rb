@@ -9,7 +9,7 @@ end
 describe "Card (Cardtype)" do
 
   before do
-    Account.as :joe_user
+    Account.as 'joe_user'
   end
 
   it "should not allow cardtype remove when instances present" do
@@ -69,7 +69,7 @@ end
 
 describe Card, "created without permission" do
   before do
-    Account.user= Card::AnonID
+    Account.session = Card::AnonID
   end
 
   # FIXME:  this one should pass.  unfortunately when I tried to fix it it started looking like the clean solution
@@ -166,14 +166,14 @@ describe User, "Joe User" do
       Card.create :name=>'Cardtype F+*type+*create', :type=>'Pointer', :content=>'[[r3]]'
     end
 
-    Account.as :joe_user
-    @user = User.user
-    @ucard = Card[@user.card_id]
+    Account.as 'joe_user'
+    @user = Account.from_id(Account.as_card.id)
+    @ucard = Card[@user.account_id]
     @type_names = Account.createable_types
   end
 
   it "should not have r3 permissions" do
-    @ucard.trait_card(:roles).item_names.member?(@r3.name).should be_false
+    @ucard.fetch_or_new_trait(:roles).item_names.member?(@r3.name).should be_false
   end
   it "should ponder creating a card of Cardtype F, but find that he lacks create permissions" do
     Card.new(:type=>'Cardtype F').ok?(:create).should be_false
@@ -193,6 +193,7 @@ describe Card, "Cardtype with Existing Cards" do
     @ct = Card['Cardtype F']
   end
   it "should have existing cards of that type" do
+    Card.search(:type=>@ct.id).should_not be_empty
     Card.search(:type=>@ct.name).should_not be_empty
   end
 

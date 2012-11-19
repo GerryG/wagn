@@ -20,14 +20,14 @@ class SharedData
 
     ja_card = Card.create! :typecode=>'user', :name=>"Joe Admin", :content => "I'm number one"
     joe_admin = User.create! :login=>"joe_admin",:email=>'joe@admin.com', :status => 'active', :password=>'joe_pass', :password_confirmation=>'joe_pass', :invite_sender=>Card[Card::WagnBotID], :card_id=>ja_card.id
-    roles_card = ja_card.trait_card(:roles)
+    roles_card = ja_card.fetch_or_new_trait(:roles)
     #warn "roles card for #{ja_card.name} is #{roles_card.inspect}"
     roles_card << Card::AdminID
-    # FIXME: improve API: roles_card = jc_card.trait_card(:roles) << ja_card
+    # FIXME: improve API: roles_card = jc_card.fetch_or_new_trait(:roles) << ja_card
     #roles_card = Card.fetch_or_new(jc_card.cardname.trait_name(:roles),
     #                               :type_id=>Card::PointerID)
     #roles_card.add_item( ja_card.name )
-    #jc_card.trait_card(:roles) << joe_admin
+    #jc_card.fetch_or_new_trait(:roles) << joe_admin
     #Role[:admin].users<< [ joe_admin ]
 
     jc_card = Card.create! :typecode=>'user', :name=>"Joe Camel", :content => "Mr. Buttz"
@@ -75,9 +75,9 @@ class SharedData
     r3 = Card.create!( :typecode=>'role', :name=>'r3' )
     r4 = Card.create!( :typecode=>'role', :name=>'r4' )
 
-    u1.trait_card(:roles) << r1 << r2 << r3
-    u2.trait_card(:roles) << r1 << r2 << r4
-    u3_star = u3.trait_card(:roles) << r1 << r4
+    u1.fetch_or_new_trait(:roles) << r1 << r2 << r3
+    u2.fetch_or_new_trait(:roles) << r1 << r2 << r4
+    u3_star = u3.fetch_or_new_trait(:roles) << r1 << r4
     #r1.users = [ u1, u2, u3 ]
     #r2.users = [ u1, u2 ]
     #r3.users = [ u1 ]
@@ -130,11 +130,11 @@ class SharedData
     Card.create! :type_id=>Card::CardtypeID, :name=> "UserForm"
     Card.create! :name=>"UserForm+*type+*content", :content=>"{{+name}} {{+age}} {{+description}}"
 
-    Account.user = :joe_user
+    Account.session = 'joe_user'
     Card.create!( :name=>"JoeLater", :content=>"test")
     Card.create!( :name=>"JoeNow", :content=>"test")
 
-    Account.user = :wagn_bot
+    Account.session = :wagn_bot
     Card.create!(:name=>"AdminNow", :content=>"test")
 
     Card.create :name=>'Cardtype B+*type+*create', :type=>'Pointer', :content=>'[[r1]]'
@@ -187,7 +187,7 @@ class SharedData
     Card.create :name=>'TwwoHeading', :content => "<h1>One Heading</h1>\r\n<p>and some text</p>\r\n<h2>And a Subheading</h2>\r\n<p>and more text</p>"
     Card.create :name=>'ThreeHeading', :content =>"<h1>A Heading</h1>\r\n<p>and text</p>\r\n<h2>And Subhead</h2>\r\n<p>text</p>\r\n<h1>And another top Heading</h1>"
 
-    c=Card.fetch_or_new('Basic+*type').trait_card(:table_of_contents)
+    c=Card.fetch_or_new('Basic+*type').fetch_or_new_trait(:table_of_contents)
     c.content='2'
     c.save
 

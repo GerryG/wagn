@@ -73,7 +73,7 @@ class CardActionTest < ActionController::IntegrationTest
 
   def test_newcard_works_with_fuzzy_renamed_cardtype
     given_card({:typecode=>:cardtype, :name=>"ZFoo", :content => ""})
-    Account.as(:joe_user) do
+    Account.as 'joe_user' do
       Card["ZFoo"].update_attributes! :name=>"ZFooRenamed", :update_referencers=>true
     end
 
@@ -114,22 +114,22 @@ class CardActionTest < ActionController::IntegrationTest
       assert_response 200
     end
     email = ActionMailer::Base.deliveries[-1]
-    # emails should be 'from' inviting user
-    #assert_equal Account.user.email, email.from[0]
-    #assert_equal 'active', User.find_by_email('new@user.com').status
-    #assert_equal 'active', User.find_by_email('new@user.com').status
+    assert_equal Account.session.email, email.from[0]
+    assert user = Account.from_email('foo@bar.com')
+    assert_equal 'active', user.status
   end
 
   def test_update_user_account_email
     post '/card/update_account', :id=>"Joe User".to_name.key, :account => { :email => 'joe@user.co.uk' }
-    assert User.where(:card_id=>Card['joe_user'].id).first.email == 'joe@user.co.uk'
+    assert user = Account.from_id(Card['joe_user+*account'].id)
+    assert user.email == 'joe@user.co.uk'
   end
 
   def test_user_cant_block_self
+    assert user = Account.from_id(Card['joe_user+*account'].id)
     post '/card/update_account', :id=>"Joe User".to_name.key, :account => { :blocked => '1' }
-    assert !User.where(:card_id=>Card['joe_user'].id).first.blocked?
+    assert !user.blocked?
   end
-#=end
 end
 
 

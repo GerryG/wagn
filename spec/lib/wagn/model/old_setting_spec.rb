@@ -58,6 +58,7 @@ describe Card do
       @pointer_settings = ['*options','*options label','*input']
     end
     it "returns universal setting names for non-pointer set" do
+      pending "Different api, we should just put the tests in a new spec for that"
       snbg = Card.fetch('*star').setting_names_by_group
       #warn "snbg #{snbg.class} #{snbg.inspect}"
       snbg.keys.length.should == 4
@@ -66,20 +67,16 @@ describe Card do
     end
 
     it "returns pointer-specific setting names for pointer card (*type)" do
+      pending "Different api, we should just put the tests in a new spec for that"
       # was this test wrong before?  What made Fruit a pointer without this?
       Account.as_bot do
-        Rails.logger.info "testing point 0"
         c1=Card.create! :name=>'Fruit+*type+*default', :type=>'Pointer'
-        #warn (Rails.logger.info "testing point 1 #{c1.inspect}")
         Card.create! :name=>'Pointer+*type'
       end
       c2 = Card.fetch('Fruit+*type')
-      #warn(Rails.logger.info "testing point 2 #{c2.inspect}")
       snbg = c2.setting_names_by_group
-      #warn "snbg #{snbg.class}, #{snbg.inspect}"
       snbg[:pointer].map(&:to_s).should == @pointer_settings
       c3 = Card.fetch('Pointer+*type')
-      #warn(Rails.logger.info "testing point 3 #{c3.inspect}")
       snbg = c3.setting_names_by_group
       snbg[:pointer].map(&:to_s).should == @pointer_settings
     end
@@ -88,9 +85,7 @@ describe Card do
       c = Card.fetch_or_new('*account+*related+*self')
       c.save if c.new_card?
       c = Card.fetch_or_new('*account+*related+*self')
-      snbg = c.setting_names_by_group
-      #warn "snbg #{snbg}, #{c.inspect}"
-      snbg[:pointer].map(&:to_s).should == @pointer_settings
+      c.set_group.should == :pointer_group
     end
 
   end

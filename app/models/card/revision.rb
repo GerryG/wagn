@@ -9,7 +9,7 @@ class Card::Revision < ActiveRecord::Base
   before_save :set_stamper
 
   def set_stamper
-    self.creator_id = Account.user_id
+    self.creator_id = Account.authorized.id
   end
 
   def author

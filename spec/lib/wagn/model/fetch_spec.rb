@@ -36,10 +36,6 @@ describe Card do
         card.name.should == "Joe User+*email"
         Wagn::Renderer.new(card).render_raw.should == 'joe@user.com'
       end
-      #card.raw_content.should == 'joe@user.com'
-      #cached_card = Card.cache.read("joe_user+*email")
-      #cached_card.missing?.should be_true
-      #cached_card.virtual?.should be_true
     end
 
     it "fetches virtual cards after skipping them" do
@@ -115,24 +111,17 @@ describe Card do
 
       it "should recognize pattern overrides" do
         tc=Card.create!(:name => "y+*right+*content", :content => "Right Content")
-        Rails.logger.info "testing point 0 #{tc.inspect}"
         card = Card.fetch("a+y")
-        Rails.logger.debug "failing 2"
         card.virtual?.should be_true
         card.content.should == "Right Content"
-        Rails.logger.info "testing point 1 #{card.inspect}"
         tpr = Card.create!(:name => "Basic+y+*type plus right+*content", :content => "Type Plus Right Content")
-        Rails.logger.info "testing point 1a #{tpr.inspect}"
         card.reset_patterns
         card = Card.fetch("a+y")
         card.reset_patterns
-        Rails.logger.info "testing point 2 #{card.inspect} #{card.content}"
         card.virtual?.should be_true
         card.content.should == "Type Plus Right Content"
         tpr.destroy!
-        Rails.logger.info "testing point 3 #{card.inspect}"
         card.reset_patterns
-        Rails.logger.info "testing point 4 #{card.inspect}"
         card = Card.fetch("a+y")
         card.virtual?.should be_true
         card.content.should == "Right Content"
@@ -176,7 +165,7 @@ describe Card do
   end
 
   describe "#fetch_virtual" do
-    before { Account.as :joe_user }
+    before { Account.as 'joe_user' }
 
     it "should find cards with *right+*content specified" do
       Account.as_bot do

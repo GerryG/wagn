@@ -215,7 +215,6 @@ describe Card do
       end
     end
   end
-#end
 
   context "when I change the general toc setting to 1" do
 

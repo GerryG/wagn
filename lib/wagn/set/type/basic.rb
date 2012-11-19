@@ -9,7 +9,7 @@ module Wagn::Set::Type::Basic
     def table_of_contents(content)
       return if @mode==:closed
       min = self.rule(:table_of_contents).to_i
-      warn "table_of #{name}, #{min}"
+      #warn "table_of #{name}, #{min}"
       return unless min and min > 0
 
       toc, dep = [], 1
@@ -28,7 +28,7 @@ module Wagn::Set::Type::Basic
         %{<a name="#{item[:uri]}"></a>#{match}}
       end
 
-      warn "table_of #{name}, #{toc.inspect}"
+      #warn "table_of #{name}, #{toc.inspect}"
       if toc.flatten.length >= min
         content.replace %{ <div class="table-of-contents"> <h5>Table of Contents</h5> } +
           make_table_of_contents_list(toc) + '</div>'+ content

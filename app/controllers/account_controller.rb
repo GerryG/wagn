@@ -9,7 +9,7 @@ class AccountController < ApplicationController
   def signup
     raise(Wagn::Oops, "You have to sign out before signing up for a new Account") if logged_in?
     @card=Card.new((params[:card]||{}).merge(:type_id=>Card::AccountRequestID))
-    #warn Rails.logger.warn("signup ok? #{@card.inspect}, #{@card.ok? :create}")
+    #warn "signup ok? #{@card.inspect}, #{@card.ok? :create}"
     raise(Wagn::PermissionDenied, "Sorry, no Signup allowed") unless @card.ok? :create
  
     #does not validate password
@@ -19,6 +19,7 @@ class AccountController < ApplicationController
     return unless request.post?
 
     @user.save_card @card
+    #warn "signup ok? #{@user.inspect}, #{@card.inspect} #{@user.errors.any?}"
     return user_errors if @user.errors.any?
 
     if @card.trait_ok? :account, :create        #complete the signup now
@@ -38,8 +39,8 @@ class AccountController < ApplicationController
     card_key=params[:card][:key]
     raise(Wagn::Oops, "I don't understand whom to accept") unless params[:card]
     @card = Card[card_key] or raise(Wagn::NotFound, "Can't find this Account Request")
-    #warn "accept #{Account.user_id}, #{@card.inspect}"
-    @user = @card.fetch_trait(:account).user or raise(Wagn::Oops, "This card doesn't have an account to approve")
+    #warn "accept #{Account.from_id(@card.id).inspect}, #{@card.inspect}"
+    @user = @card.user or raise(Wagn::Oops, "This card doesn't have an account to approve")
     #warn "accept #{@user.inspect}"
     @card.ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create accounts")
 

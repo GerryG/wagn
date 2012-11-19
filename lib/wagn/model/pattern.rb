@@ -72,7 +72,7 @@ module Wagn::Model
         attr_accessor :key, :key_id, :opt_keys, :junction_only, :method_key
 
         def find_module mod
-          #Rails.logger.warn "find_mod #{mod}"
+          #warn "find_mod #{mod}"
           return if mod.nil?
           (mod.split('/') << 'model').inject(BASE_MODULE) do |base, part|
             return if base.nil?

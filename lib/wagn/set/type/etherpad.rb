@@ -21,16 +21,6 @@ module Wagn
       card.post_render(_render_current_naked { yield })
     end
 
-  # edit views
-=begin not sure anymore why we want/need this
-    define_view :edit, :type=>'Etherpad' do |args|
-      @state=:edit
-      wrap :edit, args do
-        self._render_editor
-      end
-    end
-=end
-
     define_view :editor, :type=>'Etherpad' do |args|
       pad_opts = card.pad_options
       uid = unique_id

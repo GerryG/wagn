@@ -1,8 +1,6 @@
 
-
 module Wagn
  module Model::References
-  ::Card
   include  Wagn::ReferenceTypes
 
   def name_referencers(rname = key)

@@ -144,12 +144,12 @@ class URITest < ActiveSupport::TestCase
   end
 
   def test_textile_image
-    no_match(URIChunk,
+    aa_match(URIChunk,
              'This !http://hobix.com/sample.jpg! is a Textile image link.')
   end
 
   def test_textile_link
-    no_match(URIChunk,
+    aa_match(URIChunk,
              'This "hobix (hobix)":http://hobix.com/sample.jpg is a Textile link.')
     # just to be sure ...
     match(URIChunk, 'This http://hobix.com/sample.jpg should match',
@@ -186,7 +186,7 @@ class URITest < ActiveSupport::TestCase
     # check that trailing punctuation is not included in the hostname
     match(URIChunk, 'Hey dude, http://fake.link.com.', :scheme => 'http', :host => 'fake.link.com')
     # this is a textile link, no match please.
-    no_match(URIChunk, '"link":http://fake.link.com.')
+    aa_match(URIChunk, '"link":http://fake.link.com.')
    end
 
   def test_uri_in_parentheses
@@ -245,6 +245,15 @@ class URITest < ActiveSupport::TestCase
     else 
       assert true # didn't match, so we don't have to creat chunk
     end
+  end
+
+  def aa_match(type, test_text)
+    assert test_text =~ type.pattern
+    params = $~.to_a; m = params.shift
+    Rails.logger.warn "aa match[#{m}] #{params.inspect}"
+    chunk = type.new(m, {}, params)
+    Rails.logger.warn "aa match[#{chunk.avoid_autolinking?}] #{chunk.inspect}"
+    assert chunk.avoid_autolinking?
   end
 
   def match(type, test_text, expected)

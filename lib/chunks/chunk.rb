@@ -36,8 +36,9 @@ module Chunk
       @unmask_render = nil
       @card_params = card_params
     end
-    def renderer() @card_params[:renderer] end
-    def card() @card_params[:card] end
+    def renderer()           @card_params[:renderer] end
+    def card()               @card_params[:card]     end
+    def avoid_autolinking?() false                   end
 
     def to_s
       @unmask_text || @unmask_render|| @text

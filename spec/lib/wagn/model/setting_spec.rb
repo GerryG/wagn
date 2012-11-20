@@ -98,11 +98,9 @@ describe Card do
 
     describe "renders with/without toc" do
       it "should not render toc for 'Onne Heading'" do
-        warn "debug #{@c1.inspect}"
         Wagn::Renderer.new(@c1).render.should match /Table of Contents/
       end
       it "should render toc for 'Twwo Heading'" do
-        warn "debug #{@c2.inspect}"
         Wagn::Renderer.new(@c2).render.should match /Table of Contents/
       end
       it "should not render for 'Twwo Heading' when changed to 3" do

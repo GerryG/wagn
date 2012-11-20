@@ -19,7 +19,7 @@ module Wagn
     obj_content = ObjectContent.new(content, {:card=>self} )
 
     obj_content.find_chunks(Chunk::Link).select do |chunk|
-      #Rails.logger.warn "rr... #{chunk}, old name: #{old_name}, new_name: #{new_name}"
+      Rails.logger.warn "rr... #{chunk}, old name: #{old_name}, new_name: #{new_name}"
       chunk.replace_reference old_name, new_name
     end
 

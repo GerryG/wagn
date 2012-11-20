@@ -32,7 +32,13 @@ class ObjectContent < SimpleDelegator
           chunk_class, range = Chunk::Abstract.re_class(match_index)
           chunk_params = match_arr[range]
           newck = chunk_class.new match, card_params, chunk_params
-          pre_chunk.nil? || pre_chunk=='' ? newck : [pre_chunk, newck]
+          if newck.avoid_autolinking?
+            "#{pre_chunk}#{match}"
+          elsif pre_chunk.to_s.size > 0
+            [pre_chunk, newck]
+          else
+            newck
+          end
         end.flatten.compact
       content << remainder if remainder.to_s != ''
     end

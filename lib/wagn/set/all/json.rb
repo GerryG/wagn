@@ -2,6 +2,8 @@ module Wagn
   module Set::All::Json
     include Sets
 
+    format :json
+
     define_view :layout do |args|
       if @main_content = args.delete(:main_content)
         @card = Card.fetch_or_new('*placeholder',{:skip_virtual=>true})

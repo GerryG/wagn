@@ -20,6 +20,7 @@ module Chunk
     def link_text()      refcardname.to_s                end
 
     def render_link()
+      Rails.logger.warn "render_link #{refcardname}, #{self.link_text}"
       renderer.build_link(refcardname, self.link_text)
     end
   end

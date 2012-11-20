@@ -28,7 +28,7 @@ module Wagn
 
     define_view :content do |args|
       wrap :content, args do
-        wrap_content(:content) { _render_core(args) }
+        wrap_content( :content ) { _render_core(args) }
       end
     end
 
@@ -50,7 +50,7 @@ module Wagn
       wrap :open, args do
         %{
            #{ _render_header args }
-           #{ wrap_content :open { _render_open_content(args) } }
+           #{ wrap_content( :open ) { _render_open_content(args) } }
            #{ render_comment_box }
            #{ notice }
         }

@@ -39,7 +39,6 @@ class CardController < ApplicationController
   end
 
   def delete
-    @card.confirm_destroy = params[:confirm_destroy]
     @card.destroy
     discard_locations_for @card
     success 'REDIRECT: *previous'

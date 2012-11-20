@@ -172,9 +172,7 @@ module Wagn::Model::TrackedAttributes
 
           ActiveRecord::Base.logger.debug "------------------ UPDATE REFERER #{card.name}  ------------------------"
           next if card.hard_template
-          warn "rrefs bef cont #{card.content}"
           card.content = card.replace_references( @old_name, name )
-          warn "rrefs cont #{card.content}"
           card.save! unless card==self
         end
       end

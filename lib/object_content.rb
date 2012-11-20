@@ -54,6 +54,10 @@ class ObjectContent < SimpleDelegator
     end
   end
 
+  def inspect
+    "<#{__getobj__.class}:#{card}:#{self}>"
+  end
+
   def each_chunk
     return enum_for(:each_chunk) unless block_given?
     case __getobj__

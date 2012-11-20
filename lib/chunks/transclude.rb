@@ -60,7 +60,6 @@ module Chunk
       configs = @configs.to_semicolon_attr_list;
       configs = "|#{configs}" unless configs.blank?
       @text = "{{#{cardname.to_s}#{configs}}}"
-      warn "rref trans #{old_name}, #{new_name}, #{@text}"; @text
     end
 
   end

@@ -29,11 +29,10 @@ module Chunk
 
     def replace_reference old_name, new_name
       @cardname=@cardname.replace_part old_name, new_name if @cardname
-      Rails.logger.warn "rref link #{@cardname.inspect}, #{@card_params.inspect}"
       if ObjectContent===self.link_text
         self.link_text.find_chunks(Chunk::Reference).each {|chunk| chunk.replace_reference old_name, new_name}
       else
-        self.link_text = new_name if old_name == self.link_text
+        self.link_text = new_name if old_name.to_name == self.link_text
       end
       @text = self.link_text.nil? || cardname == self.link_text ? "[[#{cardname.to_s}]]" : "[[#{cardname.to_s}|#{self.link_text}]]"
     end

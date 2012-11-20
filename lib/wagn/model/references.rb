@@ -15,11 +15,9 @@ module Wagn
   end
 
   def replace_references old_name, new_name
-    #Rails.logger.warn "replacing references...card name: #{name}, old name: #{old_name}, new_name: #{new_name}"
     obj_content = ObjectContent.new(content, {:card=>self} )
 
-    obj_content.find_chunks(Chunk::Link).select do |chunk|
-      Rails.logger.warn "rr... #{chunk}, old name: #{old_name}, new_name: #{new_name}"
+    obj_content.find_chunks(Chunk::Reference).select do |chunk|
       chunk.replace_reference old_name, new_name
     end
 

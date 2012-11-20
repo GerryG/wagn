@@ -65,8 +65,7 @@ class UserTest < ActiveSupport::TestCase
   protected
   def create_user(options = {})
     User.create({ :login => 'quire', :email => 'quire@example.com',
-      :password => 'quire', :password_confirmation => 'quire',
-      :invite_sender_id=>1, :card_id=>0, :account_id=>0
+      :password => 'quire', :password_confirmation => 'quire', :card_id=>0, :account_id=>0
     }.merge(options))
   end
 end

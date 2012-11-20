@@ -139,7 +139,7 @@ module Wagn::Model::Fetch
   end
 
   def expire_pieces
-    cardname.piece.each do |piece|
+    cardname.pieces.each do |piece|
       #warn "clearing for #{piece.inspect}"
       Card.expire piece
     end

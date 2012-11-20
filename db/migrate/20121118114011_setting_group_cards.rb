@@ -1,11 +1,11 @@
 class SettingGroupCards < ActiveRecord::Migration
   def up
     Account.as_bot do
-      Card.create :name=>"Permission", :codename=>:perms, :type_id=>Card::SettingID
-      Card.create :name=>"Look and Feel", :codename=>:look, :type_id=>Card::SettingID
-      Card.create :name=>"Communication", :codename=>:com, :type_id=>Card::SettingID
-      Card.create :name=>"Other", :codename=>:other, :type_id=>Card::SettingID
-      Card.create :name=>"Pointer", :codename=>:pointer_group, :type_id=>Card::SettingID
+      Card.create! :name=>"Permission", :codename=>:perms, :type_id=>Card::SettingID
+      Card.create! :name=>"Look and Feel", :codename=>:look, :type_id=>Card::SettingID
+      Card.create! :name=>"Communication", :codename=>:com, :type_id=>Card::SettingID
+      Card.create! :name=>"Other", :codename=>:other, :type_id=>Card::SettingID
+      Card.create! :name=>"Pointer", :codename=>:pointer_group, :type_id=>Card::SettingID
     end
   end
 
@@ -15,7 +15,7 @@ class SettingGroupCards < ActiveRecord::Migration
         begin
         c=Card[code]
         c.codename=nil
-        c.save
+        c.save!
         c.destroy
         rescue
         end

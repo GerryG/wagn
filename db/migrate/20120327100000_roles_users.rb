@@ -35,7 +35,7 @@ class RolesUsers < ActiveRecord::Migration
             #puts "tasks ? #{task.inspect}[#{rolecard.name}] >> #{c.inspect}"
             c = Card.fetch_or_new cardname
             c.add_item rolecard.name
-            c.save
+            c.save!
           end
         end
       end

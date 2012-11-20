@@ -8,7 +8,7 @@ class AccountTrait < ActiveRecord::Migration
         if account
           account.save! # this creates it when it doesn't exist
           user.account_id = account.id
-          user.save
+          user.save!
         end
         Rails.logger.warn "update card_id #{card.inspect}, #{account.inspect}, #{user.card_id}"
       end

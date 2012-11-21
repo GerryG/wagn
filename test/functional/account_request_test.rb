@@ -50,7 +50,7 @@ class Wagn::Set::Type::AccountRequestTest < ActionController::TestCase
     @user = Account.from_email(@jaymail)
     assert @user, "User is created"
 
-    @card.typecode.should == :account_request
+    assert_equal @card.typecode, :account_request
 
     # this now happens only when created via account controller
 

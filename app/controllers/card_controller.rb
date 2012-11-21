@@ -116,7 +116,7 @@ Done"
 
 
   alias index read
-  alias read_file show_file
+  def read_file() show_file end
 
 
 

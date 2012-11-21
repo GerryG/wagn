@@ -6,7 +6,7 @@ module CleanHtml
   ## Dictionary describing allowable HTML
   ## tags and attributes.
     BASIC_TAGS = {
-      'a' => ['href' ],
+      'a' => ['href', 'title', 'target' ],
       'img' => ['src', 'alt', 'title'],
       'br' => [],
       'i'  => [],
@@ -14,6 +14,7 @@ module CleanHtml
       'pre'=> [],
       'code' => ['lang'],
       'cite'=> [],
+      'caption'=> [],
       'strong'=> [],
       'em'  => [],
       'ins' => [],
@@ -43,7 +44,14 @@ module CleanHtml
       'tfoot'=>[]
     }
 
-    BASIC_TAGS.each_key {|k| BASIC_TAGS[k] << 'class' }
+    if Wagn::Conf[:allow_inline_styles]
+      BASIC_TAGS['table'] += %w[ cellpadding align border cellspacing ]
+    end
+
+    BASIC_TAGS.each_key {|k|
+      BASIC_TAGS[k] << 'class'
+      BASIC_TAGS[k] << 'style' if Wagn::Conf[:allow_inline_styles]
+    }
 
       ## Method which cleans the String of HTML tags
       ## and attributes outside of the allowed list.

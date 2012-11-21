@@ -86,10 +86,12 @@ class ApplicationController < ActionController::Base
   end
 
   def errors options={}
+    return false unless @card.errors.any?
     @card ||= Card.new
     view   = options[:view]   || (@card && @card.error_view  ) || :errors
     status = options[:status] || (@card && @card.error_status) || 422
     show view, status
+    true
   end
 
   def show view = nil, status = 200

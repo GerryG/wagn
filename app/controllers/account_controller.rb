@@ -24,7 +24,7 @@ class AccountController < ApplicationController
     if request.post?
 
       @user.save_card @card
-      user_errors if @user.errors.any?
+      return if errors
 
       redirect_name = if @card.trait_ok?(:account, :create)
 
@@ -125,14 +125,6 @@ class AccountController < ApplicationController
   end
 
   protected
-
-  def user_errors
-    @user.errors.each do |field, err|
-      @card.errors.add field, err unless @card.errors[field].any?
-      # needed to prevent duplicates because User adds them in the other direction in user.rb
-    end
-    errors
-  end
 
   def failed_login(message)
     flash[:notice] = "Oops: #{message}"

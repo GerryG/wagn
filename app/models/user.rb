@@ -61,8 +61,8 @@ class User < ActiveRecord::Base
           else
             valid?
           end
-          card.errors.each { |key,err| errors.add key,err }
-          account.errors.each { |key,err| errors.add key,err }
+          account.errors.each { |key,err| card.errors.add key,err }
+          errors.each { |key,err| card.errors.add key,err }
           if errors.any?
             raise ActiveRecord::Rollback
           end

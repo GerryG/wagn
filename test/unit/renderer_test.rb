@@ -6,17 +6,13 @@ require File.expand_path('../test_helper', File.dirname(__FILE__))
 # internal links expanded in html or xml style, and prety much ignores any other output.
 #
 class Wagn::RendererTest < ActiveSupport::TestCase
-  include ChunkTestHelper
-
-  #attr_accessor :controller
-
   def setup
     setup_default_user
   end
 
   def test_replace_references_should_work_on_inclusions_inside_links
-    card = Card.create!(:name=>"test", :content=>"[[test{{test}}]]"  )
-    assert_equal "[[test{{best}}]]", Wagn::Renderer.new(card).replace_references( "test", "best" )
+    card = Card.create!(:name=>"test", :content=>"[[test_card|test{{test}}]]"  )
+    assert_equal "[[test_card|test{{best}}]]", card.replace_references( "test", "best" )
   end
 
   def controller
@@ -29,7 +25,6 @@ class Wagn::RendererTest < ActiveSupport::TestCase
   def slot_link card, format=:html
     renderer = Wagn::Renderer.new card, :format=>format
     renderer.add_name_context
-    Rails.logger.warn "slat lk #{card.name},#{renderer}, #{format}"
     result = renderer.render :content
     m = result.match(/<(cardlink|link|a) class.*<\/(cardlink|link|a)>/)
     (m.to_s != "") ? m.to_s : result
@@ -81,7 +76,7 @@ class Wagn::RendererTest < ActiveSupport::TestCase
   def test_slot_relative_url
     card3 = newcard('recent changes', '[[/recent|Recent]]')
     assert_equal '<a class="internal-link" href="/recent">Recent</a>', slot_link(card3)
-    card3 = newcard('rc2', '[[/recent]]')
+    #card3 = newcard('rc2', '[[/recent]]')
   end
 
   def test_slot_external

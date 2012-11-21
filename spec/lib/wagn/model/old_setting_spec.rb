@@ -60,7 +60,6 @@ describe Card do
     it "returns universal setting names for non-pointer set" do
       pending "Different api, we should just put the tests in a new spec for that"
       snbg = Card.fetch('*star').setting_names_by_group
-      #warn "snbg #{snbg.class} #{snbg.inspect}"
       snbg.keys.length.should == 4
       snbg.keys.first.should be_a Symbol
       snbg.keys.member?( :pointer ).should_not be_true
@@ -96,16 +95,12 @@ describe Card do
     end
 
     it "returns list of card names for search" do
-      c = Card.new( :name=>"foo", :type=>"Search", :content => %[{"name":"Z"}])
-      #warn "card is #{c.inspect}"
-      c.item_names.should == ["Z"]
+      Card.new( :name=>"foo", :type=>"Search", :content => %[{"name":"Z"}]).item_names.should == ["Z"]
     end
 
     it "handles searches relative to context card" do
       # note: A refers to 'Z'
-      c = Card.new :name=>"foo", :type=>"Search", :content => %[{"referred_to_by":"_self"}]
-      #warn "card is #{c.inspect}"
-      c.item_names( :context=>'A' ).should == ["Z"]
+      Card.new(:name=>"foo", :type=>"Search", :content => %[{"referred_to_by":"_self"}]).item_names( :context=>'A' ).should == ["Z"]
     end
   end
 

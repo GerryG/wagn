@@ -1,7 +1,6 @@
 require File.expand_path('../../test_helper', File.dirname(__FILE__))
 
 class LinkTest < ActiveSupport::TestCase
-  include ChunkTestHelper
 
   def setup
     super

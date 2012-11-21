@@ -81,7 +81,7 @@ class Card < ActiveRecord::Base
         super
       end
     rescue NameError=>e
-      Rails.logger.warn "Card not defined, return self #{caller*"\n"}" if const.to_sym == :Card
+      #Rails.logger.warn "Card not defined, return self #{caller*"\n"}" if const.to_sym == :Card
       return self if const.to_sym == :Card
       nil
     end
@@ -203,7 +203,6 @@ class Card < ActiveRecord::Base
 
   def set_stamper
     self.updater_id = Account.authorized.id
-    Rails.logger.warn "sstamper #{Account.authorized.inspect}"
     self.creator_id = self.updater_id if new_card?
   end
 

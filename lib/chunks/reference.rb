@@ -11,20 +11,18 @@ module Chunk
       cardname && self.cardname = cardname.to_absolute(card.cardname).to_name
     end
 
-    def refcard()
+    def reference_card()
       @refcard ||= refcardname && Card.fetch(refcardname)
     end
 
-    def link_text()
-      refcardname.to_s
-    end
+    def reference_id()   rc=reference_card and rc.id     end
+    def reference_name() rc=refcardname and rc.key or '' end
+    def link_text()      refcardname.to_s                end
 
     def render_link()
-      @content.renderer.build_link(refcardname, self.link_text)
+      Rails.logger.warn "render_link #{refcardname}, #{self.link_text}"
+      renderer.build_link(refcardname, self.link_text)
     end
-
   end
 end
-
-
 

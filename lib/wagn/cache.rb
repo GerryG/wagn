@@ -64,6 +64,14 @@ module Wagn
       private
 
 
+      def prepopulate
+        set_keys = ['*all','*all plus','basic+*type','html+*type','*cardtype+*type','*sidebar+*self']
+        set_keys.map{|k| [k,"#{k}+*content", "#{k}+*default", "#{k}+*read", ]}.flatten.each do |key|
+          Card[key]
+        end
+        @@frozen = Marshal.dump(Card.cache)
+      end
+
       def reset_local
         #warn "reset local #{cache_by_class.map{|k,v|k.to_s+' '+v.to_s}*", "}"
         cache_by_class.each{ |cc, cache|

@@ -108,7 +108,7 @@ module Wagn::Model::TrackedAttributes
     #warn Rails.logger.info("set_content #{name} #{new_content}")
     return false unless self.id
     new_content ||= ''
-    new_content = WikiContent.clean_html!(new_content) if clean_html?
+    new_content = CleanHtml.clean!(new_content) if clean_html?
     clear_drafts if current_revision_id
     #warn Rails.logger.info("set_content #{name} #{Account.session}, #{new_content}")
     new_rev = Card::Revision.create :card_id=>self.id, :content=>new_content, :creator_id =>Account.authorized.id
@@ -172,7 +172,7 @@ module Wagn::Model::TrackedAttributes
 
           ActiveRecord::Base.logger.debug "------------------ UPDATE REFERER #{card.name}  ------------------------"
           next if card.hard_template
-          card.content = Wagn::Renderer.new(card, :not_current=>true).replace_references( @old_name, name )
+          card.content = card.replace_references( @old_name, name )
           card.save! unless card==self
         end
       end

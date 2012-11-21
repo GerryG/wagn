@@ -23,12 +23,6 @@ class SharedData
     roles_card = ja_card.fetch_or_new_trait(:roles)
     #warn "roles card for #{ja_card.name} is #{roles_card.inspect}"
     roles_card << Card::AdminID
-    # FIXME: improve API: roles_card = jc_card.fetch_or_new_trait(:roles) << ja_card
-    #roles_card = Card.fetch_or_new(jc_card.cardname.trait_name(:roles),
-    #                               :type_id=>Card::PointerID)
-    #roles_card.add_item( ja_card.name )
-    #jc_card.fetch_or_new_trait(:roles) << joe_admin
-    #Role[:admin].users<< [ joe_admin ]
 
     jc_card = Card.create! :typecode=>'user', :name=>"Joe Camel", :content => "Mr. Buttz"
     joe_camel = User.create! :login=>"joe_camel",:email=>'joe@camel.com', :status => 'active', :password=>'joe_pass', :password_confirmation=>'joe_pass', :card_id=>jc_card.id
@@ -78,13 +72,8 @@ class SharedData
     u1.fetch_or_new_trait(:roles) << r1 << r2 << r3
     u2.fetch_or_new_trait(:roles) << r1 << r2 << r4
     u3_star = u3.fetch_or_new_trait(:roles) << r1 << r4
-    #r1.users = [ u1, u2, u3 ]
-    #r2.users = [ u1, u2 ]
-    #r3.users = [ u1 ]
-    #r4.users = [ u3, u2 ]
 
     u3_star << Card::AdminID
-    #Role[:admin].users<< [ u3 ]
 
     c1 = Card.create! :name=>'c1'
     c2 = Card.create! :name=>'c2'

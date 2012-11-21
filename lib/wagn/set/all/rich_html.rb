@@ -22,7 +22,7 @@ module Wagn
       layout_content = get_layout_content args
 
       args[:params] = params # EXPLAIN why this is needed
-      process_content layout_content, args
+      process_content_s layout_content, args
     end
 
 

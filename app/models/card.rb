@@ -26,7 +26,7 @@ class Card < ActiveRecord::Base
   attr_writer :update_read_rule_list
   attr_reader :type_args
 
-  has_one    :user, :class_name => 'User', :foreign_key => :card_id
+  def user() User.where(:card_id=>id).first end
 
   before_save :set_stamper, :base_before_save, :set_read_rule, :set_tracked_attributes
   after_save :base_after_save, :update_ruled_cards, :update_queue, :expire_related

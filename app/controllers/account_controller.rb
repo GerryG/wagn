@@ -7,31 +7,31 @@ class AccountController < ApplicationController
 
   #ENGLISH many messages throughout this file
   def signup
+    #FIXME - don't raise; handle it!
     raise(Wagn::Oops, "You have to sign out before signing up for a new Account") if logged_in?
+
     @card=Card.new((params[:card]||{}).merge(:type_id=>Card::AccountRequestID))
-    #warn "signup ok? #{@card.inspect}, #{@card.ok? :create}"
+    #FIXME - don't raise; handle it!
     raise(Wagn::PermissionDenied, "Sorry, no Signup allowed") unless @card.ok? :create
- 
-    #does not validate password
+
     @user = Account.new params[:user]
     @user.pending
- 
+
     return unless request.post?
 
     @user.save_card @card
-    #warn "signup ok? #{@user.inspect}, #{@card.inspect} #{@user.errors.any?}"
     return user_errors if @user.errors.any?
 
-    if @card.trait_ok? :account, :create        #complete the signup now
-      email_args = { :message => Card.setting('*signup+*message') || "Thanks for signing up to #{Card.setting('*title')}!",
-                     :subject => Card.setting('*signup+*subject') || "Account info for #{Card.setting('*title')}!" }
-      @user.accept(@card, email_args)
-      return wagn_redirect Card.path_setting(Card.setting '*signup+*thanks')
-    else
-      Account.as_bot do
-        Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'
+    if request.post?
+      if @card.trait_ok? :account, :create        #complete the signup now
+        email_args = { :message => Card.setting('*signup+*message') || "Thanks for signing up to #{Card.setting('*title')}!",
+                       :subject => Card.setting('*signup+*subject') || "Account info for #{Card.setting('*title')}!" }
+        @user.accept(@card, email_args)
+        return wagn_redirect Card.path_setting(Card.setting '*signup+*thanks')
+      else
+        Account.as_bot do
+          Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'
       end
-      return wagn_redirect Card.path_setting(Card.setting '*request+*thanks')
     end
   end
 
@@ -68,10 +68,6 @@ class AccountController < ApplicationController
       @user.send_account_info(params[:email])
       redirect_to Card.path_setting(Card.setting '*invite+*thanks')
     end
-    #warn "invite errors #{@user.errors} C:#{@card.errors}"
-    #unless @user.errors.empty?
-    #  @user.errors.each do |k,e| warn "user error #{k}, #{e}" end
-    #end
   end
 
 

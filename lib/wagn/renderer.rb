@@ -204,7 +204,7 @@ module Wagn
           root.error_status = error_code
         end
       end
-      #warn "ok_view[#{original_view}] #{view}, #{args.inspect}, Cd:#{card.inspect}" #{caller[0..20]*"\n"}"
+      Rails.logger.info "ok_view[#{original_view}] #{view}, #{args.inspect}, Cd:#{card.inspect}" #{caller[0..20]*"\n"}"
       view
     end
 
@@ -317,7 +317,7 @@ module Wagn
 
     def new_inclusion_card_args options
       args = { :type =>options[:type] }
-      args[:loaded_trunk]=card if options[:tname] =~ /^\+/
+      args[:loaded_left]=card if options[:tname] =~ /^\+/
       if content=get_inclusion_content(options[:tname])
         args[:content]=content
       end

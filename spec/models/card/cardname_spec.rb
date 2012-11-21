@@ -1,8 +1,7 @@
 require File.expand_path('../../spec_helper', File.dirname(__FILE__))
-=begin
 describe Card, "Case Variant" do
   before do
-    Session.as :joe_user
+    Account.as 'joe_user'
     @c = Card.create! :name=>'chump'
   end
 
@@ -22,19 +21,20 @@ describe SmartName, "Underscores" do
     'Mamas_and_Papas'.to_name.key.should == "Mamas and Papas".to_name.key
   end
 end
-=end
+
 describe SmartName, "changing from plus card to simple" do
   before do
-    Session.as :joe_user
-    @c = Card.create! :name=>'four+five'
-    @c.name = 'nine'
-    @c.confirm_rename = true
-    @c.save
+    Account.as 'joe_user'
+    c = Card.create! :name=>'four+five'
+    c.name = 'nine'
+    c.confirm_rename = true
+    c.save
   end
 
-  it "should erase trunk and tag ids" do
-    @c.trunk_id.should== nil
-    @c.tag_id.should== nil
+  it "should erase left and right ids (tag/trunk in db)" do
+    c = Card['nine']
+    c.left_id.should be_nil
+    c.right_id.should be_nil
   end
 
 end

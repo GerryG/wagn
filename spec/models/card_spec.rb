@@ -13,7 +13,7 @@ describe Card do
 
   describe "module inclusion" do
     before do
-      Session.as :joe_user
+      Account.as 'joe_user'
       @c = Card.new :type=>'Search', :name=>'Module Inclusion Test Card'
     end
 
@@ -45,14 +45,12 @@ describe Card do
     end
 
     it "gets needed methods with explicit pointer setting" do
-      Rails.logger.info "testing point"
       Card.new(@c_args.merge(:type=>'Pointer')).
                respond_to?(:add_item).should be_true
     end
 
     it "gets needed methods with implicit pointer setting (from template)" do
       c=Card.new(@c_args)
-      Rails.logger.info "testing point #{c.inspect} N:#{c.name}"
       c.respond_to?(:add_item).should be_true
     end
   end
@@ -64,9 +62,12 @@ describe Card do
       #[:before_save, :before_create, :after_save, :after_create].each do |hookname|
       pending "mock rr seems to be broken, maybe 'call' collides with internal methode"
       mock(Wagn::Hook).call(:after_create, instance_of(Card))
-      Session.as_bot do
+      c=Account.as_bot do
         Card.create :name => "testit"
       end
+      c.left_id.should be_nil
+      c.right_id.should be_nil
+
     end
   end
 
@@ -84,12 +85,10 @@ describe Card do
       end
 
       it "c should have cardtype basic" do
-        Rails.logger.info "testing point #{@c} #{@c.inspect}"
         @c.typecode.should == :basic
       end
 
       it "d should have cardtype Date" do
-        Rails.logger.info "testing point #{@d} #{@d.inspect}"
         @d.typecode.should == :date
       end
     end
@@ -102,7 +101,7 @@ describe Card do
 
   describe "creation" do
     before(:each) do
-      Session.as_bot do
+      Account.as_bot do
         @b = Card.create! :name=>"New Card", :content=>"Great Content"
         @c = Card.find(@b.id)
       end
@@ -126,7 +125,7 @@ describe Card do
 
   describe "attribute tracking for new card" do
     before(:each) do
-      Session.as_bot do
+      Account.as_bot do
         @c = Card.new :name=>"New Card", :content=>"Great Content"
       end
     end
@@ -153,7 +152,7 @@ describe Card do
 
   describe "content change should create new revision" do
     before do
-      Session.as_bot do
+      Account.as_bot do
         @c = Card['basicname']
         @c.update_attributes! :content=>'foo'
       end
@@ -171,7 +170,7 @@ describe Card do
 
   describe "content change should create new revision" do
     before do
-      Session.as_bot do
+      Account.as_bot do
         @c = Card['basicname']
         @c.content = "foo"
         @c.save!

@@ -16,7 +16,7 @@ describe Card do
     end
 
     it "returns nil and caches trash cards" do
-      Session.as_bot do
+      Account.as_bot do
         Card.fetch("A").destroy!
         Card.fetch("A").should be_nil
         mock.dont_allow(Card).find_by_key
@@ -30,16 +30,12 @@ describe Card do
     end
 
     it "returns virtual cards and caches them as missing" do
-      Session.as_bot do
+      Account.as_bot do
         card = Card.fetch("Joe User+*email")
         card.should be_instance_of(Card)
         card.name.should == "Joe User+*email"
         Wagn::Renderer.new(card).render_raw.should == 'joe@user.com'
       end
-      #card.raw_content.should == 'joe@user.com'
-      #cached_card = Card.cache.read("joe_user+*email")
-      #cached_card.missing?.should be_true
-      #cached_card.virtual?.should be_true
     end
 
     it "fetches virtual cards after skipping them" do
@@ -50,7 +46,7 @@ describe Card do
     it "fetches newly virtual cards" do
       pending "needs new cache clearing"
       Card.fetch( 'A+virtual').should be_nil
-      Session.as_bot { Card.create :name=>'virtual+*right+*content' }
+      Account.as_bot { Card.create :name=>'virtual+*right+*content' }
       Card.fetch( 'A+virtual').should_not be_nil
     end
 
@@ -63,7 +59,7 @@ describe Card do
       Card.cache.reset_local
       Card.cache.local.keys.should == []
 
-      Session.as_bot do
+      Account.as_bot do
 
         a = Card.fetch("A")
         a.should be_instance_of(Card)
@@ -91,7 +87,7 @@ describe Card do
 
     describe "preferences" do
       before do
-        Session.as(Card::WagnBotID) # FIXME: as without a block is deprecated
+        Account.as(Card::WagnBotID) # FIXME: as without a block is deprecated
       end
 
       it "prefers db cards to pattern virtual cards" do
@@ -115,24 +111,17 @@ describe Card do
 
       it "should recognize pattern overrides" do
         tc=Card.create!(:name => "y+*right+*content", :content => "Right Content")
-        Rails.logger.info "testing point 0 #{tc.inspect}"
         card = Card.fetch("a+y")
-        Rails.logger.debug "failing 2"
         card.virtual?.should be_true
         card.content.should == "Right Content"
-        Rails.logger.info "testing point 1 #{card.inspect}"
         tpr = Card.create!(:name => "Basic+y+*type plus right+*content", :content => "Type Plus Right Content")
-        Rails.logger.info "testing point 1a #{tpr.inspect}"
         card.reset_patterns
         card = Card.fetch("a+y")
         card.reset_patterns
-        Rails.logger.info "testing point 2 #{card.inspect} #{card.content}"
         card.virtual?.should be_true
         card.content.should == "Type Plus Right Content"
         tpr.destroy!
-        Rails.logger.info "testing point 3 #{card.inspect}"
         card.reset_patterns
-        Rails.logger.info "testing point 4 #{card.inspect}"
         card = Card.fetch("a+y")
         card.virtual?.should be_true
         card.content.should == "Right Content"
@@ -176,10 +165,10 @@ describe Card do
   end
 
   describe "#fetch_virtual" do
-    before { Session.as :joe_user }
+    before { Account.as 'joe_user' }
 
     it "should find cards with *right+*content specified" do
-      Session.as_bot do
+      Account.as_bot do
         Card.create! :name=>"testsearch+*right+*content", :content=>'{"plus":"_self"}', :type => 'Search'
       end
       c = Card.fetch("A+testsearch".to_name)

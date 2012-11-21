@@ -1,21 +1,24 @@
 module AuthenticatedSystem
   protected
   def logged_in?
-    Session.logged_in?
+    Account.logged_in?
   end
 
   # Accesses the current user from the session.
   def session_user
     @session_user ||= session[:user]
   rescue Exception => e
-    #warn "except #{e.inspect}, #{e.backtrace*"\n"}"
+    Rails.logger.warn "except #{e.inspect}, #{e.backtrace*"\n"}"
     session[:user] = nil
     raise e
   end
 
   # Store the given user in the session.
   def session_user= new_user
-    @session_user = session[:user] = ( Card==new_user ? card.id : new_user )
+    @session_user = session[:user] = new_user
+    Account.session = @session_user || Card::AnonID
+    Rails.logger.warn "Logged in: #{new_user.inspect}, #{@session_user.inspect}, #{Account.authorized}"
+    @session_user
   end
 
   #

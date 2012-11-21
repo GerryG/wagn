@@ -9,44 +9,39 @@ class AccountController < ApplicationController
   def signup
     #FIXME - don't raise; handle it!
     raise(Wagn::Oops, "You have to sign out before signing up for a new Account") if logged_in?
-    
-    card_params = ( params[:card] || {} ).symbolize_keys.merge :type_id=>Card::AccountRequestID
-    user_params = ( params[:user] || {} ).symbolize_keys.merge :status=>'pending'
-    
-    @card = Card.new card_params
+
+    @card=Card.new((params[:card]||{}).merge(:type_id=>Card::AccountRequestID))
     #FIXME - don't raise; handle it!
     raise(Wagn::PermissionDenied, "Sorry, no Signup allowed") unless @card.ok? :create
 
-    if !request.post? #signup form
-      @user = User.new user_params
-    else
-      @user, @card = User.create_with_card user_params, card_params
-      if @user.errors.any?
-        user_errors 
+    @user = Account.new params[:user]
+    @user.pending
+
+    return unless request.post?
+
+    @user.save_card @card
+    return user_errors if @user.errors.any?
+
+    if request.post?
+      if @card.trait_ok? :account, :create        #complete the signup now
+        email_args = { :message => Card.setting('*signup+*message') || "Thanks for signing up to #{Card.setting('*title')}!",
+                       :subject => Card.setting('*signup+*subject') || "Account info for #{Card.setting('*title')}!" }
+        @user.accept(@card, email_args)
+        return wagn_redirect Card.path_setting(Card.setting '*signup+*thanks')
       else
-        if @card.trait_card(:account).ok? :create       # automated approval
-          email_args = { :message => Card.setting('*signup+*message') || "Thanks for signing up to #{Card.setting('*title')}!",
-                         :subject => Card.setting('*signup+*subject') || "Account info for #{Card.setting('*title')}!" }
-          @user.accept @card, email_args
-          redirect_cardname = '*signup+*thanks'
-        else                                            # requires further approval
-          Session.as_bot do
-            Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'
-          end
-          redirect_cardname = '*request+*thanks'
+        Account.as_bot do
+          Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'
         end
-        wagn_redirect Card.path_setting( Card.setting redirect_cardname )
       end
     end
   end
 
   def accept
     card_key=params[:card][:key]
-    #warn "accept #{card_key.inspect}, #{Card[card_key]}, #{params.inspect}"
     raise(Wagn::Oops, "I don't understand whom to accept") unless params[:card]
     @card = Card[card_key] or raise(Wagn::NotFound, "Can't find this Account Request")
-    #warn "accept #{Session.user_id}, #{@card.inspect}"
-    @user = @card.to_user or raise(Wagn::Oops, "This card doesn't have an account to approve")
+    #warn "accept #{Account.from_id(@card.id).inspect}, #{@card.inspect}"
+    @user = @card.user or raise(Wagn::Oops, "This card doesn't have an account to approve")
     #warn "accept #{@user.inspect}"
     @card.ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create accounts")
 
@@ -62,24 +57,32 @@ class AccountController < ApplicationController
   end
 
   def invite
-    #warn "invite: ok? #{Card.new(:name=>'dummy+*account').ok?(:create)}"
     cok=Card.new(:name=>'dummy+*account').ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create")
-    #warn "post invite #{cok}, #{request.post?}, #{params.inspect}"
-    @user, @card = request.post? ?
-      User.create_with_card( params[:user], params[:card] ) :
-      [User.new, Card.new()]
-    #warn "invite U:#{@user.inspect} C:#{@card.inspect}"
+    if request.post?
+      @user = Account.new params[:user]
+      @user.active
+      @card = @user.save_card params[:card]
+    else
+      @user = Account.new; @card = Card.new
+    end
     if request.post? and @user.errors.empty?
       @user.send_account_info(params[:email])
-      redirect_to Card.path_setting(Card.setting('*invite+*thanks'))
+      redirect_to Card.path_setting(Card.setting '*invite+*thanks')
     end
   end
 
 
   def signin
-    #warn Rails.logger.info("signin #{params[:login]}")
-    if params[:login]
-      password_authentication params[:login], params[:password]
+    if user=Account.from_params(params) and user.authenticated?(params)
+      self.session_user = user.account_id
+      flash[:notice] = "Successfully signed in"
+      redirect_to previous_location
+    else
+      failed_login( case
+          when user.nil?     ; "Unrecognized email."
+          when user.blocked? ; "Sorry, that account is blocked."
+          else               ; "Wrong password"
+        end )
     end
   end
 
@@ -91,7 +94,7 @@ class AccountController < ApplicationController
 
   def forgot_password
     return unless request.post? and email = params[:email].downcase
-    @user = User.find_by_email(email)
+    @user = Account.from_email(email)
     if @user.nil?
       flash[:notice] = "Unrecognized email."
       render :action=>'signin', :status=>404
@@ -101,10 +104,11 @@ class AccountController < ApplicationController
     else
       @user.generate_password
       @user.save!
-      subject = "Password Reset"
-      message = "You have been given a new temporary password.  " +
-         "Please update your password once you've signed in. "
-      Mailer.account_info(@user, subject, message).deliver
+
+      @user.send_account_info(:subject=> "Password Reset",
+           :message=> "You have been given a new temporary password.  " +
+                      "Please update your password once you've signed in. " )
+
       flash[:notice] = "Check your email for your new temporary password"
       redirect_to previous_location
     end
@@ -118,23 +122,6 @@ class AccountController < ApplicationController
       # needed to prevent duplicates because User adds them in the other direction in user.rb
     end
     errors
-  end
-
-  def password_authentication(login, password)
-    if self.session_user = User.authenticate( params[:login], params[:password] )
-      flash[:notice] = "Successfully signed in"
-      #warn Rails.logger.info("to prev #{previous_location}")
-      redirect_to previous_location
-    else
-      usr=User.where(:email=>params[:login].strip.downcase).first
-      failed_login(
-        case
-        when usr.nil?     ; "Unrecognized email."
-        when usr.blocked? ; "Sorry, that account is blocked."
-        else              ; "Wrong password"
-        end
-      )
-    end
   end
 
   def failed_login(message)

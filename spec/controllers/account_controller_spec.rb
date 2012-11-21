@@ -4,15 +4,15 @@ require 'rr'
 
 describe AccountController do
 
+=begin
   describe "#signup" do
   end
   describe "#accept" do
     before do
-      login_as :joe_user
-      @user = Session.user
+      login_as 'joe_user'
     end
-
   end
+=end
   describe "#invite" do
     before do
       @msgs=[]
@@ -20,21 +20,25 @@ describe AccountController do
         @msgs << m
         mock(m).deliver }
 
-      login_as :joe_admin
+      login_as 'joe_admin'
 
       @email_args = {:subject=>'Hey Joe!', :message=>'Come on in.'}
       post :invite, :user=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'},
         :email=> @email_args
 
-      @new_user = User.where(:email=>'joe@new.com').first
+      @new_user = Account.from_email 'joe@new.com'
       @user_card = Card['Joe New']
+      @account_card = @user_card.fetch_or_new_trait :account
 
     end
 
     it 'should create a user' do
-      @new_user.should be
-      @new_user.card_id.should == @user_card.id
+      @account_card.new_card?.should be_false
+      #warn "cards #{@account_card.inspect}, #{@user_card.inspect}"
       @user_card.type_id.should == Card::UserID
+      @account_card.type_id.should == Card::BasicID
+      @new_user.should be
+      @new_user.account_id.should == @account_card.id
     end
 
     it 'should send email' do
@@ -96,7 +100,7 @@ describe AccountController do
         mock(@mail = m).deliver }
 
       @email='joe@user.com'
-      @juser=User.where(:email=>@email).first
+      #@juser=Account.from_email @email
       post :forgot_password, :email=>@email
     end
 

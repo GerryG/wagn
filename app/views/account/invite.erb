@@ -3,7 +3,7 @@ email = params[:email] || {}
 subject = email[:subject] || Card.setting('*invite+*subject') || ''
 message = email[:message] || Card.setting('*invite+*message') || ''
 SmartName.substitute!( message, {
-  :invitor => Session.user_card.name + " (#{Session.user.email})",
+  :invitor => Account.authorized_name + " (#{(ac=Account.session) ? ac.email(true) : ''})",
   :invitee => card.name || ''}
 )
 

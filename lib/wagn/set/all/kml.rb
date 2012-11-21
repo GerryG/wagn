@@ -16,7 +16,7 @@ module Wagn
       xml.kml do
         xml.Document do
 
-          cardnames = Session.as_bot do
+          cardnames = Account.as_bot do
             # Note: we use wagn_bot to find all the applicable cards, but not for the geocode or description cards
             # This is a workaround so that folks can have maps so long as their geocode cards are publicly viewable.
             # needs deeper redesign
@@ -32,6 +32,7 @@ module Wagn
             if geocard && geocard.ok?(:read)
               xml.Placemark do
                 xml.name cardname
+                # FIXME: should have codenames
                 if desc_card = Card.fetch("#{cardname}+*geodescription") and desc_card.ok? :read
                   xml.description Wagn::Renderer.new(desc_card).render_core
                 end

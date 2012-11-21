@@ -10,29 +10,28 @@ class Mailer < ActionMailer::Base
 
   include LocationHelper
 
-  def account_info user, subject, message
-    url_key = Card[user.card_id].cardname.url_key
+  def account_info user, args
+    user_card, subject, message = Card[user.account_id], args[:subject], args[:message]
+    #Rails.logger.info "account_info #{user.inspect}, #{user_card.inspect}, #{subject}"
+    url_key = user_card.cardname.url_key
 
     @email    = (user.email    or raise Wagn::Oops.new("Oops didn't have user email"))
     @password = (user.password or raise Wagn::Oops.new("Oops didn't have user password"))
-    @card_url = wagn_url Card[user.card_id]
+    @card_url = wagn_url user_card
     @pw_url   = wagn_url "/card/options/#{url_key}"
     @login_url= wagn_url "/account/signin"
     @message  = message.clone
 
     args =  { :to => @email, :subject  => subject }
-    set_from_args args, ( Card.setting('*invite+*from') || begin
-      curr = Session.user
-      from_user = curr.anonymous? || curr.id == user.id ? User.admin : curr
-      "#{from_user.card.name} <#{from_user.email}>"
-    end ) #FIXME - might want different "from" settings for different contexts?
-    mail args
+    mail_from args, Card.setting('*invite+*from') ||
+      "#{Account.authorized_name} <#{Account.session.email(true)}>"
+    #FIXME - might want different "from" settings for different contexts?
   end
 
   def signup_alert invite_request
     @site = Card.setting :title
     @card = invite_request
-    @email= invite_request.to_user.email
+    @email= invite_request.email(true)
     @name = invite_request.name
     @content = invite_request.content
     @request_url  = wagn_url invite_request
@@ -43,14 +42,13 @@ class Mailer < ActionMailer::Base
       :subject      => "#{invite_request.name} signed up for #{@site}",
       :content_type => 'text/html',
     }
-    set_from_args args, Card.setting('*request+*from') || "#{@name} <#{@email}>"
-    mail args
+    mail_from args, Card.setting('*request+*from') || "#{@name} <#{@email}>"
   end
 
 
   def change_notice user, card, action, watched, subedits=[], updated_card=nil
-    return unless user = User===user ? user : User.from_id(user)
-    #warn "change_notice( #{user.email}, #{card.inspect}, #{action.inspect}, #{watched.inspect} Uc:#{updated_card.inspect}...)"
+    return unless user = Account[user]
+    #Rails.logger.info "change_notice( #{user.email(true)}, #{card.inspect}, #{action.inspect}, #{watched.inspect} Uc:#{updated_card.inspect}...)"
 
     updated_card ||= card
     @card = card
@@ -64,12 +62,11 @@ class Mailer < ActionMailer::Base
     @watched = (watched == card.cardname ? "#{watched}" : "#{watched} cards")
 
     args = {
-      :to           => "#{user.email}",
+      :to           => "#{user.email(true)}",
       :subject      => "[#{Card.setting :title} notice] #{@updater} #{action} \"#{card.name}\"" ,
       :content_type => 'text/html',
     }
-    set_from_args args, User.admin.email
-    mail args
+    mail_from args, Account::BOTCARD.email(true)
   end
 
   def flexmail config
@@ -83,13 +80,12 @@ class Mailer < ActionMailer::Base
       end
     end
 
-    set_from_args config, config[:from]
-    mail config
+    mail_from config, config[:from]
   end
 
   private
 
-  def set_from_args args, from
+  def mail_from args, from
     from_name, from_email = parse_address( from )
     if default_from=@@defaults[:from]
       args[:from] = !from_email ? default_from : "#{from_name || from_email} <#{default_from}>"
@@ -97,6 +93,7 @@ class Mailer < ActionMailer::Base
     else
       args[:from] = from
     end
+    mail args
   end
 
   def parse_address addr

@@ -1,8 +1,6 @@
 # -*- encoding : utf-8 -*-
 
 class Card < ActiveRecord::Base
-  #Revision
-  #Reference
   require 'card/revision'
   require 'card/reference'
 end
@@ -13,12 +11,14 @@ SmartName.params= Wagn::Conf
 SmartName.lookup= Card
 
 class Card < ActiveRecord::Base
+  Revision
+  Reference
 
   has_many :revisions, :order => :id #, :foreign_key=>'card_id'
 
   attr_accessor :comment, :comment_author, :selected_rev_id,
     :confirm_rename, :confirm_destroy, :update_referencers, :allow_type_change, # seems like wrong mechanisms for this
-    :cards, :loaded_trunk, :nested_edit, # should be possible to merge these concepts
+    :cards, :loaded_left, :nested_edit, # should be possible to merge these concepts
     :error_view, :error_status, #yuck
     :attachment_id #should build flexible handling for set-specific attributes
 
@@ -27,6 +27,8 @@ class Card < ActiveRecord::Base
 
   belongs_to :card, :class_name => 'Card', :foreign_key => :creator_id
   belongs_to :card, :class_name => 'Card', :foreign_key => :updater_id
+  has_one    :user, :class_name => 'User', :foreign_key => :card_id
+  #has_one    :account, :class_name => 'User'  Instead of a second association, override .user on +*account sets
 
   before_save :set_stamper, :base_before_save, :set_read_rule, :set_tracked_attributes
   after_save :base_after_save, :update_ruled_cards, :update_queue, :expire_related
@@ -53,7 +55,7 @@ class Card < ActiveRecord::Base
             args['type']          == cc.type_args[:type]      and
             args['typecode']      == cc.type_args[:typecode]  and
             args['type_id']       == cc.type_args[:type_id]   and
-            args['loaded_trunk']  == cc.loaded_trunk
+            args['loaded_left']   == cc.loaded_left
 
           args['type_id'] = cc.type_id
           return cc.send( :initialize, args )
@@ -80,12 +82,14 @@ class Card < ActiveRecord::Base
       else
         super
       end
-    rescue NameError
-        warn "ne: const_miss #{e.inspect}, #{const_name} R:#{x}\n#{caller*"\n"}" if const_name.to_sym==:Card; x
+    rescue NameError=>e
+      Rails.logger.warn "Card not defined, return self #{caller*"\n"}" if const.to_sym == :Card
+      return self if const.to_sym == :Card
+      nil
     end
 
     def setting name
-      Session.as_bot do
+      Account.as_bot do
         card=Card[name] and !card.content.strip.empty? and card.content
       end
     end
@@ -197,7 +201,8 @@ class Card < ActiveRecord::Base
   end
 
   def set_stamper
-    self.updater_id = Session.user_id
+    self.updater_id = Account.authorized.id
+    Rails.logger.warn "sstamper #{Account.authorized.inspect}"
     self.creator_id = self.updater_id if new_card?
   end
 
@@ -249,7 +254,6 @@ class Card < ActiveRecord::Base
   rescue Exception=>e
     expire_pieces
     @subcards.each{ |card| card.expire_pieces }
-    Rails.logger.info "after save issue: #{e.message}"
     raise e
   end
 
@@ -298,6 +302,7 @@ class Card < ActiveRecord::Base
         dep.confirm_destroy = true
         dep.destroy
       end
+      expire
       true
     end
   end
@@ -348,6 +353,7 @@ class Card < ActiveRecord::Base
 
 
   # FIXME: use delegations and include all cardname functions
+
   def simple?()        cardname.simple?                     end
   def junction?()      cardname.junction?                   end
 
@@ -367,18 +373,24 @@ class Card < ActiveRecord::Base
     left args or Card.new args.merge(:name=>cardname.left)
   end
 
+  # fixing the attributes internally
+  def right_id()        read_attribute :tag_id              end
+  def left_id()         read_attribute :trunk_id            end
+  # but the db field is still wrong, so AR will use these, can't remove these yet
+  #def tag_id()         raise "Deprecated, use right_id"     end
+  #def trunk_id()       raise "Deprecated, use left_id"      end
 
   def dependents
-    return [] if new_card?
-    Session.as_bot do
-      Card.search( :part=>name ).map do |c|
-        [ c ] + c.dependents
-      end.flatten
-    end
+    new_card? ? [] : !@dependents.nil? ? @dependents : Account.as_bot do
+        Card.search( :part=> id ).inject [] do |a,c|
+          #id == c.id ? a : a << c << *(c.dependents)
+          id == c.id ? a : (a << c) + (c.dependents)
+        end
+      end
   end
 
   def repair_key
-    Session.as_bot do
+    Account.as_bot do
       correct_key = cardname.key
       current_key = key
       return self if current_key==correct_key
@@ -508,16 +520,16 @@ class Card < ActiveRecord::Base
   end
 
   def parties
-    @parties ||= (all_roles << self.id).flatten.reject(&:blank?)
+    @parties ||= (trunk.all_roles << id).flatten.reject(&:blank?)
   end
 
   def read_rules
     @read_rules ||= begin
-      if id==Card::WagnBotID
+      if id==Card::WagnBotID or left_id ==Card::WagnBotID
         [] # avoids infinite loop
       else
         party_keys = ['in', Card::AnyoneID] + parties
-        Session.as_bot do
+        Account.as_bot do
           Card.search(:right=>{:codename=>'read'}, :refer_to=>{:id=>party_keys}, :return=>:id).map &:to_i
         end
       end
@@ -525,24 +537,16 @@ class Card < ActiveRecord::Base
   end
 
   def all_roles
-    ids = Session.as_bot { trait_card(:roles).item_cards(:limit=>0).map(&:id) }
-    @all_roles ||= (id==Card::AnonID ? [] : [Card::AuthID] + ids)
-  end
-
-  def to_user
-    User.where( :card_id => id ).first
-  end # should be obsolete soon.
-
-
-  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  # TRAIT METHODS
-
-  def existing_trait_card tagcode
-    Card.fetch cardname.trait_name(tagcode), :skip_modules=>true, :skip_virtual=>true
-  end
-
-  def trait_card tagcode
-    Card.fetch_or_new cardname.trait_name(tagcode), :skip_virtual=>true
+    if @all_roles.nil?
+      @all_roles = (id==Card::AnonID ? [] : [Card::AuthID])
+      Account.as_bot do
+        rcard=fetch_trait(:roles) and
+          items = rcard.item_cards(:limit=>0).map(&:id) and
+          @all_roles += items 
+      end
+    end
+    #warn "aroles #{inspect}, #{@all_roles.inspect}"
+    @all_roles
   end
 
 
@@ -570,8 +574,8 @@ class Card < ActiveRecord::Base
   end
 
   def inspect
-    "#<#{self.class.name}" + "##{id}" +
-    "###{object_id}" + #"k#{tag_id}g#{tag_id}" +
+    "#<#{self.class.name}" + "##{id}" + # "###{object_id}" +
+    ":l:#{left_id}r:#{right_id}" +
     "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
     "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{virtual? &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }}" +
     #" Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}" +
@@ -642,7 +646,7 @@ class Card < ActiveRecord::Base
   validates_each :name do |rec, attr, value|
     if rec.new_card? && value.blank?
       if autoname_card = rec.rule_card(:autoname)
-        Session.as_bot do
+        Account.as_bot do
           autoname_card = autoname_card.refresh
           value = rec.name = rec.autoname( autoname_card.content )
           autoname_card.content = value  #fixme, should give placeholder on new, do next and save on create
@@ -662,7 +666,9 @@ class Card < ActiveRecord::Base
           "may not contain any of the following characters: #{ SmartName.banned_array * ' ' }"
       end
       # this is to protect against using a plus card as a tag
-      if cdname.junction? and rec.simple? and Session.as_bot { Card.count_by_wql :tag_id=>rec.id } > 0
+      # if right_id is non-nil, and it has a simple cardname, we must be in a rename from junction to
+      # existing simple? card.
+      if rec.right_id and rec.cardname.simple? and Account.as_bot { Card.count_by_wql :tag_id=>rec.id } > 0
         rec.errors.add :name, "#{value} in use as a tag"
       end
 

@@ -1,6 +1,6 @@
 module Wagn
   module Set::Type::Cardtype
-    include Wagn::Sets
+    include Sets
 
     format :html
     define_view :watch, :type=>'cardtype' do |args|
@@ -18,7 +18,7 @@ module Wagn
     end
 
     module Model
-      include Wagn::Set::Type::Basic::Model
+      include Set::Type::Basic::Model
 
       def on_type_change
         custom_validate_destroy
@@ -29,7 +29,7 @@ module Wagn
       end
 
       def cards_of_type_exist?
-        Session.as_bot { Card.count_by_wql :type_id=>id } > 0
+        Account.as_bot { Card.count_by_wql :type_id=>id } > 0
       end
 
       def custom_validate_destroy

@@ -4,7 +4,7 @@ module Wagn::Model
     @@subclasses = []
 
     def self.register_class(klass) @@subclasses.unshift klass end
-    def self.method_key(opts)
+    def self.method_key opts
       @@subclasses.each do |pclass|
         if !pclass.opt_keys.map(&opts.method(:has_key?)).member? false;
           return pclass.method_key_from_opts(opts)
@@ -12,7 +12,7 @@ module Wagn::Model
       end
     end
 
-    def reset_patterns_if_rule()
+    def reset_patterns_if_rule
       return if name.blank?
       #warn "rpatIrule if #{!simple?} and #{!new_card?} and #{setting=right and setting.type_id==Card::SettingID} and #{set=left and set.type_id==Card::SetID}"
       if !simple? and !new_card? and setting=right and setting.type_id==Card::SettingID and set=left and set.type_id==Card::SetID
@@ -30,22 +30,34 @@ module Wagn::Model
       true
     end
 
-    def patterns()
+    def patterns
       @patterns ||= @@subclasses.map { |sub| sub.new(self) }.compact
     end
-    def patterns_with_new()
-      new_card? ? patterns_without_new()[1..-1] : patterns_without_new()
+    def patterns_with_new
+      new_card? ? patterns_without_new[1..-1] : patterns_without_new
     end
     alias_method_chain :patterns, :new
 
-    def real_set_names() set_names.find_all &Card.method(:exists?)                              end
-    def safe_keys()      patterns.map(&:safe_key).reverse*" "                                   end
-    def set_modules()    @set_modules ||= patterns_without_new.reverse.map(&:set_const).compact end
-    def set_names()
+    def real_set_names
+      set_names.find_all &Card.method(:exists?)
+    end
+
+    def safe_keys
+      patterns.map(&:safe_key).reverse*" "
+    end
+
+    def set_modules
+      @set_modules ||= patterns_without_new.reverse.map(&:set_const).compact
+    end
+
+    def set_names
       Card.set_members(@set_names = patterns.map(&:to_s), key) if @set_names.nil?
       @set_names
     end
-    def method_keys()    @method_keys ||= patterns.map(&:get_method_key).compact                end
+
+    def method_keys
+      @method_keys ||= patterns.map(&:get_method_key).compact
+    end
   end
 
   module Patterns
@@ -75,20 +87,21 @@ module Wagn::Model
           nil
         end
 
-        def trunk_name(card)  ''               end
-        def junction_only?()  !!junction_only  end
-        def trunkless?()      !!method_key     end # method key determined by class only when no trunk involved
-        def new(card)
-          super(card) if pattern_applies?(card)
+        def trunk_name(card)  ''                     end
+        def junction_only?()  !!junction_only        end
+        def trunkless?()      !!method_key           end # method key determined by class only when no trunk involved
+
+        def new card
+          super if pattern_applies? card
         end
-        def key_name()
+
+        def key_name
           @key_name ||= (code=Wagn::Codename[self.key] and card=Card[code] and card.name)
         end
 
         def register key, opt_keys, opts={}
           Wagn::Model::Pattern.register_class self
           self.key = key
-          #self.key_id = (key == 'self') ? 0 : Wagn::Codename[key]
           self.key_id = Wagn::Codename[key]
           self.opt_keys = Array===opt_keys ? opt_keys : [opt_keys]
           opts.each { |key, val| send "#{key}=", val }
@@ -101,12 +114,12 @@ module Wagn::Model
             end << key) * '_')
         end
 
-        def pattern_applies?(card)
+        def pattern_applies? card
           junction_only? ? card.cardname.junction? : true
         end
       end
 
-      def initialize(card)
+      def initialize card
         @trunk_name = self.class.trunk_name(card).to_name
         self
       end
@@ -135,8 +148,6 @@ module Wagn::Model
         self.class.method_key_from_opts opts
       end
 
-      def inspect()       "<#{self.class} #{to_s.to_name.inspect}>" end
-
       def opt_vals
         if @opt_vals.nil?
           @opt_vals = self.class.trunkless? ? [] :
@@ -147,7 +158,7 @@ module Wagn::Model
         @opt_vals
       end
 
-      def to_s()
+      def to_s
         if self.class.key_id == 0
           @trunk_name
         else
@@ -156,11 +167,14 @@ module Wagn::Model
         end
       end
 
+      def inspect
+        "<#{self.class} #{to_s.to_name.inspect}>"
+      end
+
       def safe_key()
         caps_part = self.class.key.gsub(' ','_').upcase
         self.class.trunkless? ? caps_part : "#{caps_part}-#{@trunk_name.safe_key}"
       end
-
     end
 
     class AllPattern < BasePattern
@@ -182,7 +196,8 @@ module Wagn::Model
       def self.pattern_applies?(card)
         return false if card.type_id.nil?
         raise "bogus type id" if card.type_id < 1
-        true       end
+        true
+      end
       def self.trunk_name(card)         card.type_name              end
     end
 
@@ -215,12 +230,11 @@ module Wagn::Model
         end
         def prototype_args base
           { :name=>"*dummy+#{base.tag}",
-            :loaded_trunk=> Card.new( :name=>'*dummy', :type=>base.trunk_name )
+            :loaded_left=> Card.new( :name=>'*dummy', :type=>base.trunk_name )
           }
         end
         def trunk_name card
-          left = card.loaded_trunk || card.left
-          #left = card.loaded_trunk || (tkid=card.trunk_id ? Card[tkid] : card.left)
+          left = card.loaded_left || card.left
           type_name = (left && left.type_name) || Card[ Card::DefaultTypeID ].name
           "#{type_name}+#{card.cardname.tag}"
         end

@@ -4,6 +4,7 @@ describe "User" do
   describe "#read_rules" do
     before(:all) do
       @read_rules = Card['joe_user'].read_rules
+      Rails.logger.warn "rules = #{@read_rules.map(&Card.method(:find)).map(&:name) * ', '}"
     end
 
 
@@ -12,9 +13,9 @@ describe "User" do
     end
 
     it "3 more should apply to Joe Admin" do
-      Session.as(:joe_admin) do
-        ids = Session.as_card.read_rules
-        #warn "rules = #{ids.map(&Card.method(:find)).map(&:name) * ', '}"
+      Account.as('joe_admin') do
+        ids = Account.authorized.read_rules
+        Rails.logger.warn "rules = #{ids.map(&Card.method(:find)).map(&:name) * ', '}"
         ids.length.should == @read_rules.size+3
       end
     end

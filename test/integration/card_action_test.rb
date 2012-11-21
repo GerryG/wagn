@@ -31,7 +31,7 @@ class CardActionTest < ActionController::IntegrationTest
   # connection/delete ??
 
   def test_comment
-    Session.as_bot  do
+    Account.as_bot  do
       Card.create :name=>'A+*self+*comment', :type=>'Pointer', :content=>'[[Anyone]]'
     end
     post "card/comment/A", :card => { :comment=>"how come" }
@@ -47,14 +47,14 @@ class CardActionTest < ActionController::IntegrationTest
   end
 
   def test_create_cardtype_card
-    Session.as_bot {
+    Account.as_bot {
       post( 'card/create','card'=>{"content"=>"test", :type=>'Cardtype', :name=>"Editor2"} )}
     assert_response 302
     assert Card['Editor2'].typecode == :cardtype
   end
 
   def test_create
-    Session.as_bot {
+    Account.as_bot {
      post 'card/create', :card=>{
       :type=>'Basic',
       :name=>"Editor",
@@ -73,7 +73,7 @@ class CardActionTest < ActionController::IntegrationTest
 
   def test_newcard_works_with_fuzzy_renamed_cardtype
     given_card({:typecode=>:cardtype, :name=>"ZFoo", :content => ""})
-    Session.as(:joe_user) do
+    Account.as 'joe_user' do
       Card["ZFoo"].update_attributes! :name=>"ZFooRenamed", :update_referencers=>true
     end
 
@@ -92,7 +92,7 @@ class CardActionTest < ActionController::IntegrationTest
   # FIXME: this should probably be files in the spot for a delete test
   def test_removal_and_return_to_previous_undeleted_card_after_deletion
     t1 = t2 = nil
-    Session.as_bot do
+    Account.as_bot do
       t1 = Card.create! :name => "Testable1", :content => "hello"
       t2 = Card.create! :name => "Testable1+bandana", :content => "world"
     end
@@ -116,22 +116,22 @@ class CardActionTest < ActionController::IntegrationTest
       assert_response 200
     end
     email = ActionMailer::Base.deliveries[-1]
-    # emails should be 'from' inviting user
-    #assert_equal Session.user.email, email.from[0]
-    #assert_equal 'active', User.find_by_email('new@user.com').status
-    #assert_equal 'active', User.find_by_email('new@user.com').status
+    assert_equal Account.session.email, email.from[0]
+    assert user = Account.from_email('foo@bar.com')
+    assert_equal 'active', user.status
   end
 
   def test_update_user_account_email
     post '/card/update_account', :id=>"Joe User".to_name.key, :account => { :email => 'joe@user.co.uk' }
-    assert User.where(:card_id=>Card['joe_user'].id).first.email == 'joe@user.co.uk'
+    assert user = Account.from_id(Card['joe_user+*account'].id)
+    assert user.email == 'joe@user.co.uk'
   end
 
   def test_user_cant_block_self
+    assert user = Account.from_id(Card['joe_user+*account'].id)
     post '/card/update_account', :id=>"Joe User".to_name.key, :account => { :blocked => '1' }
-    assert !User.where(:card_id=>Card['joe_user'].id).first.blocked?
+    assert !user.blocked?
   end
-#=end
 end
 
 

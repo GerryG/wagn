@@ -1,12 +1,14 @@
 module AuthenticatedTestHelper
   # Sets the current user in the session from the user fixtures.
   def login_as user
-    Session.user = @request.session[:user] = (uc=Card[user.to_s] and uc.id)
-    #warn "(ath)login_as #{user.inspect}, #{Session.user_id}, #{@request.session[:user]}"
+    Account.reset
+    Account.session = @request.session[:user] = (uc=Card[user.to_s] and uc.id)
+    Rails.logger.info "(ath)login_as #{uc.inspect}, #{Account.session.inspect}, #{Account.as_card}, #{@request.session[:user]}"
   end
 
   def signout
-    Session.user = @request.session[:user] = nil
+    Account.reset
+    @request.session[:user] = nil
   end
 
 
@@ -34,31 +36,25 @@ module AuthenticatedTestHelper
     assert_response :success
   end
 
-  # http://project.ioni.st/post/217#post-217
-  #
-  #  def test_new_publication
-  #    assert_difference(Publication, :count) do
-  #      post :create, :publication => {...}
-  #      # ...
-  #    end
-  #  end
-  #
-
+  def assert_auth email, password
+    assert user = Account.from_params(:login=>email), "#{email} should locate a user"
+    assert user.authenticated?(:password => password), "#{email} should authenticate"
+  end
 
   def assert_new_account(&block)
-    assert_difference(User, :count, 1) do
-      assert_difference Card.where(:type_id=>Card::UserID), :count, 1, &block
+    assert_difference User, :count, 1, 'Users' do
+      assert_difference Card, :count, 2, 'User Cards', &block
     end
   end
 
   def assert_no_new_account(&block)
     assert_no_difference(User, :count) do
-      assert_no_difference Card.where(:type_id=>Card::UserID), :count, &block
+      assert_no_difference Card, :count, &block
     end
   end
 
   def assert_status(email, status)
-    u = User.find_by_email(email)
-    assert_equal status, u.status
+    Rails.logger.warn "assert stat #{status} #{Account.from_params(:login=>email).inspect}"
+    assert_equal status, Account.from_params(:login=>email).status
   end
 end

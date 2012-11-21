@@ -23,7 +23,7 @@ class AccountControllerTest < ActionController::TestCase
     @newby_email = 'newby@wagn.net'
     @newby_args =  {:user=>{ :email=>@newby_email },
                     :card=>{ :name=>'Newby Dooby' }}
-    Session.as_bot do
+    Account.as_bot do
       Card.create(:name=>'Account Request+*type+*captcha', :content=>'0')
     end
     signout
@@ -44,18 +44,24 @@ class AccountControllerTest < ActionController::TestCase
 
   def test_should_signout
     get :signout
-    assert_nil session[:user]
+    assert_equal session[:user], nil
     assert_response :redirect
   end
 
   def test_create_successful
     integration_login_as 'joe_user', true
-    #login_as 'joe_user'
     assert_difference ActionMailer::Base.deliveries, :size do
       assert_new_account do
+        Rails.logger.warn "testing #{Account.authorized}"
         post_invite
+        Rails.logger.warn "posted #{Account.from_login(@newby_email).inspect}"
       end
     end
+  end
+
+  def test_signup_form
+    get :signup
+    assert_response 200
   end
 
   def test_signup_with_approval
@@ -63,6 +69,8 @@ class AccountControllerTest < ActionController::TestCase
 
     assert_response :redirect
     assert Card['Newby Dooby'], "should create User card"
+    assert c=Card['Newby Dooby+*account'], "should create User+*account card"
+    assert Account.from_id(c.id), "should create User"
     assert_status @newby_email, 'pending'
 
     integration_login_as 'joe_admin', true
@@ -72,8 +80,8 @@ class AccountControllerTest < ActionController::TestCase
   end
 
   def test_signup_without_approval
-    Session.as_bot do  #make it so anyone can create accounts (ie, no approval needed)
-      create_accounts_rule = Card['*account+*right'].trait_card(:create)
+    Account.as_bot do  #make it so anyone can create accounts (ie, no approval needed)
+      create_accounts_rule = Card['*account+*right'].fetch_or_new_trait(:create)
       create_accounts_rule << Card::AnyoneID
       create_accounts_rule.save!
     end
@@ -83,7 +91,7 @@ class AccountControllerTest < ActionController::TestCase
   end
 
   def test_dont_let_blocked_user_signin
-    u = User.find_by_email('u3@user.com')
+    u = Account.from_email('u3@user.com')
     u.blocked = true
     u.save
     post :signin, :login => 'u3@user.com', :password => 'u3_pass'
@@ -103,8 +111,8 @@ class AccountControllerTest < ActionController::TestCase
 
   def test_forgot_password_blocked
     email = 'u3@user.com'
-    Session.as_bot do
-      u = User.find_by_email(email)
+    Account.as_bot do
+      u = Account.from_email(email)
       u.status = 'blocked'
       u.save!
     end

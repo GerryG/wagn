@@ -5,34 +5,44 @@ class AccountController < ApplicationController
   before_filter :login_required, :only => [ :invite, :update ]
   helper :wagn
 
+  REQUEST_NAME = Card[Card::RequestID].cardname.trait(:thanks)
+  SIGNUP_NAME = Card[Card::SignupID].cardname.trait(:thanks)
+
   #ENGLISH many messages throughout this file
   def signup
     #FIXME - don't raise; handle it!
     raise(Wagn::Oops, "You have to sign out before signing up for a new Account") if logged_in?
 
-    @card=Card.new((params[:card]||{}).merge(:type_id=>Card::AccountRequestID))
+    card_params = (params[:card]||{}).merge :type_id=>Card::AccountRequestID
+    @card = Card.new card_params
     #FIXME - don't raise; handle it!
     raise(Wagn::PermissionDenied, "Sorry, no Signup allowed") unless @card.ok? :create
 
     @user = Account.new params[:user]
     @user.pending
 
-    return unless request.post?
-
-    @user.save_card @card
-    return user_errors if @user.errors.any?
-
     if request.post?
-      if @card.trait_ok? :account, :create        #complete the signup now
-        email_args = { :message => Card.setting('*signup+*message') || "Thanks for signing up to #{Card.setting('*title')}!",
-                       :subject => Card.setting('*signup+*subject') || "Account info for #{Card.setting('*title')}!" }
-        @user.accept(@card, email_args)
-        return wagn_redirect Card.path_setting(Card.setting '*signup+*thanks')
-      else
-        Account.as_bot do
-          Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'
+
+      @user.save_card @card
+      return if errors
+
+      redirect_name = if @card.trait_ok?(:account, :create)
+
+          email_args = { :message => Card.setting('*signup+*message') || "Thanks for signing up to #{Card.setting('*title')}!",
+                         :subject => Card.setting('*signup+*subject') || "Account info for #{Card.setting('*title')}!" }
+          @user.accept(@card, email_args)
+
+          SIGNUP_NAME
+        else
+
+          Account.as_bot do
+            Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'
+          end
+
+          REQUEST_NAME
         end
-      end
+      Rails.logger.warn "redir to #{redirect_name}"
+      return wagn_redirect '/'+redirect_name
     end
   end
 
@@ -115,14 +125,6 @@ class AccountController < ApplicationController
   end
 
   protected
-
-  def user_errors
-    @user.errors.each do |field, err|
-      @card.errors.add field, err unless @card.errors[field].any?
-      # needed to prevent duplicates because User adds them in the other direction in user.rb
-    end
-    errors
-  end
 
   def failed_login(message)
     flash[:notice] = "Oops: #{message}"

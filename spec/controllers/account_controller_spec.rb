@@ -4,15 +4,6 @@ require 'rr'
 
 describe AccountController do
 
-=begin
-  describe "#signup" do
-  end
-  describe "#accept" do
-    before do
-      login_as 'joe_user'
-    end
-  end
-=end
   describe "#invite" do
     before do
       @msgs=[]

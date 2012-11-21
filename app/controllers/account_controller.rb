@@ -31,6 +31,7 @@ class AccountController < ApplicationController
       else
         Account.as_bot do
           Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'
+        end
       end
     end
   end

@@ -42,11 +42,11 @@ module Wagn
         'internal-link'
       else
         known_card = !!Card.fetch(href, :skip_modules=>true) if known_card.nil?
-        cardname = Cardname===href ? href : href.to_cardname
-        text = cardname.to_show(card.name) unless text
+        smartname = href.to_name
+        text = smartname.to_show(card.name) unless text
         #href+= "?type=#{type.to_url_key}" if type && card && card.new_card?  WANT THIS; NEED TEST
         href = full_uri Wagn::Conf[:root_path] + '/' +
-          (known_card ? cardname.to_url_key : CGI.escape(cardname.escape))
+          (known_card ? smartname.to_url_key : CGI.escape(smartname.escape))
 
         return %{{"cardlink":{"class":"#{
                     known_card ? 'known-card' : 'wanted-card'

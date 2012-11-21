@@ -104,7 +104,7 @@ describe Wagn::Renderer, "" do
         c = Card.new :name => 'ABook', :type => 'Book'
         rendered =  Wagn::Renderer.new(c).render( :edit )
         #warn "rendered = #{rendered}"
-        assert_view_select rendered, 'div[class="field-in-multi"]' do
+        assert_view_select rendered, 'fieldset' do
           assert_select 'textarea[name=?][class="tinymce-textarea card-content"]', 'card[cards][~plus~illustrator][content]'
         end
       end

@@ -155,10 +155,10 @@ module Wagn
 #      wrap_submenu do
 #        [ :content, :name, :type ].map do |attr|
 #          next if attr == :type and # this should be a set callback
-#            card.type_template? ||  
+#            card.type_template? ||
 #            (card.type_id==Card::SetID && card.hard_template?) || #
 #            (card.type_id==Card::CardtypeID && card.cards_of_type_exist?)
-#        
+#
 #          link_to attr, path(:edit, :attrib=>attr), :remote=>true,
 #            :class => %{slotter edit-#{ attr }-link #{'current-subtab' if attr==current.to_sym}}
 #        end.compact * "\n"
@@ -288,7 +288,7 @@ module Wagn
 
     def fancy_title name=nil
       name ||= showname
-      title = name.to_cardname.parts.join %{<span class="joint">+</span>}
+      title = name.to_name.parts.join %{<span class="joint">+</span>}
       raw title
     end
 
@@ -299,7 +299,7 @@ module Wagn
       @show_diff = (params[:mode] != 'false')
     end
 
-    
+
     # navigation for revisions -
     # --------------------------------------------------
     # some of this should be in rich_html, maybe most

@@ -238,11 +238,11 @@ class URITest < ActiveSupport::TestCase
   def no_match(type, test_text)
     assert type.respond_to? :pattern
     pattern = type.pattern
-    if test_text =~ pattern 
+    if test_text =~ pattern
       params = $~.to_a; m = params.shift
       chunk = type.new(m, {}, params)
       assert( ! chunk.kind_of?(type), "Shouln't match #{type}, #{chunk.inspect}" )
-    else 
+    else
       assert true # didn't match, so we don't have to creat chunk
     end
   end

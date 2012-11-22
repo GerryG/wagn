@@ -258,7 +258,7 @@ Done"
         opts = params[:card] ? params[:card].clone : (obj = params[:object]) ? obj : {}
         opts[:type] ||= params[:type] # for /new/:type shortcut.  we should fix and deprecate this.
         name = params[:id] ? SmartName.unescape( params[:id] ) : opts[:name]
-        
+
         if @action == 'create'
           # FIXME we currently need a "new" card to catch duplicates (otherwise #save will just act like a normal update)
           # I think we may need to create a "#create" instance method that handles this checking.
@@ -284,13 +284,13 @@ Done"
     target = params[:success] || default_target
     redirect = !ajax?
     new_params = {}
-    
+
     if Hash === target
       new_params = target
       target = new_params.delete :id # should be some error handling here
       redirect ||= !!(new_params.delete :redirect)
     end
-      
+
     if target =~ /^REDIRECT:\s*(.+)/
       redirect, target = true, $1
     end

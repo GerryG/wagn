@@ -17,12 +17,12 @@ class Card < ActiveRecord::Base
   belongs_to :card, :class_name => 'Card', :foreign_key => :creator_id
   belongs_to :card, :class_name => 'Card', :foreign_key => :updater_id
 
-  cattr_accessor :cache  
+  cattr_accessor :cache
   attr_accessor :comment, :comment_author, :selected_rev_id,
     :broken_type, :update_referencers, :allow_type_change, # seems like wrong mechanisms for this
     :cards, :loaded_left, :nested_edit, # should be possible to merge these concepts
     :error_view, :error_status #yuck
-      
+
   attr_writer :update_read_rule_list
   attr_reader :type_args
 
@@ -144,7 +144,7 @@ class Card < ActiveRecord::Base
       end
 
     case type_id
-    when :noop 
+    when :noop
     when false, nil
       @broken_type = args[:type] || args[:typecode]
       errors.add :type, "#{broken_type} is not a known type."
@@ -357,7 +357,7 @@ class Card < ActiveRecord::Base
       Card.fetch cardname.left, *args
     end
   end
-  
+
   def right *args
     Card.fetch cardname.right, *args
   end
@@ -485,6 +485,10 @@ class Card < ActiveRecord::Base
     (current_revision && current_revision.created_at) || Time.now
   end
 
+  def user
+    @user ||= Account.from_id fetch_trait(:account).id
+  end
+
   def creator
     Card[ creator_id ]
   end
@@ -543,7 +547,7 @@ class Card < ActiveRecord::Base
       Account.as_bot do
         rcard=fetch_trait(:roles) and
           items = rcard.item_cards(:limit=>0).map(&:id) and
-          @all_roles += items 
+          @all_roles += items
       end
     end
     #warn "aroles #{inspect}, #{@all_roles.inspect}"

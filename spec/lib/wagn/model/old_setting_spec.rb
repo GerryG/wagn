@@ -55,14 +55,14 @@ describe Card do
 
   describe "#setting_names" do
     before do
-      @pointer_settings = [:options, :options_label, :input]
+      @pointer_settings =  %w[ options options_label input ]
     end
     it "returns universal setting names for non-pointer set" do
       pending "Different api, we should just put the tests in a new spec for that"
       snbg = Card.fetch('*star').setting_names_by_group
       snbg.keys.length.should == 4
       snbg.keys.first.should be_a Symbol
-      snbg.keys.member?( :pointer ).should_not be_true
+      snbg.keys.member?( :pointer_group ).should_not be_true
     end
 
     it "returns pointer-specific setting names for pointer card (*type)" do
@@ -73,22 +73,20 @@ describe Card do
         Card.create! :name=>'Pointer+*type'
       end
       c2 = Card.fetch('Fruit+*type')
-      snbg = c2.setting_names_by_group
+      snbg = c2.setting_cards_by_group
       #warn "snbg #{snbg.class}, #{snbg.inspect}"
-      snbg[:pointer_group].should == @pointer_settings
+      snbg[:pointer_group].map(&:codename).should == @pointer_settings
       c3 = Card.fetch('Pointer+*type')
-      snbg = c3.setting_names_by_group
-      snbg[:pointer].should == @pointer_settings
+      snbg = c3.setting_cards_by_group
+      snbg[:pointer_group].map(&:codename).should == @pointer_settings
     end
 
     it "returns pointer-specific setting names for pointer card (*self)" do
       c = Card.fetch_or_new('*account+*related+*self')
       c.save if c.new_card?
       c = Card.fetch_or_new('*account+*related+*self')
-      c.set_group.should == :pointer_group
-      snbg = c.setting_names_by_group
-      #warn "snbg #{snbg}, #{c.inspect}"
-      snbg[:pointer_group].should == @pointer_settings
+      snbg = c.setting_cards_by_group
+      snbg[:pointer_group].map(&:codename).should == @pointer_settings
     end
 
   end

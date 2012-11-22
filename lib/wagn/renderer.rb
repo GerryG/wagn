@@ -88,7 +88,7 @@ module Wagn
       @root = self
 
       @context_names ||= if context_name_list = params[:name_context]
-        context_name_list.split(',').map &:to_cardname
+        context_name_list.split(',').map &:to_name
       else [] end
 
       if card && card.collection? && params[:item] && !params[:item].blank?
@@ -101,7 +101,7 @@ module Wagn
     def controller()   @controller ||= StubCardController.new                     end
     def session()      CardController===controller ? controller.session : {}      end
     def ajax_call?()   @@ajax_call                                                end
-      
+
     def showname
       @showname ||=
         card.cardname.to_show card.cardname, :ignore=>@context_names, :params=>params
@@ -282,14 +282,6 @@ module Wagn
     end
 
     def process_inclusion tcard, opts
-=begin
-      opts[:showname] = if opts[:tname]
-        opts[:tname].to_name.to_show card.cardname, :ignore=>@context_names, :params=>params
-      else
-        tcard.name
-      end
-=end
-
       sub_opts = { :item_view =>opts[:item] }
       [ :type, :size ].each { |key| sub_opts[key] = opts[key] }
       sub = subrenderer tcard, sub_opts
@@ -414,7 +406,7 @@ module Wagn
 
     def add_name_context name=nil
       name ||= card.name
-      @context_names += name.to_name.parts
+      @context_names += name.to_name.part_names
       @context_names.uniq!
     end
 

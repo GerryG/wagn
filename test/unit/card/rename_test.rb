@@ -16,15 +16,15 @@ class Card
     Account.as_bot do
      Card.create! :name => "chuck_wagn+chuck"
      Card.create! :name => "Blue"
-     
+
      Card.create! :name => "blue includer 1", :content => "{{Blue}}"
      Card.create! :name => "blue includer 2", :content => "{{blue|closed;other:stuff}}"
-     
+
      Card.create! :name => "blue linker 1", :content => "[[Blue]]"
      Card.create! :name => "blue linker 2", :content => "[[blue]]"
-     
+
      Card.create! :type=>"Cardtype", :name=>"Dairy", :content => "[[/new/{{_self|name}}|new]]"
-     
+
      c3, c4 = Card["chuck_wagn+chuck"], Card["chuck"]
     end
   end
@@ -32,7 +32,6 @@ class Card
   def test_subdivision
     Account.as_bot do assert_rename card("A+B"), "A+B+T" end  # re-uses the parent card: A+B
   end
-
 
   def test_rename_name_substitution
     c1, c2 = Card["chuck_wagn+chuck"], Card["chuck"]
@@ -59,7 +58,7 @@ class Card
   def test_updates_inclusions_when_renaming
     c1,c2,c3 = Card["Blue"], Card["blue includer 1"], Card["blue includer 2"]
     c1.update_attributes :name => "Red", :update_referencers => true
-    assert_equal "{{Red}}", Card.find(c2.id).content                     
+    assert_equal "{{Red}}", Card.find(c2.id).content
     # NOTE these attrs pass through a hash stage that may not preserve order
     assert_equal "{{Red|closed;other:stuff}}", Card.find(c3.id).content
   end
@@ -67,7 +66,7 @@ class Card
   def test_updates_inclusions_when_renaming_to_plus
     c1,c2 = Card["Blue"], Card["blue includer 1"]
     c1.update_attributes :name => "blue includer 1+color", :update_referencers => true
-    assert_equal "{{blue includer 1+color}}", Card.find(c2.id).content                     
+    assert_equal "{{blue includer 1+color}}", Card.find(c2.id).content
   end
 
   def test_reference_updates_on_case_variants

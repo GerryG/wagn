@@ -28,7 +28,7 @@ module Chunk
           :tname   =>name,  # this "t" is for transclusion.  should rename
           # it is sort of transclude, this is the name for the transclusion, should still rename
           :view  => nil, :item  => nil, :type  => nil, :size  => nil,
-          :hide  => nil, :show  => nil, :wild  => nil, 
+          :hide  => nil, :show  => nil, :wild  => nil,
           :transclude => params[0] # is this used? yes, by including this in an attrbute
                               # of an xml card, the xml parser can replace the subelements
                               # with the original transclusion notation: {{options[:transclude]}}

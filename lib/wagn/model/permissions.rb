@@ -53,7 +53,7 @@ module Wagn::Model::Permissions
     # so we hack around the errors added in approve_* by clearing them here.
     # self.errors.clear
 
-    
+
     #Rails.logger.info "ok? #{Account.session.inspect}, #{Account.as_card.inspect}, #{operation} #{inspect} R:#{@operation_approved}" if operation == :create
     @operation_approved
   end

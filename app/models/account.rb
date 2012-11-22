@@ -64,7 +64,7 @@ class Account
       else #fail "BLOCK REQUIRED with Card#as"
       end
     end
- 
+
     def no_logins?
       cache = Card.cache
      #r=(
@@ -72,11 +72,11 @@ class Account
                (Card.search({:right=>Card::AccountID, :left=>{:type=>Card::UserID }}).count == 0 ))
      #); Rails.logger.warn "Logins? #{r}"; r
     end
- 
+
     def always_ok?
       return true if admin? #cannot disable
       as_id = authorized.id
- 
+
       always = Card.cache.read('ALWAYS') || {}
       if always[as_id].nil?
         always = always.dup if always.frozen?

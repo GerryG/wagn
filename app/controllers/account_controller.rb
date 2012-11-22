@@ -5,6 +5,7 @@ class AccountController < ApplicationController
   before_filter :login_required, :only => [ :invite, :update ]
   helper :wagn
 
+  INVITE_ID = Card[Card::InviteID].fetch_trait(:thanks).id
   REQUEST_ID = Card[Card::RequestID].fetch_trait(:thanks).id
   SIGNUP_ID  = Card[Card::SignupID].fetch_trait(:thanks).id
 
@@ -23,26 +24,28 @@ class AccountController < ApplicationController
 
     if request.post?
 
+      Rails.logger.warn "signup #{@card.inspect}, #{@card.trait_ok?(:account, :create)}"
+      redirect_id = if @card.trait_ok?(:account, :create) 
+          @user.active
+          SIGNUP_ID 
+        else
+          @user.pending
+          REQUEST_ID
+        end
+
       @user.save_card @card
-      return if errors
-
-      redirect_name = if @card.trait_ok?(:account, :create)
-
+      if !errors
+        if redirect_id == SIGNUP_ID
           email_args = { :message => Card.setting('*signup+*message') || "Thanks for signing up to #{Card.setting('*title')}!",
                          :subject => Card.setting('*signup+*subject') || "Account info for #{Card.setting('*title')}!" }
           @user.accept(@card, email_args)
-
-          SIGNUP_ID
         else
-
           Account.as_bot do
             Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'
           end
-
-          REQUEST_ID
         end
-      Rails.logger.warn "redir to #{redirect_name}"
-      return Card.path_setting( Card.setting Card[redirect_id].name )
+        redirect_to_id redirect_id
+      end
     end
   end
 
@@ -59,7 +62,7 @@ class AccountController < ApplicationController
       #warn "accept #{@card.inspect}, #{@user.inspect}"
       @user.accept(@card, params[:email])
       if @user.errors.empty? #SUCCESS
-        redirect_to Card.path_setting(Card.setting('*invite+*thanks'))
+        redirect_to_id INVITE_ID
         return
       end
     end
@@ -77,7 +80,8 @@ class AccountController < ApplicationController
     end
     if request.post? and @user.errors.empty?
       @user.send_account_info(params[:email])
-      redirect_to Card.path_setting(Card.setting '*invite+*thanks')
+      redirect_to_id INVITE_ID
+      return
     end
   end
 
@@ -125,6 +129,12 @@ class AccountController < ApplicationController
   end
 
   protected
+
+  def redirect_to_id redirect_id
+    #r=(
+      name = Card[redirect_id].name and to = Card.path_setting( Card.setting name ) and redirect_to to
+      #); Rails.logger.warn "rd to id #{name}, id:#{redirect_id}, R:#{r}"; r
+  end
 
   def failed_login(message)
     flash[:notice] = "Oops: #{message}"

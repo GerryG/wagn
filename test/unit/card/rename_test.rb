@@ -33,7 +33,6 @@ class Card
     Account.as_bot do assert_rename card("A+B"), "A+B+T" end  # re-uses the parent card: A+B
   end
 
-
   def test_rename_name_substitution
     c1, c2 = Card["chuck_wagn+chuck"], Card["chuck"]
     assert_rename c2, "buck"

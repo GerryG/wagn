@@ -10,7 +10,7 @@ describe Card, "destroy without dependents" do
 end
 
 describe Card, "destroy with dependents" do
-  before do Session.as(:joe_user); @c = Card["A"] end
+  before do Account.as(:joe_user); @c = Card["A"] end
     
   it "should succeed" do
     #should test for destruction of dependents!
@@ -28,7 +28,7 @@ describe Card, "rename without dependents" do
 end
 
 #describe Card, "rename with dependants" do
-#  before do Session.as(:joe_user); @c = Card["A"] end
+#  before do Account.as(:joe_user); @c = Card["A"] end
 #
 #  it "should fail with errors if confirm_rename is not set" do
 #    @c.name = "Brand New Name"

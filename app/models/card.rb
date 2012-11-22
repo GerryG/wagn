@@ -487,6 +487,10 @@ class Card < ActiveRecord::Base
     (current_revision && current_revision.created_at) || Time.now
   end
 
+  def user
+    @user ||= Account.from_id fetch_trait(:account).id
+  end
+
   def author
     Card[ creator_id ]
   end

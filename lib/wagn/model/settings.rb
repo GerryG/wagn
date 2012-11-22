@@ -53,12 +53,11 @@ module Wagn::Model::Settings
         fallback ? default_rule_card(fallback) : nil
     end
 
-    def setting_names_by_group
-      @@setting_names_by_group ||= begin
+    def setting_cards_by_group
+      @@setting_cards_by_group ||= begin
         Account.as_bot do
           Card.search(:type=>Card::SettingID, :limit=>'0').inject({}) do |grouped,setting_card|
             if group = setting_card.config(:group)
-              #Rails.logger.warn "usnbg #{group.inspect}, #{grouped.inspect}, #{setting_card.inspect}"
               grouped[ group ] ||= []
               grouped[ group ] << setting_card
             end
@@ -68,7 +67,6 @@ module Wagn::Model::Settings
           end
         end
       end
-      Rails.logger.warn "usnbg R:#{@@setting_names_by_group.inspect}"; @@setting_names_by_group
     end
   end
 

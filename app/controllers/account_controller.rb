@@ -5,8 +5,8 @@ class AccountController < ApplicationController
   before_filter :login_required, :only => [ :invite, :update ]
   helper :wagn
 
-  REQUEST_NAME = Card[Card::RequestID].cardname.trait(:thanks)
-  SIGNUP_NAME = Card[Card::SignupID].cardname.trait(:thanks)
+  REQUEST_ID = Card[Card::RequestID].fetch_trait(:thanks).id
+  SIGNUP_ID  = Card[Card::SignupID].fetch_trait(:thanks).id
 
   #ENGLISH many messages throughout this file
   def signup
@@ -32,17 +32,17 @@ class AccountController < ApplicationController
                          :subject => Card.setting('*signup+*subject') || "Account info for #{Card.setting('*title')}!" }
           @user.accept(@card, email_args)
 
-          SIGNUP_NAME
+          SIGNUP_ID
         else
 
           Account.as_bot do
             Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'
           end
 
-          REQUEST_NAME
+          REQUEST_ID
         end
       Rails.logger.warn "redir to #{redirect_name}"
-      return wagn_redirect '/'+redirect_name
+      return Card.path_setting( Card.setting Card[redirect_id].name )
     end
   end
 

@@ -458,7 +458,7 @@ text_field :user, :email }</td>
 
           <div class="revision-header">
             <span class="revision-title">#{ @revision.title }</span>
-            posted by #{ link_to_page @revision.author.name }
+            posted by #{ link_to_page @revision.creator.name }
           on #{ format_date(@revision.created_at) } #{
           if !card.drafts.empty?
             %{<p class="autosave-alert">
@@ -493,7 +493,7 @@ text_field :user, :email }</td>
       load_revisions
       wrap :errors do |args|
         %{<strong>Conflict!</strong><span class="new-current-revision-id">#{@revision.id}</span>
-          <div>#{ link_to_page @revision.author.card.name } has also been making changes.</div>
+          <div>#{ link_to_page @revision.creator.card.name } has also been making changes.</div>
           <div>Please examine below, resolve above, and re-submit.</div>
           #{wrap(:conflict) { |args| _render_diff } } }
       end

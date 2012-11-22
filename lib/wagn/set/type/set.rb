@@ -22,7 +22,7 @@ module Wagn
     end
 
     define_view :core , :type=>:set do |args|
-      body = card.setting_names_by_group.map do |group, data|
+      body = card.setting_cards_by_group.map do |group, data|
         next if group.nil? || data.nil?
         content_tag(:tr, :class=>"rule-group") do
           (["#{Card[group].name} Settings"]+%w{Content Type}).map do |heading|
@@ -72,11 +72,6 @@ module Wagn
         end
       end
 
-      def set_group
-        Card::PointerID == ( templt = fetch_trait(:content) || fetch_trait(:default) and
-            templt.type_id or right_id == Card::TypeID ? left_id : trunk.type_id ) and :pointer_group or nil
-      end
-
       def label
         if klass = subclass_for_set
           klass.label cardname.left
@@ -85,13 +80,10 @@ module Wagn
         end
       end
 
-      def setting_names_by_group
-        usnbg=Card.setting_names_by_group.clone
-        unless Card::PointerID == ( templt = fetch_trait(:content) || fetch_trait(:default) and
-                (templt.type_id or right_id == Card::TypeID ? left_id : trunk.type_id) )
-          usnbg.delete :pointer_group
-        end
-        usnbg
+      def setting_cards_by_group
+        test = Card::PointerID != ( templt = fetch_trait(:content) || fetch_trait(:default) and
+                 templt.type_id or (right_id == Card::TypeID ? left_id : trunk.type_id) )
+        Card.setting_cards_by_group.reject {|k,v| test && k == :pointer_group }
       end
 
       def prototype

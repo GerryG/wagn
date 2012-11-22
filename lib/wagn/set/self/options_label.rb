@@ -1,4 +1,4 @@
-module Wagn::Set::Self::OptionLabel
+module Wagn::Set::Self::OptionsLabel
   module Model
     def config key=nil
       @configs||={

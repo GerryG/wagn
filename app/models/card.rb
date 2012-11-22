@@ -25,10 +25,6 @@ class Card < ActiveRecord::Base
   attr_writer :update_read_rule_list
   attr_reader :type_args, :broken_type
 
-  belongs_to :card, :class_name => 'Card', :foreign_key => :creator_id
-  belongs_to :card, :class_name => 'Card', :foreign_key => :updater_id
-  def user() User.where(:card_id=>id).first end
-
   before_save :set_stamper, :base_before_save, :set_read_rule, :set_tracked_attributes
   after_save :base_after_save, :update_ruled_cards, :update_queue, :expire_related
 
@@ -363,10 +359,18 @@ class Card < ActiveRecord::Base
       Card.fetch cardname.left, *args
     end
   end
-  def right(*args)     Card.fetch cardname.right, *args     end
+  
+  def right *args
+    Card.fetch cardname.right, *args
+  end
 
-  def trunk(*args)     Card.fetch cardname.trunk, *args     end
-  def tag(*args)       Card.fetch cardname.tag,   *args     end
+  def trunk *args
+    simple? ? self : left( *args )
+  end
+
+  def tag *args
+    simple? ? self : right( *args )
+  end
 
   def left_or_new args={}
     left args or Card.new args.merge(:name=>cardname.left)

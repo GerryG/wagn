@@ -10,7 +10,7 @@ describe Card, "destroy without dependents" do
 end
 
 describe Card, "destroy with dependents" do
-  before do Account.as(:joe_user); @c = Card["A"] end
+  before do Account.as('joe_user'); @c = Card["A"] end
     
   it "should succeed" do
     #should test for destruction of dependents!

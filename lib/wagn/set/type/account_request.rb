@@ -23,8 +23,5 @@ module Wagn
       end
     end
 
-    module Model
-      include Set::Type::User::Model
-    end
   end
 end

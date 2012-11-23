@@ -9,7 +9,7 @@ class TransclusionTest < ActiveSupport::TestCase
 
   def setup
     super
-    setup_default_user
+    setup_default_account
   end
 
   def test_truth

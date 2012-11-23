@@ -4,7 +4,7 @@ require File.expand_path('../../spec_helper', File.dirname(__FILE__))
 describe "Card::Reference" do
 
   before do
-    #setup_default_user
+    #setup_default_account
     Account.as(Card::WagnBotID) # FIXME: as without a block deprecated
   end
 
@@ -180,7 +180,7 @@ describe "Card::Reference" do
   # This test doesn't make much sense to me... LWH
   it "revise changes references from wanted to linked for new cards" do
     new_card = Card.create(:name=>'NewCard')
-    new_card.revise('Reference to [[WantedCard]], and to [[WantedCard2]]', Time.now, Card['quentin'].user),
+    new_card.revise('Reference to [[WantedCard]], and to [[WantedCard2]]', Time.now, Card['quentin'].account),
         get_renderer)
 
     references = new_card.card_references(true)
@@ -191,7 +191,7 @@ describe "Card::Reference" do
     references[1].link_type.should == Card::Reference::WANTED_PAGE
 
     wanted_card = Card.create(:name=>'WantedCard')
-    wanted_card.revise('And here it is!', Time.now, Card['quentin'].user), get_renderer)
+    wanted_card.revise('And here it is!', Time.now, Card['quentin'].account), get_renderer)
 
     # link type stored for NewCard -> WantedCard reference should change from WANTED to LINKED
     # reference NewCard -> WantedCard2 should remain the same

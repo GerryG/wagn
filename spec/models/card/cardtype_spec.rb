@@ -167,7 +167,7 @@ describe User, "Joe User" do
     end
 
     Account.as 'joe_user'
-    @user = Account.as_card.user
+    @user = Account.as_card.account
     @ucard = Card[@user.account_id]
     @type_names = Account.createable_types
   end

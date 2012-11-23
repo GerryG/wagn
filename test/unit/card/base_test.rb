@@ -3,7 +3,7 @@ class Card::BaseTest < ActiveSupport::TestCase
 
   def setup
     super
-    setup_default_user
+    setup_default_account
   end
 
   test 'remove' do

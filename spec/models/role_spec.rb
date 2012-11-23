@@ -69,7 +69,7 @@ describe User, 'Joe User' do
       @roles_card.content=''
       @roles_card << @r1;
     }
-    @ju = Card['joe_user+*account'].user
+    @ju = Card['joe_user+*account'].account
     @roles_card = Card[@jucard.fetch_or_new_trait(:roles).id]
     @roles_card.item_names.length.should==1
     @jucard.parties.should == [Card::AuthID, Card['r1'].id, Card[@ju.account_id].left_id]

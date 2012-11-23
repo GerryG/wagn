@@ -181,30 +181,29 @@ Done"
   #-------- ( ACCOUNT METHODS )
 
   def update_account
+    if account_args = params[:account] and
+        acct_cd = @card.fetch_trait(:account) and
+        acct = acct_cd.account
 
-    if params[:save_roles]
-      @card.trait_ok! :roles, :update
-
-      role_hash = params[:user_roles] || {}
-      role_card = role_card.refresh
-      role_card.items= role_hash.keys.map &:to_i
-    end
-
-    if account = @card.fetch_trait(:account) and user = account.user and
-           account_args = params[:account]
-      unless Account.authorized.id == account.id and !account_args[:blocked]
+      Account.authorized.id == acct_cd.id and !account_args[:blocked] and
         @card.ok! :update
-      end
-      user.update_attributes account_args
-    end
 
-    if user && user.errors.any?
-      user.errors.each do |field, err|
-        @card.errors.add field, err
+      if params[:save_roles] and
+          @card.trait_ok! :roles, :update and
+        roll_card = @card.fetch_or_new_trait(:roles)
+        role_hash = params[:user_roles] || {}
+        role_card = role_card.refresh
+        role_card.items= role_hash.keys.map &:to_i
       end
-      errors
-    else
-      success
+
+      acct.update_attributes account_args
+
+      if acct.errors.any?
+        acct.errors.each {|f,e| @card.errors.add f, e }
+        errors
+      else
+        success
+      end
     end
   end
 

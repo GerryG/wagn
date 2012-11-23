@@ -4,7 +4,7 @@ class Card::RemoveTest < ActiveSupport::TestCase
 
   def setup
     super
-    setup_default_user
+    setup_default_account
     @a = Card["A"]
   end
 

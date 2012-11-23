@@ -59,18 +59,11 @@ module Wagn::Model::Permissions
   end
 
   def ok! operation
-    #Rails.logger.info "ok! #{operation} #{inspect}" unless operation == :read
-    if ok? operation
-      true
-    else
-      raise Card::PermissionDenied.new self
-    end
+    raise Card::PermissionDenied.new self unless ok? operation
   end
 
   def trait_ok! tagcode, operation
-    # it can be new? for create, others have to exist
-    operation == :create ? fetch_or_new_trait(tagcode).ok!(operation) :
-      (trait = fetch_trait(tagcode) and trait.ok!(operation))
+    raise Card::PermissionDenied.new self unless trait_ok? tagcode, operation
   end
 
   def trait_ok? tagcode, operation

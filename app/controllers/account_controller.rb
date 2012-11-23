@@ -25,8 +25,8 @@ class AccountController < ApplicationController
 
     if request.post?
 
-      #Rails.logger.warn "signup #{@card.inspect}, #{@card.trait_ok?(:account, :create)}"
-      redirect_id = if @card.trait_ok? :account, :create)
+      #Rails.logger.warn "signup #{@card.inspect}, #{@card.trait_ok? :account, :create}"
+      redirect_id = if @card.trait_ok? :account, :create
           @user.active
           SIGNUP_ID
         else

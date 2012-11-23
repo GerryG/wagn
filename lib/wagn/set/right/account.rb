@@ -5,13 +5,8 @@ module Wagn
         block_account
       end
 
-<<<<<<< HEAD
-      def block_user
-        user and user.block!
-=======
       def block_account
-        user and user.block!  
->>>>>>> traits_and_forms
+        account and account.block!  
       end
 
       def user

@@ -7,7 +7,7 @@ end
 
 Then /^(.*) should be notified that "(.*)"$/ do |username, subject|
   account = username=='I' ? Account.authorized : Card[username].fetch_trait(:account)
-  user = Account.from_id account.id
+  user = account.user
   email = user.email
   begin
     step %{"#{email}" should receive 1 email}

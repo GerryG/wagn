@@ -5,9 +5,7 @@ module Wagn
     format :base
 
     define_view  :raw, :right=>:email, :denial=>:blank, :perms => :read do |args|
-      Rails.logger.info "email raw #{card.inspect}"
-      trunk = card.trunk
-      trunk.respond_to?(:email) ? trunk.email : ''
+      user=card.trunk.user and user.email
     end
     alias_view :raw, {:right=>:email}, :core
   end

@@ -46,11 +46,10 @@ module WagnTestHelper
     'u3@user.com' => 'u3_pass'
   }
 
-  def integration_login_as(user, functional=nil)
+  def integration_login_as(user_login, functional=nil)
 
-    raise "Don't know email & password for #{user}, #{Card[user].inspect}" unless uc=Card[user] and
-        uc=uc.fetch_trait(:account) and u=Account.from_id(uc.id) and
-        login = u.email and pass = USERS[login]
+    raise "Don't know email & password for #{user_login}, #{Card[user_login].inspect}" unless user_card=Card[user_login] and
+        usr=user_card.user and login = usr.email and pass = USERS[login]
 
     if functional
       Rails.logger.warn "functional login #{login}, #{pass}"

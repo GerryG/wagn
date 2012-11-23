@@ -56,8 +56,8 @@ class Wagn::Set::Type::AccountRequestTest < ActionController::TestCase
 
     assert_instance_of User, @user
     #assert @user.default_status?, "#{@user} has default status" # is this correct?  if so FIXME
-    assert_equal 'jamaster@jay.net', @acard.email(true), "#{@acard} card has email method"
-    assert_equal 'jamaster@jay.net', @card.email(true), "#{@card} card has email method"
+    assert_equal 'jamaster@jay.net', @acard.user.email, "#{@acard} card has email method"
+    assert_equal 'jamaster@jay.net', @card.user.email, "#{@card} card has email method"
 
   end
 

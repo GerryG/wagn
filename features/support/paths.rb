@@ -11,12 +11,6 @@ module NavigationHelpers
     when /the home\s?page/
       '/'
 
-    # Add more mappings here.
-    # Here is an example that pulls values out of the Regexp:
-    #
-    #   when /^(.*)'s profile page$/i
-    #     user_profile_path(Account.from_id($1))
-
     when /card (.*) with (.*) layout$/
       "/#{$1.to_name.url_key}?layout=$2"
 

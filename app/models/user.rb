@@ -24,12 +24,12 @@ class User < ActiveRecord::Base
   before_save :encrypt_password
 
   class << self
-    def from_email(email)       User.where(:email=>email.strip.downcase).first   end
-    def from_login(login)       User.where(:login=>login).first                  end
-    def from_id(card_id)        User.where(:account_id=>card_id).first           end
-    def from_user_id(card_id)   User.where(:card_id=>card_id).first              end
+    def from_email(email)        User.where(:email=>email.strip.downcase).first   end
+    def from_login(login)        User.where(:login=>login).first                  end
+    def from_id(card_id)         User.where(:account_id=>card_id).first           end
+    def from_account_id(card_id) User.where(:card_id=>card_id).first              end
 
-    def encrypt(password, salt) Digest::SHA1.hexdigest("#{salt}--#{password}--") end
+    def encrypt(password, salt)  Digest::SHA1.hexdigest("#{salt}--#{password}--") end
   end
 
 #~~~~~~~ Instance

@@ -4,7 +4,7 @@ class Wagn::Set::Type::RoleTest < ActiveSupport::TestCase
 
   def setup
     super
-    setup_default_user
+    setup_default_account
   end
 
   def test_role_creation

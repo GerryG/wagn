@@ -117,9 +117,9 @@ class CardController < ApplicationController
       role_card.items= role_hash.keys.map &:to_i
     end
 
-    if account = @card.fetch_trait(:account) and user = account.user and
+    if acct = @card.fetch_trait(:account) and user = acct.account and
            account_args = params[:account]
-      unless Account.authorized.id == account.id and !account_args[:blocked]
+      unless Account.authorized.id == acct.id and !account_args[:blocked]
         @card.ok! :update
       end
       user.update_attributes account_args

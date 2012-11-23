@@ -490,12 +490,13 @@ class Card < ActiveRecord::Base
     (current_revision && current_revision.created_at) || Time.now
   end
 
-  def user
-    # no id? try using the cardname to find the user Account[]
-    if @user.nil? and uid = id.nil? ? (user_card = Account[name] and user_card.id) : id
-      @user = Account.from_user_id uid
+  def account
+    # no id? try using the cardname to find the user Account.lookup
+    if @account.nil? and uid = id.nil? ?
+       ( user_card = Account.lookup(name) and user_card.id ) : id
+      @account = Account[uid]
     end
-    @user
+    @account
   end
 
   def author
@@ -590,7 +591,7 @@ class Card < ActiveRecord::Base
   def inspect
     "#<#{self.class.name}" + "##{id}" + # "###{object_id}" +
     #":l:#{left_id}r:#{right_id}" +
-    (@user.nil? ? '' : "U[#{user}]") +
+    (@account.nil? ? '' : "U[#{@account}]") +
     "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
     "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{virtual? &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }}" +
     #" Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}" +

@@ -117,9 +117,9 @@ module Wagn::Model::Permissions
     @operation_approved = false
   end
 
-  def lets_user operation
+  def lets_account operation
     #warn "creating *account ??? #{caller[0..25]*"\n"}" if name == '*account' && operation==:create
-    #warn "lets_user[#{operation}]#{inspect}" #if name=='Buffalo'
+    #warn "lets_account[#{operation}]#{inspect}" #if name=='Buffalo'
     return false if operation != :read    and Wagn::Conf[:read_only]
     return true  if operation != :comment and Account.always_ok?
 
@@ -129,7 +129,7 @@ module Wagn::Model::Permissions
       # admin can comment if anyone can
       !permitted_ids.empty?
     else
-      #warn "lets_user[#{operation}]#{name} permitted:#{permitted_ids.map {|id|Card[id].name}*', '} " if name=='c1' and operation==:update
+      #warn "lets_account[#{operation}]#{name} permitted:#{permitted_ids.map {|id|Card[id].name}*', '} " if name=='c1' and operation==:update
       Account.among? permitted_ids
     end
   end
@@ -138,7 +138,7 @@ module Wagn::Model::Permissions
     deny_because "Currently in read-only mode" if operation != :read && Wagn::Conf[:read_only]
     verb ||= operation.to_s
     #Rails.logger.info "approve_task[#{inspect}](#{operation}, #{verb})" if operation == :delete
-    deny_because you_cant("#{verb} this card") unless self.lets_user( operation )
+    deny_because you_cant("#{verb} this card") unless self.lets_account( operation )
   end
 
   def approve_create
@@ -176,7 +176,7 @@ module Wagn::Model::Permissions
     case
     when !type_name
       deny_because("No such type")
-    when !new_card? && reset_patterns && !lets_user(:create)
+    when !new_card? && reset_patterns && !lets_account(:create)
       deny_because you_cant("change to this type (need create permission)"  )
     end
     #NOTE: we used to check for delete permissions on previous type, but this would really need to happen before the name gets changes

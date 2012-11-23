@@ -13,7 +13,7 @@ class LocationTest < ActionController::IntegrationTest
 
   def setup
     super
-    setup_default_user
+    setup_default_account
     integration_login_as 'joe_user'
   end
 

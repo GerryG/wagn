@@ -12,7 +12,7 @@ class Card
 
   def setup
     super
-    setup_default_user
+    setup_default_account
     Account.as_bot do
      Card.create! :name => "chuck_wagn+chuck"
      Card.create! :name => "Blue"

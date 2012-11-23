@@ -31,7 +31,7 @@ class Mailer < ActionMailer::Base
   def signup_alert invite_request
     @site = Card.setting :title
     @card = invite_request
-    @email= invite_request.user.email
+    @email= invite_request.account.email
     @name = invite_request.name
     @content = invite_request.content
     @request_url  = wagn_url invite_request
@@ -48,7 +48,7 @@ class Mailer < ActionMailer::Base
 
   def change_notice user_card, card, action, watched, subedits=[], updated_card=nil
     user_card = Card[user_card] unless Card===user_card
-    email = user_card.user.email
+    email = user_card.account.email
     #warn "change_notice( #{user_card}, #{email}, #{card.inspect}, #{action.inspect}, #{watched.inspect} Uc:#{updated_card.inspect}...)"
 
     updated_card ||= card

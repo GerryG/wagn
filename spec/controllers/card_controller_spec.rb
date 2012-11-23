@@ -164,7 +164,7 @@ describe CardController do
     include AuthenticatedTestHelper
 
     before do
-      @user = Card['joe_user'].user
+      @user = Card['joe_user'].account
       @request    = ActionController::TestRequest.new
       @response   = ActionController::TestResponse.new
       @controller = CardController.new

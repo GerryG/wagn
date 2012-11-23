@@ -110,7 +110,7 @@ class URITest < ActiveSupport::TestCase
     # mailto
     match(URIChunk, 'mailto:jdoe123@example.com',
         :scheme =>'mailto', :host =>'example.com', :port => nil, :path => nil, :query => nil,
-        :account => 'jdoe123', :link_text => 'mailto:jdoe123@example.com')
+        :user => 'jdoe123', :link_text => 'mailto:jdoe123@example.com')
     # something nonexistant
     match(URIChunk, 'foobar://www.example.com',
         :scheme =>'foobar', :host =>'www.example.com', :port => nil, :path => nil, :query => nil,
@@ -134,13 +134,13 @@ class URITest < ActiveSupport::TestCase
 
   def test_email_uri
   match(URIChunk, 'mail@example.com',
-    :account => 'mail', :host => 'example.com', :link_text => 'mail@example.com'
+    :user => 'mail', :host => 'example.com', :link_text => 'mail@example.com'
   )
   end
 
   def test_non_email
     # The @ is part of the normal text, but 'example.com' is marked up.
-     match(URIChunk, 'Not an email: @example.com', :account => nil, :uri => 'http://example.com')
+     match(URIChunk, 'Not an email: @example.com', :user => nil, :uri => 'http://example.com')
   end
 
   def test_textile_image
@@ -182,7 +182,7 @@ class URITest < ActiveSupport::TestCase
     match(URIChunk, 'http://www.example.com/ is a link.', :host => 'www.example.com')
     match(URIChunk,
         'Email david@loudthinking.com',
-        :scheme =>'mailto', :account =>'david', :host =>'loudthinking.com')
+        :scheme =>'mailto', :user =>'david', :host =>'loudthinking.com')
     # check that trailing punctuation is not included in the hostname
     match(URIChunk, 'Hey dude, http://fake.link.com.', :scheme => 'http', :host => 'fake.link.com')
     # this is a textile link, no match please.

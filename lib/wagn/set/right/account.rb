@@ -5,7 +5,7 @@ module Wagn
         block_account
       end
 
-      def block_user
+      def block_account
         account and account.block!  
       end
       

@@ -418,8 +418,9 @@ module Wagn
           (user_roles.map do |rolecard|
             %{ <div>#{ link_to_page rolecard.name }</div>}
           end * "\n").html_safe
+        else
+          'No roles assigned'  # #ENGLISH
         end
-      end
 
       %{#{ raw option_header( 'User Roles' ) }#{
          option(option_content, :name=>"roles",

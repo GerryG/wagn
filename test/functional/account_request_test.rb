@@ -25,7 +25,7 @@ class Wagn::Set::Type::AccountRequestTest < ActionController::TestCase
   def test_should_redirect_to_account_request_landing_card
     Account.session =Card['joe_admin+*account']
     Rails.logger.info "testing #{@jaymail.inspect}"
-    post :create_account, :user=>{:email=>@jaymail}, :card=>{
+    post :create_account, :account=>{:email=>@jaymail}, :card=>{
       :type=>"Account Request",
       :name=>"Word Third",
       :content=>"Let me in!"
@@ -38,7 +38,7 @@ class Wagn::Set::Type::AccountRequestTest < ActionController::TestCase
   end
 
   def test_should_create_account_request
-    post :create_account, :user=>{:email=>@jaymail}, :card=>{
+    post :create_account, :account=>{:email=>@jaymail}, :card=>{
       :type=>"Account Request",
       :name=>"Word Third",
       :content=>"Let me in!"

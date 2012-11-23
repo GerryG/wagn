@@ -101,11 +101,11 @@ unless defined? TEST_ROOT
     end
 
     class RenderTest
-      attr_reader :title, :url, :cardtype, :user, :status, :card
+      attr_reader :title, :url, :cardtype, :account, :status, :card
       def initialize(test_class,url,args={})
         @test_class,@url = test_class,url
 
-        args[:users] ||= { :anonymous=>200 }
+        args[:account] ||= { :anonymous=>200 }
         args[:cardtypes] ||= ['Basic']
         if args[:cardtypes]==:all
           # FIXME: need a better data source for this?

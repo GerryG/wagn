@@ -14,7 +14,7 @@ describe AccountController do
       login_as 'joe_admin'
 
       @email_args = {:subject=>'Hey Joe!', :message=>'Come on in.'}
-      post :invite, :user=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'},
+      post :invite, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'},
         :email=> @email_args
 
       @new_account = Account.from_email 'joe@new.com'
@@ -47,7 +47,7 @@ describe AccountController do
     end
 
     it 'should create a user' do
-      post :signup, :user=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
+      post :signup, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
       new_account = User.where(:email=>'joe@new.com').first
       user_card = Card['Joe New']
       new_account.should be
@@ -57,7 +57,7 @@ describe AccountController do
 
     it 'should send email' do
       # a user requests an account
-      post :signup, :user=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
+      post :signup, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
 
       # and the admin accepts
       login_as 'joe_admin'
@@ -69,8 +69,8 @@ describe AccountController do
     end
     
     it 'should detect duplicates' do
-      post :signup, :user=>{:email=>'joe@user.com'}, :card=>{:name=>'Joe Scope'}
-      post :signup, :user=>{:email=>'joe@user.com'}, :card=>{:name=>'Joe Duplicate'}
+      post :signup, :account=>{:email=>'joe@user.com'}, :card=>{:name=>'Joe Scope'}
+      post :signup, :account=>{:email=>'joe@user.com'}, :card=>{:name=>'Joe Duplicate'}
       
       Card['Joe Duplicate'].should be_nil
     end

@@ -61,7 +61,7 @@ class Wagn::Set::Type::AccountRequestTest < ActionController::TestCase
 
   end
 
-  def test_should_destroy_and_block_user
+  def test_should_destroy_and_block_account
     # FIXME: should test agains mocks here, instead of re-testing the model...
     post :delete, :id=>"~#{Card['Ron Request'].id}", :confirm_destroy=>true
     assert_equal nil, Card['Ron Request']

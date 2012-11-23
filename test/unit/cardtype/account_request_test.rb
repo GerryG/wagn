@@ -23,7 +23,7 @@ class AccountRequestTest < ActiveSupport::TestCase
   end
 
 
-  def test_should_block_user
+  def test_should_block_account
     #Account.as_bot  do
     #  auth_user_card = Card[Card::AuthID]
       # FIXME: change from task ...

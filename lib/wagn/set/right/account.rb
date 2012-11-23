@@ -2,10 +2,10 @@ module Wagn
   module Set::Right::Account
     module Model
       def before_destroy
-        block_user
+        block_account
       end
 
-      def block_user
+      def block_account
         account and account.block!  
       end
       

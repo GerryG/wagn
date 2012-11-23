@@ -18,7 +18,8 @@ describe Mailer do
   #  (ie try renamed change notice below to change_notice) then *notify+*from gets stuck on.
   context "change notice" do
     before do
-      Account.session =user =  Card['sara']
+      user =  Card['sara']
+      Account.session = user.fetch_trait(:account)
       card =  Card["Sunglasses"]
       action = "edited"
       Mailer.change_notice( user, card, action, card.name ).deliver
@@ -36,7 +37,7 @@ describe Mailer do
         assert_equal ["sara@user.com"],  @mail.to
       end
       it "is from Wag bot email" do
-        assert_equal [Card[Card::WagnBotID].fetch_trait(:account).email(true)], @mail.from
+        assert_equal [Card[Card::WagnBotID].user.email], @mail.from
       end
     end
   end

@@ -25,7 +25,6 @@ describe AccountController do
 
     it 'should create a user' do
       @account_card.new_card?.should be_false
-      #warn "cards #{@account_card.inspect}, #{@user_card.inspect}"
       @user_card.type_id.should == Card::UserID
       @account_card.type_id.should == Card::BasicID
       @new_user.should be
@@ -47,8 +46,6 @@ describe AccountController do
       end
     end
 
-    #FIXME: tests needed : signup without approval, signup alert emails
-
     it 'should create a user' do
       post :signup, :user=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
       new_user = User.where(:email=>'joe@new.com').first
@@ -59,10 +56,12 @@ describe AccountController do
     end
 
     it 'should send email' do
+      # a user requests an account
       post :signup, :user=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
-      login_as :joe_admin
 
-      post :accept, :card=>{:key=>'joe_new'}, :email=>{:subject=>'Hey Joe!', :message=>'Can I Come on in?'}
+      # and the admin accepts
+      login_as 'joe_admin'
+      post :accept, :card=>{:key=>'joe_new'}, :email=>{:subject=>'Hey Joe!', :message=>'Come on in?'}
 
       @msgs.size.should == 1
       @msgs[0].should be_a Mail::Message
@@ -85,14 +84,14 @@ describe AccountController do
 
   describe "#forgot_password" do
     before do
-      @msgs=[]
-      mock.proxy(Mailer).account_info.with_any_args.times(any_times) { |m|
-        @msgs << m
-        mock(@mail = m).deliver }
+      @msgs = []
+      mock.proxy(Mailer).account_info.with_any_args.times(any_times) do |mck|
+        @msgs << mck
+        mock(mck).deliver
+      end
 
-      @email='joe@user.com'
-      #@juser=Account.from_email @email
-      post :forgot_password, :email=>@email
+      post :forgot_password, :email=>'joe@user.com'
+      assert_response :found
     end
 
     it 'should send an email to user' do
@@ -101,8 +100,9 @@ describe AccountController do
     end
 
 
-    it "can't login now" do
+    it "can't login with original pw" do
       post :signin, :email=>'joe@user.com', :password=>'joe_pass'
+      assert_response :forbidden
     end
   end
 end

@@ -34,6 +34,7 @@ describe Card do
         card = Card.fetch("Joe User+*email")
         card.should be_instance_of(Card)
         card.name.should == "Joe User+*email"
+        Rails.logger.warn "card is #{card.inspect}"
         Wagn::Renderer.new(card).render_raw.should == 'joe@user.com'
       end
     end

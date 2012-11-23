@@ -9,7 +9,7 @@ class User < ActiveRecord::Base
   # maybe WagnAccount ?
 
   # Virtual attribute for the unencrypted password
-  attr_accessor :password, :name
+  attr_accessor :password
 
   validates_presence_of     :email, :if => :email_required?
   validates_format_of       :email, :with => /^([^@\s]+)@((?:[-a-z0-9]+\.)+[a-z]{2,})$/i  , :if => :email_required?
@@ -24,21 +24,17 @@ class User < ActiveRecord::Base
   before_save :encrypt_password
 
   class << self
-    def from_email(email) User.where(:email=>email.strip.downcase).first           end
-    def from_login(login) User.where(:login=>login).first                          end
-    def from_id(card_id)  User.where(:account_id=>card_id).first                   end
+    def from_email(email)       User.where(:email=>email.strip.downcase).first   end
+    def from_login(login)       User.where(:login=>login).first                  end
+    def from_id(card_id)        User.where(:account_id=>card_id).first           end
+    def from_user_id(card_id)   User.where(:card_id=>card_id).first              end
 
-    # Encrypts some data with the salt.
-    def encrypt(password, salt)
-      Digest::SHA1.hexdigest("#{salt}--#{password}--")
-    end
-
+    def encrypt(password, salt) Digest::SHA1.hexdigest("#{salt}--#{password}--") end
   end
 
 #~~~~~~~ Instance
 
   def save_card args, email_args={}
-    #Rails.logger.info  "create with(#{inspect}, #{args.inspect})"
     card = Card===args ?  args : Card.fetch_or_new(args[:name], args)
 
     active() if status.blank?
@@ -74,23 +70,24 @@ class User < ActiveRecord::Base
         false
       end
 
-      self.send_account_info(email_args) if errors.empty? && !email_args.empty?
     end
+    #warn "save_card sa #{email_args.inspect} #{errors.map(&:to_s)*", "}"
+    self.send_account_info(email_args) if errors.empty? && !email_args.empty?
     card
   end
 
   def accept card, email_args
-    Account.as_bot do #what permissions does approver lack?  Should we check for them?
-      card = card.trunk and card.type_id = Card::UserID # Invite Request -> User
+    raise "???" if card.right_id ==  Card::AccountID
+    if card.right_id != Card::AccountID || card = card.trunk
+      card.type_id = Card::UserID # Invite Request -> User FIXME: should be setting?
       active
       generate_password
       save_card(card)
+      self.send_account_info(email_args) if self.errors.empty?
     end
-    send_account_info(email_args) if self.errors.empty?
   end
 
   def send_account_info args
-    #return if args[:no_email]
     [:subject, :message].each {|r| args[r] or raise Wagn::Oops, "#{r} is requires" }
     begin
       message = Mailer.account_info self, args

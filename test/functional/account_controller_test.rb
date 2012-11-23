@@ -66,9 +66,10 @@ class AccountControllerTest < ActionController::TestCase
     post :signup, @newby_args
 
     assert_response :redirect
-    assert Card['Newby Dooby'], "should create User card"
-    assert c=Card['Newby Dooby+*account'], "should create User+*account card"
-    assert Account.from_id(c.id), "should create User"
+    assert ucard=Card['Newby Dooby'], "should create User card"
+    assert card=ucard.fetch_trait(:account), "should create User+*account card"
+    assert card.user, "should create User"
+    assert ucard.user, "should access user from User card"
     assert_status @newby_email, 'pending'
 
     integration_login_as 'joe_admin', true

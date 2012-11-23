@@ -80,7 +80,7 @@ class AccountCreationTest < ActionController::TestCase
     end
     email = ActionMailer::Base.deliveries[-1]
     # emails should be 'from' inviting user
-    assert_equal Account.session.email, email.from[0]
+    assert_equal Account.session.user.email, email.from[0]
     Rails.logger.warn "testing fscr #{Account.from_email('new@user.com').inspect}"
     assert Account.from_email('new@user.com').active?
   end

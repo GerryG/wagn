@@ -70,7 +70,9 @@ class Card < ActiveRecord::Base
     }
 
     def const_missing const
-      if const.to_s =~ /^([A-Z]\S*)ID$/ and code=$1.underscore.to_sym
+      if const = const.to_s and const == 'Card'
+        self
+      elsif const =~ /^([A-Z]\S*)ID$/ and code=$1.underscore.to_sym
         code = ID_CONST_ALIAS[code] || code
         if card_id = Wagn::Codename[code]
           const_set const, card_id
@@ -81,7 +83,8 @@ class Card < ActiveRecord::Base
         super
       end
     rescue NameError=>e
-      Rails.logger.warn "Card not defined, return self #{caller*"\n"}" if const.to_sym == :Card
+      #Rails.logger.warn "Card not defined, return self #{caller*"\n"}" if const.to_sym == :Card
+      Rails.logger.warn "Card not defined, return self" if const.to_sym == :Card
       return self if const.to_sym == :Card
       nil
     end
@@ -487,7 +490,11 @@ class Card < ActiveRecord::Base
   end
 
   def user
-    @user ||= Account.from_id fetch_trait(:account).id
+    # no id? try using the cardname to find the user Account[]
+    if @user.nil? and uid = id.nil? ? (user_card = Account[name] and user_card.id) : id
+      @user = Account.from_user_id uid
+    end
+    @user
   end
 
   def creator
@@ -581,7 +588,8 @@ class Card < ActiveRecord::Base
 
   def inspect
     "#<#{self.class.name}" + "##{id}" + # "###{object_id}" +
-    ":l:#{left_id}r:#{right_id}" +
+    #":l:#{left_id}r:#{right_id}" +
+    (@user.nil? ? '' : "U[#{user}]") +
     "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
     "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{virtual? &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }}" +
     #" Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}" +

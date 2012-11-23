@@ -15,6 +15,7 @@ class AccountController < ApplicationController
     raise(Wagn::Oops, "You have to sign out before signing up for a new Account") if logged_in?
 
     card_params = (params[:card]||{}).merge :type_id=>Card::AccountRequestID
+
     @card = Card.new card_params
     #FIXME - don't raise; handle it!
     raise(Wagn::PermissionDenied, "Sorry, no Signup allowed") unless @card.ok? :create
@@ -24,7 +25,6 @@ class AccountController < ApplicationController
 
     if request.post?
 
-      Rails.logger.warn "signup #{@card.inspect}, #{@card.trait_ok?(:account, :create)}"
       redirect_id = if @card.trait_ok?(:account, :create) 
           @user.active
           SIGNUP_ID 
@@ -53,13 +53,12 @@ class AccountController < ApplicationController
     card_key=params[:card][:key]
     raise(Wagn::Oops, "I don't understand whom to accept") unless params[:card]
     @card = Card[card_key] or raise(Wagn::NotFound, "Can't find this Account Request")
-    #warn "accept #{Account.from_id(@card.id).inspect}, #{@card.inspect}"
     @user = @card.user or raise(Wagn::Oops, "This card doesn't have an account to approve")
     #warn "accept #{@user.inspect}"
     @card.ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create accounts")
 
     if request.post?
-      #warn "accept #{@card.inspect}, #{@user.inspect}"
+      #warn "accept #{@card.inspect}, #{@user.inspect}, #{params[:email].inspect}"
       @user.accept(@card, params[:email])
       if @user.errors.empty? #SUCCESS
         redirect_to_id INVITE_ID
@@ -120,8 +119,8 @@ class AccountController < ApplicationController
       @user.save!
 
       @user.send_account_info(:subject=> "Password Reset",
-           :message=> "You have been given a new temporary password.  " +
-                      "Please update your password once you've signed in. " )
+             :message=> "You have been given a new temporary password.  " +
+                        "Please update your password once you've signed in. " )
 
       flash[:notice] = "Check your email for your new temporary password"
       redirect_to previous_location

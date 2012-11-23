@@ -326,7 +326,7 @@ module Wagn
         Account.as_card.id==r.card.id or r.card.ok?(:update)
       } do |args|
 
-      locals = {:slot=>self, :card=>card, :account=>card.user }
+      locals = {:slot=>self, :card=>card, :account=>card.account }
       wrap :options, args do
         %{ #{ _render_header }
           <div class="options-body">

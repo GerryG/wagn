@@ -17,7 +17,7 @@ describe AccountController do
       post :invite, :user=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'},
         :email=> @email_args
 
-      @new_user = Account.from_email 'joe@new.com'
+      @new_account = Account.from_email 'joe@new.com'
       @user_card = Card['Joe New']
       @account_card = @user_card.fetch_or_new_trait :account
 
@@ -27,8 +27,8 @@ describe AccountController do
       @account_card.new_card?.should be_false
       @user_card.type_id.should == Card::UserID
       @account_card.type_id.should == Card::BasicID
-      @new_user.should be
-      @new_user.account_id.should == @account_card.id
+      @new_account.should be
+      @new_account.account_id.should == @account_card.id
     end
 
     it 'should send email' do
@@ -48,10 +48,10 @@ describe AccountController do
 
     it 'should create a user' do
       post :signup, :user=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
-      new_user = User.where(:email=>'joe@new.com').first
+      new_account = User.where(:email=>'joe@new.com').first
       user_card = Card['Joe New']
-      new_user.should be
-      new_user.card_id.should == user_card.id
+      new_account.should be
+      new_account.card_id.should == user_card.id
       user_card.type_id.should == Card::AccountRequestID
     end
 

@@ -51,9 +51,10 @@ class AccountController < ApplicationController
 
   def accept
     card_key=params[:card][:key]
+    #FIXME - don't raise; handle it!
     raise(Wagn::Oops, "I don't understand whom to accept") unless params[:card]
     @card = Card[card_key] or raise(Wagn::NotFound, "Can't find this Account Request")
-    @user = @card.user or raise(Wagn::Oops, "This card doesn't have an account to approve")
+    @user = @card.account or raise(Wagn::Oops, "This card doesn't have an account to approve")
     #warn "accept #{@user.inspect}"
     @card.ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create accounts")
 
@@ -69,6 +70,7 @@ class AccountController < ApplicationController
   end
 
   def invite
+    #FIXME - don't raise; handle it!
     cok=Card.new(:name=>'dummy+*account').ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create")
     if request.post?
       @user = Account.new params[:user]
@@ -87,7 +89,7 @@ class AccountController < ApplicationController
 
   def signin
     if user=Account.from_params(params) and user.authenticated?(params)
-      self.session_user = user.account_id
+      self.session_account = user.account_id
       flash[:notice] = "Successfully signed in"
       redirect_to previous_location
     else
@@ -100,7 +102,7 @@ class AccountController < ApplicationController
   end
 
   def signout
-    self.session_user = nil
+    self.session_account = nil
     flash[:notice] = "Successfully signed out"
     redirect_to Card.path_setting('/')  # previous_location here can cause infinite loop.  ##  Really?  Shouldn't.  -efm
   end

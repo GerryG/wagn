@@ -28,7 +28,6 @@ class SharedData
     #                               :type_id=>Card::PointerID)
     #roles_card.add_item( ja_card.name )
     #jc_card.fetch_or_new_trait(:roles) << joe_admin
-    #Role[:admin].users<< [ joe_admin ]
 
     jc_card = Card.create! :typecode=>'user', :name=>"Joe Camel", :content => "Mr. Buttz"
     joe_camel = User.create! :login=>"joe_camel",:email=>'joe@camel.com', :status => 'active', :password=>'joe_pass', :password_confirmation=>'joe_pass', :card_id=>jc_card.id
@@ -78,13 +77,8 @@ class SharedData
     u1.fetch_or_new_trait(:roles) << r1 << r2 << r3
     u2.fetch_or_new_trait(:roles) << r1 << r2 << r4
     u3_star = u3.fetch_or_new_trait(:roles) << r1 << r4
-    #r1.users = [ u1, u2, u3 ]
-    #r2.users = [ u1, u2 ]
-    #r3.users = [ u1 ]
-    #r4.users = [ u3, u2 ]
 
     u3_star << Card::AdminID
-    #Role[:admin].users<< [ u3 ]
 
     c1 = Card.create! :name=>'c1'
     c2 = Card.create! :name=>'c2'
@@ -120,7 +114,7 @@ class SharedData
     Card.create! :typecode=>'cardtype_e', :name=>"type-e-card", :content=>"type_e_content"
     Card.create! :typecode=>'cardtype_f', :name=>"type-f-card", :content=>"type_f_content"
 
-    #warn "current user #{User.session_user.inspect}.  always ok?  #{Account.always_ok?}"
+    #warn "current user #{User.session_account.inspect}.  always ok?  #{Account.always_ok?}"
     c = Card.create! :name=>'revtest', :content=>'first'
     c.update_attributes! :content=>'second'
     c.update_attributes! :content=>'third'

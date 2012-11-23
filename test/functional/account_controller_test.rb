@@ -68,8 +68,8 @@ class AccountControllerTest < ActionController::TestCase
     assert_response :redirect
     assert ucard=Card['Newby Dooby'], "should create User card"
     assert card=ucard.fetch_trait(:account), "should create User+*account card"
-    assert card.user, "should create User"
-    assert ucard.user, "should access user from User card"
+    assert card.account, "should create User"
+    assert ucard.account, "should access user from User card"
     assert_status @newby_email, 'pending'
 
     integration_login_as 'joe_admin', true
@@ -89,7 +89,7 @@ class AccountControllerTest < ActionController::TestCase
     assert_status @newby_email, 'active'
   end
 
-  def test_dont_let_blocked_user_signin
+  def test_dont_let_blocked_account_signin
     u = Account.from_email('u3@user.com')
     u.blocked = true
     u.save

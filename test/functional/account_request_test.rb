@@ -56,12 +56,12 @@ class Wagn::Set::Type::AccountRequestTest < ActionController::TestCase
 
     assert_instance_of User, @user
     #assert @user.default_status?, "#{@user} has default status" # is this correct?  if so FIXME
-    assert_equal 'jamaster@jay.net', @acard.user.email, "#{@acard} card has email method"
-    assert_equal 'jamaster@jay.net', @card.user.email, "#{@card} card has email method"
+    assert_equal 'jamaster@jay.net', @acard.account.email, "#{@acard} card has email method"
+    assert_equal 'jamaster@jay.net', @card.account.email, "#{@card} card has email method"
 
   end
 
-  def test_should_destroy_and_block_user
+  def test_should_destroy_and_block_account
     # FIXME: should test agains mocks here, instead of re-testing the model...
     post :delete, :id=>"~#{Card['Ron Request'].id}", :confirm_destroy=>true
     assert_equal nil, Card['Ron Request']

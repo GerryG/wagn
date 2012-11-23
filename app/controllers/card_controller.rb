@@ -108,19 +108,22 @@ class CardController < ApplicationController
   #-------- ( ACCOUNT METHODS )
 
   def update_account
-    if account_args = params[:account] and
+    #Rails.logger.warn "updating account #{params[:account].inspect}, #{@card.fetch_trait(:account).account}"
+    if request.put? and account_args = params[:account] and
         acct_cd = @card.fetch_trait(:account) and
         acct = acct_cd.account
 
+      my_card = Account.authorized.id == acct_cd.id
+      my_card and !account_args[:blocked] and
       Account.authorized.id == acct_cd.id and !account_args[:blocked] and
         @card.ok! :update
 
-      if params[:save_roles] and
-          @card.trait_ok! :roles, :update and
-        roll_card = @card.fetch_or_new_trait(:roles)
-        role_hash = params[:user_roles] || {}
-        role_card = role_card.refresh
-        role_card.items= role_hash.keys.map &:to_i
+      if params[:save_roles] and my_card || roles_card = @card.fetch_or_new_trait(:roles) and roles_card.ok?(:create)
+        roles = params[:user_roles].keys.map(&:to_i) || [] 
+        roles_card = roles_card.refresh
+        roles_card.items= roles
+        roles_card.save
+        roles_card.errors.each {|f,e| @card.errors.add f, e } if roles_card.errors.any?
       end
 
       acct.update_attributes account_args
@@ -139,11 +142,11 @@ class CardController < ApplicationController
     @card.trait_ok! :account, :create
     email_args = { :subject => "Your new #{Card.setting :title} account.",   #ENGLISH
                    :message => "Welcome!  You now have an account on #{Card.setting :title}." } #ENGLISH
-    Rails.logger.info "create_account #{params[:user].inspect}, #{email_args.inspect}"
-    @user = Account.new params[:user]
-    @user.active
-    @card = @user.save_card(@card, email_args)
-    raise ActiveRecord::RecordInvalid.new(@user) if !@user.errors.empty?
+    #Rails.logger.info "create_account #{params[:account].inspect}, #{email_args.inspect}"
+    @account = Account.new params[:account]
+    @account.active
+    @card = @account.save_card(@card, email_args)
+    raise ActiveRecord::RecordInvalid.new(@account) if !@account.errors.empty?
 #    flash[:notice] ||= "Done.  A password has been sent to that email." #ENGLISH
     params[:attribute] = :account
     show :options
@@ -226,13 +229,12 @@ class CardController < ApplicationController
       else                 ;  Card.fetch_or_new target.to_name.to_absolute(@card.cardname)
       end
 
-    Rails.logger.info "redirect = #{redirect}, target = #{target}, new_params = #{new_params}"
+    #Rails.logger.info "redirect = #{redirect}, target = #{target}, new_params = #{new_params}"
     case
     when  redirect        ; wagn_redirect ( Card===target ? url_for_page(target.cardname, new_params) : target )
     when  String===target ; render :text => target
     else
       @card = target
-      Rails.logger.info "view = #{new_params[:view]}"
       show new_params[:view]
     end
   end

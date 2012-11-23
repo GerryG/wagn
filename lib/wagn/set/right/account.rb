@@ -6,9 +6,11 @@ module Wagn
       end
 
       def block_account
-        account and account.block!  
+        acct=account
+        warn "block_acct #{acct=account}, bk!#{acct and acct.block!}"
+        acct and acct.block!
       end
-      
+
       def user
         @user ||= User.from_id id
       end

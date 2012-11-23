@@ -373,30 +373,29 @@ module Wagn
         [Card::AnyoneID, Card::AuthID].member? x.id.to_i
       end
 
-      traitc = card.fetch_or_new_trait :roles
-      user_roles = traitc.item_cards :limit=>0
 
-      option_content = if traitc.ok? :update
-        user_role_ids = user_roles.map &:id
-        hidden_field_tag(:save_roles, true) +
-        (roles.map do |rolecard|
-          #warn Rails.logger.info("option_roles: #{rolecard.inspect}")
-          if rolecard && !rolecard.trash
-           %{<div style="white-space: nowrap">
-             #{ check_box_tag "user_roles[%s]" % rolecard.id, 1, user_role_ids.member?(rolecard.id) ? true : false }
-             #{ link_to_page rolecard.name }
-           </div>}
-          end
-        end.compact * "\n").html_safe
-      else
-        if user_roles.empty?
-          'No roles assigned'  # #ENGLISH
-        else
+      option_content = if traitc = card.fetch_trait(:roles) and
+        user_roles = traitc.item_cards(:limit=>0) or ( user_roles or
+            traitc = card.fetch_or_new_trait(:roles) and traitc.ok?(:update) and
+        user_roles = traitc.item_cards(:limit=>0) )
+          user_role_ids = user_roles.map &:id
+          hidden_field_tag(:save_roles, true) +
+          (roles.map do |rolecard|
+            #warn Rails.logger.info("option_roles: #{rolecard.inspect}")
+            if rolecard
+             %{<div style="white-space: nowrap">
+               #{ check_box_tag "user_roles[%s]" % rolecard.id, 1, user_role_ids.member?(rolecard.id) ? true : false }
+               #{ link_to_page rolecard.name }
+             </div>}
+            end
+          end.compact * "\n").html_safe
+        elsif user_roles.any?
           (user_roles.map do |rolecard|
             %{ <div>#{ link_to_page rolecard.name }</div>}
           end * "\n").html_safe
+        else
+          'No roles assigned'  # #ENGLISH
         end
-      end
 
       %{#{ raw option_header( 'User Roles' ) }#{
          option(option_content, :name=>"roles",

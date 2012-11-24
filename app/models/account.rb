@@ -26,9 +26,12 @@ class Account
       else
         acct = ((Card===account) ? account : Card[account])
         # if this isn't a Right::Account yet, fetch it
-        account = if Card===acct && acct.id == Card::WagnBotID;  acct
-                  elsif acct.right_id == Card::AccountID; acct
-                  else raise "no account #{acct}" end
+        unless Card===acct && acct.id == Card::WagnBotID or
+           acct.right_id == Card::AccountID or
+           acct = acct.fetch_trait(:account)
+          raise "no account #{acct}"
+        end
+        acct
       end
     end
   end

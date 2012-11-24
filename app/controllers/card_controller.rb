@@ -112,7 +112,7 @@ class CardController < ApplicationController
 
   def update_account
     #Rails.logger.warn "updating account #{params[:account].inspect}, #{@card.fetch_trait(:account).account}"
-    if request.put? and account_args = params[:account] and
+    if account_args = params[:account] and
         acct_cd = @card.fetch_trait(:account) and
         acct = acct_cd.account
 
@@ -129,7 +129,7 @@ class CardController < ApplicationController
         roles_card.errors.each {|f,e| @card.errors.add f, e } if roles_card.errors.any?
       end
 
-      acct.update_attributes account_args
+      acct.update_attributes account_args if request.put? or request.post?
 
       if acct.errors.any?
         acct.errors.each {|f,e| @card.errors.add f, e }

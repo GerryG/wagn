@@ -67,7 +67,7 @@ class Mailer < ActionMailer::Base
       :subject      => "[#{Card.setting :title} notice] #{@updater} #{action} \"#{card.name}\"" ,
       :content_type => 'text/html',
     }
-    mail_from args, Account::BOTUSER.email
+    mail_from args, Card[Card::WagnBotID].account.email
   end
 
   def flexmail config

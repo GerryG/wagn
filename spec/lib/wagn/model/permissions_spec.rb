@@ -364,7 +364,7 @@ end
 
 
 describe Card, "new permissions" do
-  Account.as 'joe_user'
+  Account.session= Card['joe_user'].fetch_trait :account
 
   it "should let joe view new cards" do
     @c = Card.new

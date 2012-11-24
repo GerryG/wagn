@@ -122,7 +122,7 @@ class CardController < ApplicationController
         @card.ok! :update
 
       if params[:save_roles] and my_card || roles_card = @card.fetch_or_new_trait(:roles) and roles_card.ok?(:create)
-        roles = params[:user_roles].keys.map(&:to_i) || [] 
+        roles = (params[:user_roles]||{}).keys.map(&:to_i)
         roles_card = roles_card.refresh
         roles_card.items= roles
         roles_card.save

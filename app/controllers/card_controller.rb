@@ -145,14 +145,17 @@ class CardController < ApplicationController
     @card.trait_ok! :account, :create
     email_args = { :subject => "Your new #{Card.setting :title} account.",   #ENGLISH
                    :message => "Welcome!  You now have an account on #{Card.setting :title}." } #ENGLISH
-    #Rails.logger.info "create_account #{params[:account].inspect}, #{email_args.inspect}"
+    Rails.logger.info "create_account #{params.inspect}, #{email_args.inspect}"
     @account = Account.new params[:account]
     @account.active
     @card = @account.save_card(@card, email_args)
-    raise ActiveRecord::RecordInvalid.new(@account) if !@account.errors.empty?
+    Rails.logger.warn "create_account error: #{@account.errors.map{|k,v|"#{k} -> #{v}"}*', '}" if @account.errors.any?
+    # FIXME: don't raise, handle it
+    raise ActiveRecord::RecordInvalid.new(@account) if @account.errors.any?
 #    flash[:notice] ||= "Done.  A password has been sent to that email." #ENGLISH
     params[:attribute] = :account
-    show :options
+    # FIXME: this is broken, create acount doesn't process errors or return
+    show
   end
 
 

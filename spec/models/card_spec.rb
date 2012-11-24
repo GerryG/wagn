@@ -13,8 +13,9 @@ describe Card do
 
   describe "module inclusion" do
     before do
-      Account.as 'joe_user'
-      @c = Card.new :type=>'Search', :name=>'Module Inclusion Test Card'
+      Account.as 'joe_user' do
+        @c = Card.new :type=>'Search', :name=>'Module Inclusion Test Card'
+      end
     end
 
     it "gets needed methods after new" do
@@ -22,8 +23,10 @@ describe Card do
     end
 
     it "gets needed methods after save" do
-      @c.save!
-      @c.respond_to?( :get_spec ).should be_true
+      Account.as 'joe_user' do
+        @c.save!
+        @c.respond_to?( :get_spec ).should be_true
+      end
     end
 
 #    it "gets needed methods after find" do
@@ -33,9 +36,11 @@ describe Card do
 #    end
 
     it "gets needed methods after fetch" do
-      @c.save!
-      c = Card.fetch(@c.name)
-      c.respond_to?( :get_spec ).should be_true
+      Account.as 'joe_user' do
+        @c.save!
+        c = Card.fetch(@c.name)
+        c.respond_to?( :get_spec ).should be_true
+      end
     end
   end
 

@@ -40,7 +40,6 @@ class Account
   # these might be newcard?, but only in migrations
   ANONCARD = Card[Card::AnonID].fetch_trait :account
   BOTCARD  = Card[Card::WagnBotID].fetch_trait :account
-  BOTUSER  = User.from_id Card::WagnBotID
 
   # FIXME: Probably should use nil as the 'account' for Anonymous (Card/codename)
   ANONUSER = User.from_id ANONCARD.id
@@ -77,8 +76,7 @@ class Account
         value = yield
         @@as_card = save_as
         return value
-      else
-        fail "BLOCK REQUIRED with Card#as"
+      #else fail "BLOCK REQUIRED with Card#as"
       end
     end
  

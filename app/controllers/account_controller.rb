@@ -27,25 +27,27 @@ class AccountController < ApplicationController
 
       redirect_id = if @card.trait_ok?(:account, :create) 
           @account.active
-          SIGNUP_ID 
+          @account.save_card @card
+
+          if !errors
+            email_args = { :message => Card.setting('*signup+*message') || "Thanks for signing up to #{Card.setting('*title')}!",
+                           :subject => Card.setting('*signup+*subject') || "Account info for #{Card.setting('*title')}!" }
+            @account.accept(@card, email_args)
+            SIGNUP_ID 
+          end
         else
           @account.pending
-          REQUEST_ID
-        end
+          @account.save_card @card
 
-      @account.save_card @card
-      if !errors
-        if redirect_id == SIGNUP_ID
-          email_args = { :message => Card.setting('*signup+*message') || "Thanks for signing up to #{Card.setting('*title')}!",
-                         :subject => Card.setting('*signup+*subject') || "Account info for #{Card.setting('*title')}!" }
-          @account.accept(@card, email_args)
-        else
-          Account.as_bot do
-            Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'
+          if !errors
+            Account.as_bot do
+              Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'
+            end
+            REQUEST_ID
           end
         end
-        redirect_to_id redirect_id
-      end
+
+      tgt = target( redirect_id ) and redirect_to tgt
     end
   end
 
@@ -58,15 +60,12 @@ class AccountController < ApplicationController
     #warn "accept #{@account.inspect}"
     @card.ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create accounts")
 
-    if request.post?
-      #warn "accept #{@card.inspect}, #{@account.inspect}, #{params[:email].inspect}"
-      @account.accept(@card, params[:email])
-      if @account.errors.empty? #SUCCESS
-        redirect_to_id INVITE_ID
-        return
-      end
+    if request.post? and
+      @account.accept(@card, params[:email]).errors.empty? #SUCCESS
+      tgt = target(INVITE_ID); redirect_to tgt
+    else
+      render :action=>'invite'
     end
-    render :action=>'invite'
   end
 
   def invite
@@ -76,13 +75,14 @@ class AccountController < ApplicationController
       @account = Account.new params[:account]
       @account.active
       @card = @account.save_card params[:card]
+      if @account.errors.empty?
+        @account.send_account_info(params[:email])
+        tgt = target( INVITE_ID ) and redirect_to tgt
+      end
+    elsif request.put?
+      raise "put for invite?"
     else
       @account = Account.new; @card = Card.new
-    end
-    if request.post? and @account.errors.empty?
-      @account.send_account_info(params[:email])
-      redirect_to_id INVITE_ID
-      return
     end
   end
 
@@ -131,10 +131,10 @@ class AccountController < ApplicationController
 
   protected
 
-  def redirect_to_id redirect_id
-    #r=(
-      name = Card[redirect_id].name and to = Card.path_setting( Card.setting name ) and redirect_to to
-      #); Rails.logger.warn "rd to id #{name}, id:#{redirect_id}, R:#{r}"; r
+  def target target_id
+    r=(
+    card = Card[target_id] and Card.path_setting( Card.setting card.name )
+    ); Rails.logger.warn "target( #{target_id} } is #{r}"; r
   end
 
   def failed_login(message)

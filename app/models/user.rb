@@ -85,6 +85,7 @@ class User < ActiveRecord::Base
       save_card(card)
       self.send_account_info(email_args) if self.errors.empty?
     end
+    self
   end
 
   def send_account_info args
@@ -95,6 +96,7 @@ class User < ActiveRecord::Base
     rescue Exception=>e
       Rails.logger.info "ACCOUNT INFO DELIVERY FAILED: \n #{args.inspect}\n   #{e.message}, #{e.backtrace*"\n"}"
     end
+    self
   end
 
   def active?()         status=='active'  end
@@ -103,10 +105,10 @@ class User < ActiveRecord::Base
   def pending?()        status=='pending' end
   def default_status?() status=='request' end
 
-  def active()     self.status='active'   end
-  def pending()    self.status='pending'  end
-  def block()      self.status='blocked'  end
-  def block!()          block; save       end
+  def active()  self.status='active';  self end
+  def pending() self.status='pending'; self end
+  def block()   self.status='blocked'; self end
+  def block!()       block; save;      self end
 
   def blocked=(arg) arg != '0' && block || !built_in? && active end
 

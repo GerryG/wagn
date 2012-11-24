@@ -290,8 +290,7 @@ module Wagn
     define_view :options, :perms=>:none do |args|
       attribute = params[:attribute]
 
-      Rails.logger.warn "opt attr #{attribute}, #{card.account.inspect}"
-      attribute ||= if card.account and (Account.authorized == card.id or card.trait_ok? :account, :update)
+      attribute ||= if card.account and (Account.authorized.id == card.id or card.trait_ok? :account, :update)
         'account' else 'settings' end
       render "option_#{attribute}"
     end

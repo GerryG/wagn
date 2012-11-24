@@ -11,8 +11,8 @@ module Wagn
         acct and acct.block!
       end
 
-      def user
-        @user ||= User.from_id id
+      def account
+        @account ||= Account[id]
       end
     end
   end

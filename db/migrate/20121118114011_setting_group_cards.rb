@@ -1,6 +1,6 @@
 class SettingGroupCards < ActiveRecord::Migration
   def up
-    Account.as_bot do
+    Account.as :wagn_bot do
       Card.create! :name=>"Permission", :codename=>:perms, :type_id=>Card::SettingID
       Card.create! :name=>"Look and Feel", :codename=>:look, :type_id=>Card::SettingID
       Card.create! :name=>"Communication", :codename=>:com, :type_id=>Card::SettingID
@@ -10,7 +10,7 @@ class SettingGroupCards < ActiveRecord::Migration
   end
 
   def down
-    Account.as_bot do
+    Account.as :wagn_bot do
       [:perms, :look, :com, :other, :pointer_group].each do |code|
         begin
         c=Card[code]

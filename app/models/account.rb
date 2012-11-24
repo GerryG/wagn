@@ -12,20 +12,34 @@ class Account
     end
     # can these just be delegations:
     # delegate @@acount_class, :new, :from_email, :from_login, :from_id, :save_card
-    def [](card_id)              from_account_id(card_id) || from_id(card_id)               end
+    def [](card_id)              from_user_id(card_id) || from_id(card_id)               end
     def new(args={})             @@session_class.new(args)                                  end
     def save_card(card, email)   @@session_class.save_card(card, email)                     end
     def from_email(email)        @@session_class.from_email(email)                          end
     def from_login(login)        @@session_class.from_login(login)                          end
     def from_id(card_id)         @@session_class.from_id(card_id)                           end
-    def from_account_id(card_id) @@session_class.from_account_id(card_id)                   end
+    def from_user_id(card_id) @@session_class.from_user_id(card_id)                   end
+
+    def lookup account
+      if @@session_class===account
+        Card[account.account_id]
+      else
+        acct = ((Card===account) ? account : Card[account])
+        # if this isn't a Right::Account yet, fetch it
+        unless Card===acct && acct.id == Card::WagnBotID or
+           acct.right_id == Card::AccountID or
+           acct = acct.fetch_trait(:account)
+          raise "no account #{acct}"
+        end
+        acct
+      end
+    end
   end
 
   # FIXME: check for this in boot and don't start if newcard?
   # these might be newcard?, but only in migrations
   ANONCARD = Card[Card::AnonID].fetch_trait :account
   BOTCARD  = Card[Card::WagnBotID].fetch_trait :account
-  BOTUSER  = BOTCARD.account
 
   # FIXME: Probably should use nil as the 'account' for Anonymous (Card/codename)
   ANONUSER = User.from_id ANONCARD.id
@@ -56,13 +70,13 @@ class Account
     def as given_account
       save_as = @@as_card
       @@as_card = lookup(given_account) || ANONCARD
-      Rails.logger.info "set ac #{@@as_card.inspect}"
+      #Rails.logger.info "set ac #{@@as_card.inspect}"
 
       if block_given?
         value = yield
         @@as_card = save_as
         return value
-      else #fail "BLOCK REQUIRED with Card#as"
+      #else fail "BLOCK REQUIRED with Card#as"
       end
     end
 
@@ -85,23 +99,6 @@ class Account
         Card.cache.write 'ALWAYS', always
        end
      always[as_id]
-    end
-
-    def lookup account
-      if @@session_class===account
-        r=Card[account.account_id]
-        #warn "is an account #{account.inspect} #{r}"; r
-      else
-        #warn "[#{account}] a:#{Card===account ? account : Card[account]}"
-        account = acct = (Card===account ? account : Card[account])
-        # if this isn't a Right::Account yet, fetch it
-        r = if acct.right_id == Card::AccountID; acct
-        else # no WagnBot account, accept WagnBot card for migrations to work
-          acct = acct.fetch_trait(:account) and acct or
-            (account.id == Card::WagnBotID ? account : nil)
-        end
-        #warn "[#{account}] #{acct} => #{r}"; r
-      end
     end
 
   protected

@@ -432,9 +432,7 @@ module Wagn
     define_view :account_email do |args|
       %{<tr>
          <td class="label"><label for="email">Email</label></td>
-         <td class="field">#{
-        #Rails.logger.warn "email field #{card.inspect} #{user.inspect}"
-text_field :user, :email }</td>
+         <td class="field">#{ text_field :account, :email }</td>
          <td class="help"><strong>To verify account</strong><br/></td>
        </tr>} #ENGLISH%>
     end

@@ -22,6 +22,7 @@ class UserTest < ActiveSupport::TestCase
   def test_should_require_password
     assert_no_difference User, :count do
       u = create_account(:password => nil)
+      Rails.logger.warn "require pw #{u}, #{u.errors.map{|k,v| "#{k} -> #{v}"}*", "}"
       assert u.errors[:password]
     end
   end
@@ -64,8 +65,11 @@ class UserTest < ActiveSupport::TestCase
 
   protected
   def create_account(options = {})
-    User.create({ :login => 'quire', :email => 'quire@example.com',
+    u=Account.new({ :login => 'quire', :email => 'quire@example.com',
       :password => 'quire', :password_confirmation => 'quire', :card_id=>0, :account_id=>0
     }.merge(options))
+    Rails.logger.warn "create_account #{u.inspect}"
+    u.save
+    u
   end
 end

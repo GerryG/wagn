@@ -11,9 +11,7 @@ class Mailer < ActionMailer::Base
   include LocationHelper
 
   def account_info user_card, args
-    warn "acc info (mail) #{user_card.inspect}, #{args.inspect}"
-
-    #warn "account_info #{Account.authorized.inspect}, #{user.email}, #{user_card.inspect}, #{args.inspect}"
+    #warn "acc info (#{user_card.account}) #{user_card.inspect}, #{args.inspect}"
 
     @email = args[:to] = (user_card.account.email or raise Wagn::Oops.new("Oops didn't have user email"))
     @password = (user_card.account.password or raise Wagn::Oops.new("Oops didn't have user password"))
@@ -22,7 +20,6 @@ class Mailer < ActionMailer::Base
     @login_url= wagn_url "/account/signin"
     @message  = args[:message].clone
 
-    #warn "account_info #{Account.authorized_email}, #{Account.authorized.name}, #{user_card.inspect}, #{args.inspect}"
     mail_from args, Card.setting('*invite+*from') || "#{Account.authorized.name} <#{Account.authorized_email}>"
     #FIXME - might want different "from" settings for different contexts?
   end

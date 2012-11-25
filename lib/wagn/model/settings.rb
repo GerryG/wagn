@@ -1,5 +1,6 @@
 module Wagn::Model::Settings
   def rule setting_name, options={}
+    #warn "rule #{setting_name.inspect}, #{options.inspect}"
     options[:skip_modules] = true
     card = rule_card setting_name, options
     card && card.content

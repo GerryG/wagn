@@ -29,7 +29,7 @@ class Account
         unless Card===acct && acct.id == Card::WagnBotID or
            acct and ( acct.right_id == Card::AccountID or
            acct = acct.fetch_trait(:account) )
-          Rails.logger.warn "no account #{acct} #{caller*"\n"}"
+          Rails.logger.warn "no account #{account.inspect} #{acct}" #{caller*"\n"}"
           nil
         else
           acct

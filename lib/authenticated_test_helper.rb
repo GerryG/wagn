@@ -55,8 +55,8 @@ module AuthenticatedTestHelper
     end
   end
 
-  def assert_status(email, status)
-    Rails.logger.warn "assert stat #{status} #{Account.from_params(:login=>email).inspect}"
-    assert_equal status, Account.from_params(:login=>email).status
+  def assert_status(email, status, msg='')
+    Rails.logger.warn "assert stat em:#{email}, S:#{status} afe:#{Account.from_email(email).inspect}"
+    assert_equal status, Account.from_email(email).status, msg
   end
 end

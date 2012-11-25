@@ -9,7 +9,6 @@ class User < ActiveRecord::Base
   # maybe WagnAccount ?
 
   # Virtual attribute for the unencrypted password
-  #  and to hold email send args
   attr_accessor :password
 
   validates_presence_of     :email, :if => :email_required?
@@ -25,7 +24,10 @@ class User < ActiveRecord::Base
   before_save :encrypt_password
 
   class << self
-    def from_email(email)       User.where(:email=>email.strip.downcase).first   end
+    def from_email(email)
+      User.where(:email=>email.strip.downcase).first
+    end
+
     def from_login(login)       User.where(:login=>login).first                  end
     def from_id(cid)            User.where({:account_id=>cid}).first             end
     def from_user_id(card_id)   User.where(:card_id=>card_id).first              end
@@ -35,58 +37,76 @@ class User < ActiveRecord::Base
 
 #~~~~~~~ Instance
 
-  def save
-    #Rails.logger.warn "save user #{inspect}"
-    active() if status.blank?
-    generate_password if password.blank?
-
-    super
-   # || self.send_account_info needs to happen in card save
-  end
-
-  def accept
-    active
-    generate_password
-  end
-
   def active?()         status=='active'    end
   def blocked?()        status=='blocked'   end
   def built_in?()       status=='system'    end
   def pending?()        status=='pending'   end
   def default_status?() status=='request'   end
 
-  def active()
-    self.status='active'
+  def generate_if
+    #warn "gen #{self} if #{password.blank?}, #{password_required?}"
     generate_password if password.blank? && password_required?
+  end
+
+  def active
+    raise "deeep" if caller.length > 500
+    self.status='active'
+    generate_if
+    #warn "active/accept #{self}"
+    self
+  end
+  alias accept active
+
+  def pending
+    self.status='pending'
     self
   end
 
-  def pending() self.status='pending'; self end
-  def block()   self.status='blocked'; self end
-  def block!()       block; save;      self end
+  def save
+    #Rails.logger.warn "save user #{inspect}"
+    active
+    super
+  end
 
-  def blocked=(arg) arg != '0' && block || !built_in? && active end
+  def block
+    self.status='blocked'
+    self
+  end
+
+  def block!
+    block
+    save
+    self
+  end
+
+  def blocked= arg
+    arg != '0' && block || !built_in? && active
+  end
 
   PW_CHARS = ('A'..'Z').to_a + ('a'..'z').to_a + ('0'..'9').to_a
 
   def generate_password
     self.password_confirmation = self.password =
       9.times.map() do PW_CHARS[rand*61] end *''
+    #warn "g pw #{self.password}"
   end
 
-  def to_s()            "#<#{self.class.name}:#{login}<#{email}>>"                        end
+  def to_s
+    "#<#{self.class.name}:#{login}<#{email}>#{password_required? ? 'R' : ''}#{password.blank? ? 'b' : ''}>"
+  end
   def mocha_inspect()   to_s                                                              end
   def downcase_email!() (em = self.email) =~ /[A-Z]/ and em=em.downcase and self.email=em end
 
   # Authenticates a user by their login name and unencrypted password.  Returns the user or nil.
   def authenticated? params
-    r=(
     password = params[:password].strip and crypted_password == encrypt(password) and active?
-    ) ; Rails.logger.warn "auth? #{encrypt(password)}, #{password}, #{crypted_password} #{active?} R:#{r}"; r
   end
 
  protected
-  def encrypt(password) self.class.encrypt(password, salt)                             end
+
+  def encrypt password
+    self.class.encrypt(password, salt)
+  end
 
   def encrypt_password
     return true if password.blank?
@@ -95,9 +115,12 @@ class User < ActiveRecord::Base
     true
   end
 
-  def email_required?() !built_in?  end
+  def email_required?
+    !built_in?
+  end
 
-  def password_required?()
+  def password_required?
+    #warn "pwq? #{built_in?}, #{pending?}, #{crypted_password.blank?} #{password.blank?}"
      !built_in? && !pending?  &&
       #not_openid? &&
      (crypted_password.blank? or not password.blank?)

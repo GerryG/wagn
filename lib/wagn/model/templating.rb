@@ -82,8 +82,9 @@ module Wagn::Model::Templating
 
   def hard_templatee_spec
     #warn "htwql #{name} #{hard_template?}, #{cardname.trunk_name}, #{Card.fetch(cardname.trunk_name)}"
-    if hard_template? and c=Card.fetch(cardname.trunk_name)
-      c.type_id == Card::SetID ? c.get_spec(:spec=>c.content) : true
+    if hard_template? and tk=trunk and tk.type_id == Card::SetID
+      Rails.logger.warn "htspec #{inspect}, tk:#{tk.inspect} ht?#{hard_template?} Cont:#{tk.content}"
+      tk.get_spec(:spec=>tk.raw_content)
     end
   end
 

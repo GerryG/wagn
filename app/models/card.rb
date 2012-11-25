@@ -448,6 +448,7 @@ class Card < ActiveRecord::Base
   # CONTENT / REVISIONS
 
   def content
+    #warn "content #{inspect} tplt:#{template.inspect}"
     if new_card?
       template ? template.content : ''
     else
@@ -508,22 +509,32 @@ class Card < ActiveRecord::Base
     if @account and right_id != AccountID
       acct_card = fetch_or_new_trait(:account)
       acct_card.save! if acct_card.new_card?
+      if @account.pending?
+        @account.active
+        @account.generate_password
+      end
       @account.card_id = id
       @account.account_id = acct_card.id
       #warn "save_account A:#{@account}, #{inspect}, Ac:#{acct_card.inspect}"
       unless @account.save
         @account.errors.each { |k,v| errors.add k,v }
+        #warn "sav errs #{@account.errors.map { |k,v| "#{k} -> #{v }"}*"\n"}"
+        false
+      else
+        true
       end
+    else
+      true
     end
-    true
   end
 
   def send_account_info args
-    #warn "sai #{inspect}, #{args.inspect}"
+    #warn "sai #{args.inspect}"
     unless args.nil? || [:subject, :message].find {|r| args[r].nil? }
       begin
         Mailer.account_info(self, args).deliver
       rescue Exception=>e
+        warn "ACCOUNT INFO DELIVERY FAILED: \n #{args.inspect}\n   #{e.message}"  #{e.backtrace*"\n"}"
         Rails.logger.info "ACCOUNT INFO DELIVERY FAILED: \n #{args.inspect}\n   #{e.message}, #{e.backtrace*"\n"}"
         false
       end
@@ -623,7 +634,7 @@ class Card < ActiveRecord::Base
 
   def inspect
     "#<#{self.class.name}" + "##{id}" + # "###{object_id}" +
-    #":l:#{left_id}r:#{right_id}" +
+    ":l:#{left_id}r:#{right_id}" +
     (@account.nil? ? '' : "Usr[#{@account}]") + (errors.any? ? '*E*' : '') +
     "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
     "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{virtual? &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }}" +
@@ -756,13 +767,15 @@ class Card < ActiveRecord::Base
   end
 
   validates_each :account do |card, a, account|
-    #warn "valid account #{card.inspect}, #{account.inspect}> #{account.errors.map {|k,v|"#{k} -> #{v}"}*"\n"}" unless account.nil? or account.valid?
-    if account.nil? or !account.valid?
-      account && account.errors.each {|k,v| card.errors.add k,v }
+    #warn "valid account #{card.inspect}, @:#{@account.inspect} r;#{account.inspect}"
+    if account.nil?
       false
-    else
+    elsif account.valid?
       card.type_id = Card::UserID unless card.type_id == Card::UserID ||
                                   card.type_id == Card::AccountRequestID
+    else
+      account && account.errors.each {|k,v| card.errors.add k,v }
+      false
     end
   end
 

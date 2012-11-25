@@ -7,7 +7,6 @@ module Wagn
 
       def block_account
         acct=account
-        warn "block_acct #{acct=account}, bk!#{acct and acct.block!}"
         acct and acct.block!
       end
 

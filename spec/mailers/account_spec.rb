@@ -22,10 +22,11 @@ describe Mailer do
   #  (ie try renamed change notice below to change_notice) then *notify+*from gets stuck on.
   context "account info, new password" do # forgot password
     before do
-      Account.session = Card['sara+*account']
-      @user = Account.from_id Account.session.id
+      c=Card['sara']
+      Account.session = c.fetch_trait :account
+      @user = c.account
       @user.generate_password
-      @email = Mailer.account_info @user, {:subject=>"New password subject", :message=>"Forgot my password"}
+      @email = Mailer.account_info c, {:subject=>"New password subject", :message=>"Forgot my password"}
     end
 
     context "new password message" do

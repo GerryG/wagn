@@ -23,6 +23,7 @@ describe AccountController do
     end
 
     it 'should create a user' do
+      warn "... #{@account_card}, #{@user_card}"
       @account_card.new_card?.should be_false
       @user_card.type_id.should == Card::UserID
       @account_card.type_id.should == Card::BasicID
@@ -61,6 +62,10 @@ describe AccountController do
       # a user requests an account
       post :signup, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
 
+      @card = Card['Joe New']
+      @card.should be
+      warn "joe #{@card.inspect}"
+      @card.account.should be
       # and the admin accepts
       login_as 'joe_admin'
       post :accept, :card=>{:key=>'joe_new'}, :email=>{:subject=>'Hey Joe!', :message=>'Come on in?'}

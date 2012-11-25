@@ -27,23 +27,27 @@ class AccountController < ApplicationController
 
       redirect_id = if @card.trait_ok?(:account, :create) 
           @account.active
-          @account.save_card @card
+          @card.account= @account
+          @card.save
+          #warn "signup #{@card.inspect}"
 
-          if !errors
-            email_args = { :message => Card.setting('*signup+*message') || "Thanks for signing up to #{Card.setting('*title')}!",
-                           :subject => Card.setting('*signup+*subject') || "Account info for #{Card.setting('*title')}!" }
-            @account.accept(@card, email_args)
+          if !@card.errors
+            @account.accept
+            @card.send_account_info(
+                { :message => Card.setting('*signup+*message') || "Thanks for signing up to #{Card.setting('*title')}!",
+                  :subject => Card.setting('*signup+*subject') || "Account info for #{Card.setting('*title')}!" } )
             SIGNUP_ID 
           end
         else
-          @account.pending
-          @account.save_card @card
+          Account.as_bot do
+            @card.account = @account.pending
 
-          if !errors
-            Account.as_bot do
-              Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'
+            if @card.save
+              Account.as_bot do
+                Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'
+              end
+              REQUEST_ID
             end
-            REQUEST_ID
           end
         end
 
@@ -61,7 +65,8 @@ class AccountController < ApplicationController
     @card.ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create accounts")
 
     if request.post? and
-      @account.accept(@card, params[:email]).errors.empty? #SUCCESS
+      @account.accept
+      @card.send_account_info params[:email]
       tgt = target(INVITE_ID); redirect_to tgt
     else
       render :action=>'invite'
@@ -72,11 +77,13 @@ class AccountController < ApplicationController
     #FIXME - don't raise; handle it!
     cok=Card.new(:name=>'dummy+*account').ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create")
     if request.post?
-      @account = Account.new params[:account]
-      @account.active
-      @card = @account.save_card params[:card]
-      if @account.errors.empty?
-        @account.send_account_info(params[:email])
+      @card = Card.new params[:card]
+      acct_params = (params[:account] || {})
+      @account = @card.account = ( Account.new( acct_params ).active )
+      #warn "User should be: #{@card.inspect}"
+      Rails.logger.warn "invite #{@card.inspect}, #{@account.inspect}"
+      if @card.save
+        @card.send_account_info params[:email]
         tgt = target( INVITE_ID ) and redirect_to tgt
       end
     elsif request.put?
@@ -117,12 +124,13 @@ class AccountController < ApplicationController
       flash[:notice] = "That account is not active."
       render :action=>'signin', :status=>403
     else
+      @card=Card[@account.card_id]
       @account.generate_password
-      @account.save!
+      Account.as_bot { @card.save! }
 
-      @account.send_account_info(:subject=> "Password Reset",
+      @card.send_account_info({ :subject=> "Password Reset",
              :message=> "You have been given a new temporary password.  " +
-                        "Please update your password once you've signed in. " )
+                        "Please update your password once you've signed in. " } )
 
       flash[:notice] = "Check your email for your new temporary password"
       redirect_to previous_location

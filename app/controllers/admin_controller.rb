@@ -8,14 +8,11 @@ class AdminController < ApplicationController
     if request.post?
       #Card::User  # wtf - trigger loading of Card::User, otherwise it tries to use U
       Account.as_bot do
-        @account = Account.new params[:account]
-        @account.active
-        @card = @account.save_card params[:card]
+        @card.account = Card.new params[:card]
+        @account = @card.account = Account.new( params[:account] ).active
         set_default_request_recipient
 
-        #warn "ext id = #{@account.id}"
-
-        if @account.errors.empty?
+        if @card.save
           roles_card = Card.fetch_or_new(@card.cardname.trait_name(:roles))
           roles_card.content = "[[#{Card[Card::AdminID].name}]]"
           roles_card.save

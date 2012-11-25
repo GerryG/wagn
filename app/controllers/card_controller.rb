@@ -143,9 +143,8 @@ class CardController < ApplicationController
     email_args = { :subject => "Your new #{Card.setting :title} account.",   #ENGLISH
                    :message => "Welcome!  You now have an account on #{Card.setting :title}." } #ENGLISH
     Rails.logger.info "create_account #{params.inspect}, #{email_args.inspect}"
-    @account = Account.new params[:account]
-    @account.active
-    @card = @account.save_card(@card, email_args)
+    @account = @card.account = Account.new( (params[:account]||{}).merge(:send => email_args) ).active
+    @card.save
     Rails.logger.warn "create_account error: #{@account.errors.map{|k,v|"#{k} -> #{v}"}*', '}" if @account.errors.any?
     # FIXME: don't raise, handle it
     raise ActiveRecord::RecordInvalid.new(@account) if @account.errors.any?

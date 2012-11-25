@@ -17,7 +17,6 @@ describe AccountController do
       post :invite, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'},
         :email=> @email_args
 
-      @new_account = Account.from_email 'joe@new.com'
       @user_card = Card['Joe New']
       @account_card = @user_card.fetch_or_new_trait :account
 
@@ -27,7 +26,10 @@ describe AccountController do
       @account_card.new_card?.should be_false
       @user_card.type_id.should == Card::UserID
       @account_card.type_id.should == Card::BasicID
+      @new_account=Account.from_email('joe@new.com')
       @new_account.should be
+      @user_card.account.should == @account_card.account
+      @user_card.account.should be
       @new_account.account_id.should == @account_card.id
     end
 

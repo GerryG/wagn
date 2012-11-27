@@ -770,7 +770,9 @@ class Card < ActiveRecord::Base
     if account.nil?
       false
     elsif account.valid?
+      Rails.logger.warn "type_id #{card.inspect}"
       card.type_id = UserID unless card.type_id == UserID || card.type_id == AccountRequestID
+      Rails.logger.warn "type_id #{card.inspect}"
       true
     else
       account && account.errors.each {|k,v| card.errors.add k,v }
@@ -807,6 +809,7 @@ class Card < ActiveRecord::Base
       end
 #      if c = Card.new(:name=>'*validation dummy', :type_id=>type_id, :content=>'') and !c.valid?
       if c = card.dup and c.type_id_without_tracking = type_id and c.id = nil and !c.valid?
+        Rails.logger.warn "card errors #{c.inspect} ::  #{ c.errors.full_messages * ', ' }"
         card.errors.add :type, "of #{ card.name } can't be changed; errors creating new #{ type_id }: #{ c.errors.full_messages * ', ' }"
       end
     end

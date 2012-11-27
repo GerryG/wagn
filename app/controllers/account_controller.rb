@@ -71,9 +71,10 @@ class AccountController < ApplicationController
     @card.ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create accounts")
 
     if request.post? and
-    Rails.logger.warn "accept ok #{@card.inspect}"
+      @account = @card.account
       @account.active.generate_password
-      @card.account = @account
+      Rails.logger.warn "accept ok #{@card.inspect} #{@account}"
+      @card.type_id = Card::UserID if @card.type_id == Card::AccountRequestID
       if @card.save
         @card.send_account_info @account, params[:email]
         redirect_to target(INVITE_ID);
@@ -89,10 +90,10 @@ class AccountController < ApplicationController
     if request.post?
       @card = Card.new params[:card]
       acct_params = (params[:account] || {})
-      @account = @card.account = ( Account.new( acct_params ) ).active
-      @account.generate_password
+      @account = @card.account = ( Account.new( acct_params ) )
+      Rails.logger.warn "invite #{@card.inspect}, #{@account.inspect}, #{acct_params.inspect} #{params[:card]}"
+      @account.active.generate_password
       #warn "User should be: #{@card.inspect}"
-      Rails.logger.warn "invite #{@card.inspect}, #{@account.inspect}"
       if @card.save
         @card.send_account_info @account, params[:email]
         redirect_to target( INVITE_ID )

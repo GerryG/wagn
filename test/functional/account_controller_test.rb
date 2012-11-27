@@ -50,9 +50,7 @@ class AccountControllerTest < ActionController::TestCase
     integration_login_as 'joe_user', true
     assert_difference ActionMailer::Base.deliveries, :size do
       assert_new_account do
-        Rails.logger.warn "testing #{Account.authorized}"
         post_invite
-        Rails.logger.warn "posted #{Account.from_login(@newby_email).inspect}"
       end
     end
   end
@@ -68,14 +66,17 @@ class AccountControllerTest < ActionController::TestCase
     assert_response :redirect
     assert ucard=Card['Newby Dooby'], "should create User card"
     assert card=ucard.fetch_trait(:account), "should create User+*account card"
+    Rails.logger.warn "with app #{ucard.inspect} #{card.inspect}"
     assert card.account, "should create User"
     assert ucard.account, "should access user from User card"
-    assert_status @newby_email, 'pending'
+    assert_status @newby_email, 'pending', "pending when requested"
 
+    Rails.logger.info "accepting #{Account.from_email(@newby_email).inspect}"
     integration_login_as 'joe_admin', true
     post :accept, :card=>{:key=>'newby_dooby'}, :email=>{:subject=>'hello', :message=>'world'}
     assert_response :redirect
-    assert_status @newby_email, 'active'
+    Rails.logger.info "accepted #{Account.from_email(@newby_email).inspect}"
+    assert_status @newby_email, 'active', "active when accepted"
   end
 
   def test_signup_without_approval
@@ -85,6 +86,7 @@ class AccountControllerTest < ActionController::TestCase
       create_accounts_rule.save!
     end
     post :signup, @newby_args
+    Rails.logger.warn "without app #{Card['Newby Dooby'].inspect}"
     assert_response :redirect
     assert_status @newby_email, 'active'
   end

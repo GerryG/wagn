@@ -139,10 +139,10 @@ class ApplicationController < ActionController::Base
   end
 
 
-  rescue_from Exception do |e|
-    Rails.logger.debug "exception = #{e.class}: #{e.message} #{e.backtrace*"\n"}"
+  rescue_from Exception do |exception|
+    Rails.logger.debug "exception = #{exception.class}: #{exception.message} #{exception.backtrace*"\n"}"
 
-    view, status = case e
+    view, status = case exception
     when Wagn::NotFound, ActiveRecord::RecordNotFound
       [ :not_found, 404 ]
     when Wagn::PermissionDenied, Card::PermissionDenied
@@ -150,14 +150,14 @@ class ApplicationController < ActionController::Base
     when Wagn::BadAddress, ActionController::UnknownController, AbstractController::ActionNotFound
       [ :bad_address, 404 ]
     else
-      notify_airbrake e if Airbrake.configuration.api_key
+      notify_airbrake exception if Airbrake.configuration.api_key
 
-      if [Wagn::Oops, ActiveRecord::RecordInvalid].member?( e.class ) && @card && @card.errors.any?
+      if [Wagn::Oops, ActiveRecord::RecordInvalid].member?( exception.class ) && @card && @card.errors.any?
         [ :errors, 422]
       else
-        Rails.logger.info "\n\nController exception: #{e.message}"
-        Rails.logger.debug e.backtrace*"\n"
-        Rails.logger.level == 0 ? raise( e ) : [ :server_error, 500 ]
+        Rails.logger.info "\n\nController exception: #{exception.message}"
+        Rails.logger.debug exception.backtrace*"\n"
+        Rails.logger.level == 0 ? raise( exception ) : [ :server_error, 500 ]
       end
     end
 

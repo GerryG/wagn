@@ -74,13 +74,9 @@ class AccountController < ApplicationController
     Rails.logger.warn "accept ok #{@card.inspect}"
       @account.active.generate_password
       @card.account = @account
-      Rails.logger.warn "accept 2 #{@account}"
       if @card.save
         @card.send_account_info @account, params[:email]
-        Rails.logger.warn "accept 3 #{@card}"
-        tgt = target(INVITE_ID);
-        Rails.logger.warn "redir #{tgt}"
-        redirect_to tgt
+        redirect_to target(INVITE_ID);
       end
     else
       render :action=>'invite'
@@ -99,7 +95,7 @@ class AccountController < ApplicationController
       Rails.logger.warn "invite #{@card.inspect}, #{@account.inspect}"
       if @card.save
         @card.send_account_info @account, params[:email]
-        tgt = target( INVITE_ID ) and redirect_to tgt
+        redirect_to target( INVITE_ID )
       else
         warn "errs #{@card.errors.map{|k,v| "#{k} -> #{v}"}*"\n"}"
       end
@@ -110,18 +106,18 @@ class AccountController < ApplicationController
 
 
   def signin
-    if params.any?
+    if request.post?
       Rails.logger.warn "signin #{params.inspect}"
       if account=Account.authenticated(:email=>params[:login], :password=>params[:password])
         self.session_account = account.account_id
         flash[:notice] = "Successfully signed in"
         redirect_to previous_location
       else
-        failed_login case
-            when !account         ; "Unrecognized email."
-            when account.blocked? ; "Sorry, that account is blocked."
-            else                  ; "Wrong password"
-          end
+        failed_login "Failed login." #case
+      #     when !account         ; "Unrecognized email."
+      #     when account.blocked? ; "Sorry, that account is blocked."
+      #     else                  ; "Wrong password"
+      #   end
       end
     end
   end

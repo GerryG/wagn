@@ -121,6 +121,7 @@ module Wagn::Model
 
       def initialize card
         @trunk_name = self.class.trunk_name(card).to_name
+        raise if @trunk_name.to_s == 'true'
         self
       end
 
@@ -150,6 +151,7 @@ module Wagn::Model
 
       def opt_vals
         if @opt_vals.nil?
+          Rails.logger.warn "opt_vals #{@trunk_name.inspect}"
           @opt_vals = self.class.trunkless? ? [] :
             @trunk_name.parts.map do |part|
               card=Card.fetch(part, :skip_virtual=>true, :skip_modules=>true) and Wagn::Codename[card.id.to_i]
@@ -195,7 +197,7 @@ module Wagn::Model
       def self.prototype_args(base)     {:type=>base}              end
       def self.pattern_applies?(card)
         return false if card.type_id.nil?
-        warn "bogus type id #{card.inspect} #{caller*"\n"}" if card.type_id < 1
+        raise "bogus type id #{card.inspect}" if card.type_id < 1
         true
       end
       def self.trunk_name(card)        card.type_name              end

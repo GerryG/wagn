@@ -113,6 +113,7 @@ class Card < ActiveRecord::Base
     args['name']    = args['name'   ].to_s
     args['type_id'] = args['type_id'].to_i
 
+    content = args.delete(:content) if args.has_key? :content
     args.delete('type_id') if args['type_id'] == 0 # can come in as 0, '', or nil
 
     @type_args = { # these are cached to optimize #new
@@ -124,10 +125,6 @@ class Card < ActiveRecord::Base
     skip_modules = args.delete 'skip_modules'
 
     super args # ActiveRecord #initialize
-    warn "new card #{@content} #{args.inspect}"
-    warn "new card #{inspect},"
-    warn "new card #{args['content']} #{content_without_current}, #{@content}"
-    #warn "new card #{inspect}, #{content} #{@content} #{args.inspect}"
 
     if tid = get_type_id(@type_args)
       self.type_id_without_tracking = tid
@@ -442,13 +439,12 @@ class Card < ActiveRecord::Base
     Wagn::Codename[ type_id.to_i ]
   end
 
-  #def all_default_rule; end
+  def all_default_rule; end
 
   def type_name
-    if type_id = !type_id.nil? &&  type_id == -1 ? (cd=Card[key]).nil? ? 'missing type' : cd.type_id
-      card = Card.fetch( type_id, :skip_modules=>true, :skip_virtual=>true ) and card.name
-    else 'missing type'
-    end
+    raise "??? #{inspect}" if caller.length > 500
+    Rails.logger.warn "type name #{inspect}"
+    Card.fetch(type_id == -1 ? DefaultTypeID : type_id, :skip_virtual=>true, :skip_modules=>true ).name
   end
 
   def type= type_name
@@ -458,32 +454,37 @@ class Card < ActiveRecord::Base
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   # CONTENT / REVISIONS
 
-  def current_content
-    content || current_revision.content
+  def content_with_current
+    raise "??? #{inspect}" if caller.length > 500
+    content_without_current ||
+      current_revision.content
   end
 
   def template_content
-    warn "tcont #{inspect} == #{ALL_DEFAULT_RULE.inspect}"
-    all_default_rule or (tmpl = template).nil? ? '' : tmpl.content
+    Rails.logger.warn "tcont #{inspect} == #{ALL_DEFAULT_RULE.inspect}"
+    (tmpl = all_default_rule && tmpl = template).nil? ? '' : tmpl.content
   end
 
-  def content_with_current
-    r=(
-     !new_card? ? current_content : template_content
-    ); warn "content #{inspect} #{t}, #{r}"; r # if name =~ /\+\*right/; r
+  def content; @contend end
+
+  def content_without_tracking
+    raise "??? #{inspect}" if caller.length > 500
+    #r=(
+     !new_card? ? content : template_content
+    #); Rails.logger.warn "content #{inspect} #{r}"; r # if name =~ /\+\*right/; r
   end
 
-  def content; content_without_tracking end
   alias_method_chain :content, :current
+  #def content_with_current; content_without_current end
 
   def raw_content
-    r=(
-    (hard=hard_template) ? hard.content : current_content
-    ); warn "raw_content #{inspect} @#{@content}, #{hard}, #{r}"; r # if name =~ /\+\*right/; r
+    #r=(
+    (hard=hard_template) ? hard.content : content_with_current
+    #); warn "raw_content #{inspect} @#{@content}, #{hard}, #{r}"; r # if name =~ /\+\*right/; r
   end
 
   def selected_rev_id
-    @selected_rev_id or ( ( cr = current_revision ) ? cr.id : 0 )
+    @selected_rev_id or ( cr = current_revision and cr.id or 0 )
   end
 
   def current_revision
@@ -705,9 +706,9 @@ class Card < ActiveRecord::Base
   ALL_DEFAULT_RULE = Card[:all].fetch_trait :default
 
   def all_default_rule
-    r=(
+    #r=(
          cardname.key == ALL_DEFAULT_RULE.key ? ALL_DEFAULT_RULE : nil
-    ); warn "adr #{ALL_DEFAULT_RULE.inspect} #{inspect} #{r.inspect}" unless r.nil?; r
+    #); warn "adr #{ALL_DEFAULT_RULE.inspect} #{inspect} #{r.inspect}" unless r.nil?; r
   end
 
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

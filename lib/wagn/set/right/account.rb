@@ -6,9 +6,10 @@ module Wagn
       end
 
       def block_account
-        acct=account
-        warn "block_acct #{acct=account}, bk!#{acct and acct.block!}"
-        acct and acct.block!
+        acct=account and acct.block!
+        Rails.logger.warn "blocking #{inspect} #{acct.inspect}"
+        #@account = nil
+        Rails.logger.warn "blocking #{inspect} #{acct.inspect}"
       end
 
       def account

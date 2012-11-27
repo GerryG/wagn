@@ -18,19 +18,19 @@ describe AccountController do
         :email=> @email_args
 
       @user_card = Card['Joe New']
+      @user_card.should be
       @account_card = @user_card.fetch_or_new_trait :account
+      @account_card.should be
 
     end
 
     it 'should create a user' do
-      warn "... #{@account_card}, #{@user_card}"
       @account_card.new_card?.should be_false
       @user_card.type_id.should == Card::UserID
       @account_card.type_id.should == Card::BasicID
       @new_account=Account.from_email('joe@new.com')
+      #warn "... #{@account_card.inspect}, #{@user_card.inspect} #{@new_account.inspect}"
       @new_account.should be
-      @user_card.account.should == @account_card.account
-      @user_card.account.should be
       @new_account.account_id.should == @account_card.id
     end
 
@@ -64,7 +64,6 @@ describe AccountController do
 
       @card = Card['Joe New']
       @card.should be
-      warn "joe #{@card.inspect}"
       @card.account.should be
       # and the admin accepts
       login_as 'joe_admin'

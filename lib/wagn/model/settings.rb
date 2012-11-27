@@ -9,16 +9,16 @@ module Wagn::Model::Settings
   def rule_card setting_name, options={}
     fallback = options.delete( :fallback )
     fetch_args = {:skip_virtual=>true}.merge options
-    #warn "rule_card[#{name}] #{setting_name}, #{options.inspect} RSN:#{real_set_names.inspect}" #if setting_name == :autoname
+    #warn "rule_card[#{name}] #{setting_name}, #{options.inspect} RSN:#{real_set_names.inspect}" if name =~ /Jim\+birthday/
     real_set_names.each do |set_name|
-      #warn "rule_card search #{set_name.inspect}" if setting_name == :autoname
+      #warn "rule_card search #{set_name.inspect}" if name =~ /Jim\+birthday/
       set_name=set_name.to_name
       card = Card.fetch(set_name.trait_name( setting_name ), fetch_args)
       card ||= fallback && Card.fetch(set_name.trait_name(fallback), fetch_args)
-      #warn "rule #{name} [#{set_name}] rc:#{card.inspect}" #if setting_name == :autoname
+      #warn "rule #{name} [#{set_name}] rc:#{card.inspect}" if name =~ /Jim\birthday/
       return card if card
     end
-    #warn (Rails.logger.warn "rc nothing #{setting_name}, #{name}") #if setting_name == :autoname
+    #warn (Rails.logger.warn "rc nothing #{setting_name}, #{name}") if name =~ /Jim\birthday/
     nil
   end
   def rule_card_with_cache setting_name, options={}

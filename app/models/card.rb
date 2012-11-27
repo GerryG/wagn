@@ -124,6 +124,10 @@ class Card < ActiveRecord::Base
     skip_modules = args.delete 'skip_modules'
 
     super args # ActiveRecord #initialize
+    warn "new card #{@content} #{args.inspect}"
+    warn "new card #{inspect},"
+    warn "new card #{args['content']} #{content_without_current}, #{@content}"
+    #warn "new card #{inspect}, #{content} #{@content} #{args.inspect}"
 
     if tid = get_type_id(@type_args)
       self.type_id_without_tracking = tid
@@ -152,9 +156,11 @@ class Card < ActiveRecord::Base
     if name && t=template
       reset_patterns #still necessary even with new template handling?
       t.type_id
-    else
+    #else
       # if we get here we have no *all+*default -- let's address that!
-      DefaultTypeID
+      # I think we can remove this, now it will break if ALL_DEFAULT_RULE
+      # can't be fetched, should we raise an error?
+      #DefaultTypeID
     end
   end
 
@@ -236,6 +242,8 @@ class Card < ActiveRecord::Base
   end
 
   def base_before_save
+    #self.content= self.content if new_card? && !updates.for?(:content)
+    #warn "bbsave #{inspect}, #{updates.inspect} [#{self.content}]"
     if self.respond_to?(:before_save) and self.before_save == false
       errors.add(:save, "could not prepare card for destruction") #fixme - screwy error handling!!
       return false
@@ -356,7 +364,7 @@ class Card < ActiveRecord::Base
   def junction?()      cardname.junction?                   end
 
   def left *args
-    unless updates.for? :name and name_without_tracking.to_name.key == cardname.left_name.key
+    unless !simple? and updates.for? :name and name_without_tracking.to_name.key == cardname.left_name.key
       #the ugly code above is to prevent recursion when, eg, renaming A+B to A+B+C
       #it should really be testing for any trunk
       Card.fetch cardname.left, *args
@@ -364,7 +372,7 @@ class Card < ActiveRecord::Base
   end
   
   def right *args
-    Card.fetch cardname.right, *args
+    simple? ? nil : Card.fetch(cardname.right, *args)
   end
 
   def trunk *args
@@ -434,10 +442,13 @@ class Card < ActiveRecord::Base
     Wagn::Codename[ type_id.to_i ]
   end
 
+  #def all_default_rule; end
+
   def type_name
-    return if type_id.nil?
-    card = Card.fetch type_id, :skip_modules=>true, :skip_virtual=>true
-    card and card.name
+    if type_id = !type_id.nil? &&  type_id == -1 ? (cd=Card[key]).nil? ? 'missing type' : cd.type_id
+      card = Card.fetch( type_id, :skip_modules=>true, :skip_virtual=>true ) and card.name
+    else 'missing type'
+    end
   end
 
   def type= type_name
@@ -447,17 +458,28 @@ class Card < ActiveRecord::Base
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   # CONTENT / REVISIONS
 
-  def content
-    #warn "content #{inspect} tplt:#{template.inspect}"
-    if new_card?
-      template ? template.content : ''
-    else
-      current_revision.content
-    end
+  def current_content
+    content || current_revision.content
   end
 
+  def template_content
+    warn "tcont #{inspect} == #{ALL_DEFAULT_RULE.inspect}"
+    all_default_rule or (tmpl = template).nil? ? '' : tmpl.content
+  end
+
+  def content_with_current
+    r=(
+     !new_card? ? current_content : template_content
+    ); warn "content #{inspect} #{t}, #{r}"; r # if name =~ /\+\*right/; r
+  end
+
+  def content; content_without_tracking end
+  alias_method_chain :content, :current
+
   def raw_content
-    hard_template ? template.content : content
+    r=(
+    (hard=hard_template) ? hard.content : current_content
+    ); warn "raw_content #{inspect} @#{@content}, #{hard}, #{r}"; r # if name =~ /\+\*right/; r
   end
 
   def selected_rev_id
@@ -497,7 +519,7 @@ class Card < ActiveRecord::Base
   def account
     # no id? try using the cardname to find the user Account.lookup
     if @account.nil? and uid = id.nil? ?
-       ( user_card = Account.lookup(name) and user_card.id ) : id
+          ( user_card = Account.lookup(name) and user_card.id ) : id
       @account = Account[uid]
     end
     @account
@@ -508,37 +530,29 @@ class Card < ActiveRecord::Base
     #warn "save_account #{type_id}, #{type_id_without_tracking} #{inspect}"
     if @account and right_id != AccountID
       acct_card = fetch_or_new_trait(:account)
+      # make sure it has an account card and store both ids
       acct_card.save! if acct_card.new_card?
-      if @account.card_id != id
-      #warn "save_account 2 #{inspect}, F:#{@account.frozen?} #{@account.inspect}"
-        @account.card_id = id
-        @account.account_id = acct_card.id
-      end
-      #warn "save_account A:#{@account}, #{inspect}, Ac:#{acct_card.inspect}"
+      @account.card_id = id
+      @account.account_id = acct_card.id
+      @account.active if @account.pending?
+      #warn "save_account A:#{@account.inspect}, #{inspect}, Ac:#{acct_card.inspect}"
       unless @account.save
         @account.errors.each { |k,v| errors.add k,v }
         warn "sav errs #{@account.errors.map { |k,v| "#{k} -> #{v }"}*"\n"}"
-        false
-      else
-        true
+        return false
       end
-    else
-      true
     end
+    true
   end
 
-  def send_account_info account,args
-    #warn "sai #{args.inspect}"
-    unless args.nil? || [:subject, :message].find {|r| args[r].nil? }
-      begin
-        Mailer.account_info(account, self, args).deliver
-      rescue Exception=>e
-        warn "ACCOUNT INFO DELIVERY FAILED: \n #{args.inspect}\n   #{e.message}"  #{e.backtrace*"\n"}"
-        Rails.logger.info "ACCOUNT INFO DELIVERY FAILED: \n #{args.inspect}\n   #{e.message}, #{e.backtrace*"\n"}"
-        false
-      end
-    end
+  def send_account_info args
+    Mailer.account_info(self, args).deliver
+  rescue Exception=>e
+    warn "ACCOUNT INFO DELIVERY FAILED: \n #{args.inspect}\n   #{e.message}"
+    Rails.logger.info "ACCOUNT INFO DELIVERY FAILED: \n #{args.inspect}\n   #{e.message}, #{e.backtrace*"\n"}"
+    false
   end
+
   def author
     Card[ creator_id ]
   end
@@ -628,15 +642,15 @@ class Card < ActiveRecord::Base
   #def debug_type() "#{typename}:#{type_id}" end # this can cause infinite recursion
 
   def to_s
-    "#<#{self.class.name}[#{debug_type}]#{self.attributes['name']}>"
+    "#<#{self.class.name}[#{debug_type}]#{self.attributes['name']}:#{name}>"
   end
 
   def inspect
     "#<#{self.class.name}" + "##{id}" + # "###{object_id}" +
-    ":l:#{left_id}r:#{right_id}" +
-    (@account.nil? ? '' : "Usr[#{@account}]") + (errors.any? ? '*E*' : '') +
+    #":l:#{left_id}r:#{right_id}" +
+    (@account.nil? ? 'noU' : "Usr[#{@account}]") + (errors.any? ? '*E*' : '') +
     "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
-    "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{virtual? &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }}" +
+    #"#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{virtual? &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }}" +
     #" Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}" +
     '>'
   end
@@ -686,6 +700,14 @@ class Card < ActiveRecord::Base
     else
       name
     end
+  end
+
+  ALL_DEFAULT_RULE = Card[:all].fetch_trait :default
+
+  def all_default_rule
+    r=(
+         cardname.key == ALL_DEFAULT_RULE.key ? ALL_DEFAULT_RULE : nil
+    ); warn "adr #{ALL_DEFAULT_RULE.inspect} #{inspect} #{r.inspect}" unless r.nil?; r
   end
 
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

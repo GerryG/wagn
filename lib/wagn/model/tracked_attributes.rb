@@ -105,12 +105,12 @@ module Wagn::Model::TrackedAttributes
   end
 
   def set_content(new_content)
-    #warn Rails.logger.info("set_content #{name} #{new_content}")
+    #warn "set_content #{inspect}, #{self.content}, #{self.content_without_tracking}, #{new_content}"
     return false unless self.id
     new_content ||= ''
     new_content = WikiContent.clean_html!(new_content) if clean_html?
     clear_drafts if current_revision_id
-    #warn Rails.logger.info("set_content #{name} #{Account.session}, #{new_content}")
+    #warn "set_content #{inspect} CurC:#{content_without_tracking}, N:#{new_content}, #{Account.session}"
     new_rev = Card::Revision.create :card_id=>self.id, :content=>new_content, :creator_id =>Account.authorized.id
     self.current_revision_id = new_rev.id
     reset_patterns_if_rule

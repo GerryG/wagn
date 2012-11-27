@@ -20,8 +20,9 @@ class AccountController < ApplicationController
     #FIXME - don't raise; handle it!
     raise(Wagn::PermissionDenied, "Sorry, no Signup allowed") unless @card.ok? :create
 
-    @account = Account.new params[:account]
-    @account.pending
+    acct_params = params[:account]
+    acct_params[:name] = @card.name
+    @account = Account.new(acct_params).pending
 
     if request.post?
 
@@ -34,8 +35,10 @@ class AccountController < ApplicationController
 
           if @card.errors.empty?
             Rails.logger.warn "invite: #{@card.inspect} #{@account.inspect}"
-            @card.send_account_info( @account,
-                { :message => Card.setting('*signup+*message') || "Thanks for signing up to #{Card.setting('*title')}!",
+            #@account.active
+            #warn "invite: #{@card.inspect}"
+            @card.send_account_info( { :password=>@account.password, :to => @account.email,
+                  :message => Card.setting('*signup+*message') || "Thanks for signing up to #{Card.setting('*title')}!",
                   :subject => Card.setting('*signup+*subject') || "Account info for #{Card.setting('*title')}!" } )
           else
             Rails.logger.warn "errors #{@card.errors.map{|k,v| "#{k} -> #{v}"}*", "}"
@@ -76,7 +79,8 @@ class AccountController < ApplicationController
       Rails.logger.warn "accept ok #{@card.inspect} #{@account}"
       @card.type_id = Card::UserID if @card.type_id == Card::AccountRequestID
       if @card.save
-        @card.send_account_info @account, params[:email]
+        eparams = params[:email] || {}
+        @card.send_account_info eparams.merge( :password => @account.password, :to => @account.email )
         redirect_to target(INVITE_ID);
       end
     else
@@ -90,12 +94,14 @@ class AccountController < ApplicationController
     if request.post?
       @card = Card.new params[:card]
       acct_params = (params[:account] || {})
+      acct_params[:name] = @card.name
       @account = @card.account = ( Account.new( acct_params ) )
       Rails.logger.warn "invite #{@card.inspect}, #{@account.inspect}, #{acct_params.inspect} #{params[:card]}"
       @account.active.generate_password
       #warn "User should be: #{@card.inspect}"
       if @card.save
-        @card.send_account_info @account, params[:email]
+        eparams = params[:email]
+        @card.send_account_info eparams.merge( :password => @account.password, :to => @account.email )
         redirect_to target( INVITE_ID )
       else
         warn "errs #{@card.errors.map{|k,v| "#{k} -> #{v}"}*"\n"}"
@@ -143,7 +149,8 @@ class AccountController < ApplicationController
       @account.generate_password
       Account.as_bot { @card.save! }
 
-      @card.send_account_info(@account, { :subject=> "Password Reset",
+      @card.send_account_info({ :password => @account.password, :to => @account.email,
+             :subject=> "Password Reset",
              :message=> "You have been given a new temporary password.  " +
                         "Please update your password once you've signed in. " } )
 

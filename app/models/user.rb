@@ -9,7 +9,7 @@ class User < ActiveRecord::Base
   # maybe WagnAccount ?
 
   # Virtual attribute for the unencrypted password
-  attr_accessor :password
+  attr_accessor :password, :name
 
   validates_presence_of     :email, :if => :email_required?
   validates_format_of       :email, :with => /^([^@\s]+)@((?:[-a-z0-9]+\.)+[a-z]{2,})$/i  , :if => :email_required?
@@ -33,6 +33,7 @@ class User < ActiveRecord::Base
     def from_user_id(card_id)   User.where(:card_id=>card_id).first              end
 
     def encrypt(password, salt) Digest::SHA1.hexdigest("#{salt}--#{password}--") end
+    def password_required?;     true                                             end
   end
 
 #~~~~~~~ Instance
@@ -43,26 +44,16 @@ class User < ActiveRecord::Base
   def pending?()        status=='pending'   end
   def default_status?() status=='request'   end
 
-  def active
-    self.status='active'
-    self
+  def generate_if
+    #warn "gen #{self} if #{password.blank? && password_required?}"
+    generate_password if password.blank? && password_required?
   end
 
-  def pending
-    self.status='pending'
-    self
-  end
-
-  def block
-    self.status='blocked'
-    self
-  end
-
-  def block!
-    block
-    save
-    self
-  end
+  def active ; self.status='active' ; self  end
+  def pending; self.status='pending'; self  end
+  def block  ; self.status='blocked'; self  end
+  def block! ;      block;  save    ; self  end
+  def save   ;      active          ; super end
 
   def blocked= arg
     arg != '0' && block || !built_in? && active?
@@ -76,6 +67,7 @@ class User < ActiveRecord::Base
     #warn "g pw #{self}, #{self.password}"
   end
 
+  def inspect() "<#User##{object_id}:#{password or 'no-pass'}:#{to_s}" end
   def to_s
     "#<#{self.class.name}:#{login}<#{email}>#{status[0,1]}:#{password_required? ? 'R' : ''}#{password.blank? ? 'b' : ''}>"
   end
@@ -101,9 +93,8 @@ class User < ActiveRecord::Base
 
   def encrypt_password
     return true if password.blank?
-    self.salt = Digest::SHA1.hexdigest("--#{Time.now.to_s}--#{login}--") if new_record?
+    self.salt = Digest::SHA1.hexdigest("--#{Time.now.to_s}--#{name}--") if new_record?
     self.crypted_password = encrypt(password)
-    true
   end
 
   def email_required?
@@ -112,8 +103,7 @@ class User < ActiveRecord::Base
 
   def password_required?
     #warn "pwq? #{built_in?}, #{pending?}, #{crypted_password.blank?} #{password.blank?}"
-     !built_in? && active?  &&
-      #not_openid? &&
+     !built_in? && active?  && self.class.password_required? &&
      (crypted_password.blank? or not password.blank?)
   end
 

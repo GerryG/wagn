@@ -26,7 +26,8 @@ describe Mailer do
       Account.session = c.fetch_trait :account
       @user = c.account
       @user.generate_password
-      @email = Mailer.account_info @user, c, {:subject=>"New password subject", :message=>"Forgot my password"}
+      @email = Mailer.account_info c, {:to=>@user.email, :password=>@user.password,
+        :subject=>"New password subject", :message=>"Forgot my password"}
     end
 
     context "new password message" do

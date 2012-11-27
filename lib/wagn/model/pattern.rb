@@ -26,7 +26,7 @@ module Wagn::Model
 
     def reset_patterns
       @rule_cards={}
-      @set_mods_loaded = @patterns = @set_modules = @junction_only = @method_keys = @set_names = @template = nil
+      @virtual = @set_mods_loaded = @patterns = @set_modules = @junction_only = @method_keys = @set_names = @template = nil
       true
     end
 
@@ -195,10 +195,10 @@ module Wagn::Model
       def self.prototype_args(base)     {:type=>base}              end
       def self.pattern_applies?(card)
         return false if card.type_id.nil?
-        raise "bogus type id" if card.type_id < 1
+        warn "bogus type id #{card.inspect} #{caller*"\n"}" if card.type_id < 1
         true
       end
-      def self.trunk_name(card)         card.type_name              end
+      def self.trunk_name(card)        card.type_name              end
     end
 
     class StarPattern < BasePattern

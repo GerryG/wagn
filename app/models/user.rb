@@ -20,7 +20,7 @@ class User < ActiveRecord::Base
   validates_length_of       :password, :within => 5..40, :if => :password_required?
   validates_confirmation_of :password,                   :if => :password_required?
 
-  before_validation :downcase_email!
+  before_validation :downcase_email!, :generate_if
   before_save :encrypt_password
 
   class << self
@@ -43,29 +43,14 @@ class User < ActiveRecord::Base
   def pending?()        status=='pending'   end
   def default_status?() status=='request'   end
 
-  def generate_if
-    #warn "gen #{self} if #{password.blank?}, #{password_required?}"
-    generate_password if password.blank? && password_required?
-  end
-
   def active
-    raise "deeep" if caller.length > 500
     self.status='active'
-    generate_if
-    #warn "active/accept #{self}"
     self
   end
-  alias accept active
 
   def pending
     self.status='pending'
     self
-  end
-
-  def save
-    #Rails.logger.warn "save user #{inspect}"
-    active
-    super
   end
 
   def block
@@ -80,7 +65,7 @@ class User < ActiveRecord::Base
   end
 
   def blocked= arg
-    arg != '0' && block || !built_in? && active
+    arg != '0' && block || !built_in? && active?
   end
 
   PW_CHARS = ('A'..'Z').to_a + ('a'..'z').to_a + ('0'..'9').to_a
@@ -88,21 +73,27 @@ class User < ActiveRecord::Base
   def generate_password
     self.password_confirmation = self.password =
       9.times.map() do PW_CHARS[rand*61] end *''
-    #warn "g pw #{self.password}"
+    #warn "g pw #{self}, #{self.password}"
   end
 
   def to_s
-    "#<#{self.class.name}:#{login}<#{email}>#{password_required? ? 'R' : ''}#{password.blank? ? 'b' : ''}>"
+    "#<#{self.class.name}:#{login}<#{email}>#{status[0,1]}:#{password_required? ? 'R' : ''}#{password.blank? ? 'b' : ''}>"
   end
   def mocha_inspect()   to_s                                                              end
   def downcase_email!() (em = self.email) =~ /[A-Z]/ and em=em.downcase and self.email=em end
 
   # Authenticates a user by their login name and unencrypted password.  Returns the user or nil.
   def authenticated? params
-    password = params[:password].strip and crypted_password == encrypt(password) and active?
+    password = params[:password] and password = password.strip and
+      crypted_password == encrypt(password) and active?
   end
 
  protected
+
+  def generate_if
+    #warn "gen #{self} if #{password.blank?}, #{password_required?}"
+    generate_password if password.blank? && password_required?
+  end
 
   def encrypt password
     self.class.encrypt(password, salt)
@@ -121,7 +112,7 @@ class User < ActiveRecord::Base
 
   def password_required?
     #warn "pwq? #{built_in?}, #{pending?}, #{crypted_password.blank?} #{password.blank?}"
-     !built_in? && !pending?  &&
+     !built_in? && active?  &&
       #not_openid? &&
      (crypted_password.blank? or not password.blank?)
   end

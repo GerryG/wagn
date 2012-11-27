@@ -9,7 +9,7 @@ class UserTest < ActiveSupport::TestCase
 
 
   def test_should_reset_password
-    Account.from_params(:login=>'joe@user.com').update_attributes(:password => 'new password', :password_confirmation => 'new password')
+    Account.from_params(:email=>'joe@user.com').update_attributes(:password => 'new password', :password_confirmation => 'new password')
     assert_auth 'joe@user.com', 'new password'
   end
 
@@ -21,7 +21,7 @@ class UserTest < ActiveSupport::TestCase
 
   def test_should_require_password
     assert_no_difference User, :count do
-      u = create_account(:password => nil)
+      u = create_account(:password => '')
       Rails.logger.warn "require pw #{u}, #{u.errors.map{|k,v| "#{k} -> #{v}"}*", "}"
       assert u.errors[:password]
     end
@@ -47,7 +47,7 @@ class UserTest < ActiveSupport::TestCase
   end
 
   def test_should_not_rehash_password
-    Account.from_params(:login=>'joe@user.com').update_attributes!(:email => 'joe2@user.com')
+    Account.from_params(:email=>'joe@user.com').update_attributes!(:email => 'joe2@user.com')
     assert_auth 'joe2@user.com', 'joe_pass'
   end
 
@@ -65,7 +65,7 @@ class UserTest < ActiveSupport::TestCase
 
   protected
   def create_account(options = {})
-    u=Account.new({ :login => 'quire', :email => 'quire@example.com',
+    u=Account.new({ :login => 'quire', :email => 'quire@example.com',  # login isn't really used now
       :password => 'quire', :password_confirmation => 'quire', :card_id=>0, :account_id=>0
     }.merge(options))
     Rails.logger.warn "create_account #{u.inspect}"

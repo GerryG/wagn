@@ -10,11 +10,11 @@ class Mailer < ActionMailer::Base
 
   include LocationHelper
 
-  def account_info user_card, args
-    #warn "acc info (#{user_card.account}) #{user_card.inspect}, #{args.inspect}"
+  def account_info account, user_card, args
+    Rails.logger.warn "acc info (#{user_card.account}) #{user_card.inspect}, #{args.inspect}"
 
-    @email = args[:to] = (user_card.account.email or raise Wagn::Oops.new("Oops didn't have user email"))
-    @password = (user_card.account.password or raise Wagn::Oops.new("Oops didn't have user password"))
+    @email = args[:to] = (account.email or raise Wagn::Oops.new("Oops didn't have user email"))
+    @password = (account.password or raise Wagn::Oops.new("Oops didn't have user password"))
     @card_url = wagn_url user_card
     @pw_url   = wagn_url "/card/options/#{user_card.cardname.url_key}"
     @login_url= wagn_url "/account/signin"

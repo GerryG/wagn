@@ -336,7 +336,7 @@ class Card < ActiveRecord::Base
       if code=self.codename
         errors.add :destroy, "#{name} is is a system card. (#{code})\n  Deleting this card would mess up our revision records."
       end
-      if type_id== Card::UserID && Card::Revision.find_by_creator_id( self.id )
+      if type_id== UserID && Revision.find_by_creator_id( self.id )
         errors.add :destroy, "Edits have been made with #{name}'s user account.\n  Deleting this card would mess up our revision records."
       end
       if respond_to? :custom_validate_destroy
@@ -465,15 +465,15 @@ class Card < ActiveRecord::Base
   end
 
   def current_revision
-    #return current_revision || Card::Revision.new
+    #return current_revision || Revision.new
     if @cached_revision and @cached_revision.id==current_revision_id
-    elsif ( Card::Revision.cache &&
-       @cached_revision=Card::Revision.cache.read("#{cardname.safe_key}-content") and
+    elsif ( Revision.cache &&
+       @cached_revision=Revision.cache.read("#{cardname.safe_key}-content") and
        @cached_revision.id==current_revision_id )
     else
-      rev = current_revision_id ? Card::Revision.find(current_revision_id) : Card::Revision.new()
-      @cached_revision = Card::Revision.cache ?
-        Card::Revision.cache.write("#{cardname.safe_key}-content", rev) : rev
+      rev = current_revision_id ? Revision.find(current_revision_id) : Revision.new()
+      @cached_revision = Revision.cache ?
+        Revision.cache.write("#{cardname.safe_key}-content", rev) : rev
     end
     @cached_revision
   end
@@ -504,21 +504,20 @@ class Card < ActiveRecord::Base
   end
 
   def save_account
-    Rails.logger.warn "save_account #{inspect}"
-    #warn "save_account #{inspect}"
+    Rails.logger.warn "save_account #{inspect} a:#{@account}"
+    #warn "save_account #{type_id}, #{type_id_without_tracking} #{inspect}"
     if @account and right_id != AccountID
       acct_card = fetch_or_new_trait(:account)
       acct_card.save! if acct_card.new_card?
-      if @account.pending?
-        @account.active
-        @account.generate_password
+      if @account.card_id != id
+      #warn "save_account 2 #{inspect}, F:#{@account.frozen?} #{@account.inspect}"
+        @account.card_id = id
+        @account.account_id = acct_card.id
       end
-      @account.card_id = id
-      @account.account_id = acct_card.id
       #warn "save_account A:#{@account}, #{inspect}, Ac:#{acct_card.inspect}"
       unless @account.save
         @account.errors.each { |k,v| errors.add k,v }
-        #warn "sav errs #{@account.errors.map { |k,v| "#{k} -> #{v }"}*"\n"}"
+        warn "sav errs #{@account.errors.map { |k,v| "#{k} -> #{v }"}*"\n"}"
         false
       else
         true
@@ -528,11 +527,11 @@ class Card < ActiveRecord::Base
     end
   end
 
-  def send_account_info args
+  def send_account_info account,args
     #warn "sai #{args.inspect}"
     unless args.nil? || [:subject, :message].find {|r| args[r].nil? }
       begin
-        Mailer.account_info(self, args).deliver
+        Mailer.account_info(account, self, args).deliver
       rescue Exception=>e
         warn "ACCOUNT INFO DELIVERY FAILED: \n #{args.inspect}\n   #{e.message}"  #{e.backtrace*"\n"}"
         Rails.logger.info "ACCOUNT INFO DELIVERY FAILED: \n #{args.inspect}\n   #{e.message}, #{e.backtrace*"\n"}"
@@ -545,7 +544,7 @@ class Card < ActiveRecord::Base
   end
 
   def updater
-    Card[ updater_id || Card::AnonID ]
+    Card[ updater_id || AnonID ]
   end
 
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -575,7 +574,7 @@ class Card < ActiveRecord::Base
   def among? authzed
     prties = parties
     authzed.each { |auth| return true if prties.member? auth }
-    authzed.member? Card::AnyoneID
+    authzed.member? AnyoneID
   end
 
   def parties
@@ -584,10 +583,10 @@ class Card < ActiveRecord::Base
 
   def read_rules
     @read_rules ||= begin
-      if id==Card::WagnBotID or left_id ==Card::WagnBotID
+      if id==WagnBotID or left_id ==WagnBotID
         [] # avoids infinite loop
       else
-        party_keys = ['in', Card::AnyoneID] + parties
+        party_keys = ['in', AnyoneID] + parties
         Account.as_bot do
           Card.search(:right=>{:codename=>'read'}, :refer_to=>{:id=>party_keys}, :return=>:id).map &:to_i
         end
@@ -597,7 +596,7 @@ class Card < ActiveRecord::Base
 
   def all_roles
     if @all_roles.nil?
-      @all_roles = (id==Card::AnonID ? [] : [Card::AuthID])
+      @all_roles = (id==AnonID ? [] : [AuthID])
       Account.as_bot do
         rcard=fetch_trait(:roles) and
           items = rcard.item_cards(:limit=>0).map(&:id) and
@@ -771,8 +770,8 @@ class Card < ActiveRecord::Base
     if account.nil?
       false
     elsif account.valid?
-      card.type_id = Card::UserID unless card.type_id == Card::UserID ||
-                                  card.type_id == Card::AccountRequestID
+      card.type_id = UserID unless card.type_id == UserID || card.type_id == AccountRequestID
+      true
     else
       account && account.errors.each {|k,v| card.errors.add k,v }
       false

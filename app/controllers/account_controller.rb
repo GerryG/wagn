@@ -25,32 +25,34 @@ class AccountController < ApplicationController
 
     if request.post?
 
-      redirect_id = if @card.trait_ok?(:account, :create) 
-          @account
+      redirect_id=nil
+      if @card.trait_ok?(:account, :create) 
           @card.account= @account
+          @account.active #.generate_password
           @card.save
-          #warn "signup no approv #{@card.inspect}"
+          Rails.logger.warn "signup no approv #{@card.inspect}"
 
           if @card.errors.empty?
-            @account.accept
-            #warn "invite: #{@card.inspect}"
-            @card.send_account_info(
+            Rails.logger.warn "invite: #{@card.inspect} #{@account.inspect}"
+            @card.send_account_info( @account,
                 { :message => Card.setting('*signup+*message') || "Thanks for signing up to #{Card.setting('*title')}!",
                   :subject => Card.setting('*signup+*subject') || "Account info for #{Card.setting('*title')}!" } )
           else
             Rails.logger.warn "errors #{@card.errors.map{|k,v| "#{k} -> #{v}"}*", "}"
           end
-          SIGNUP_ID 
+
+          redirect_id = SIGNUP_ID 
         else
           Account.as_bot do
-            @card.account = @account
+            @card.account = @account.pending
 
             if @card.save
           Rails.logger.warn "signup approv #{@card.inspect}"
               Account.as_bot do
                 Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'
               end
-              REQUEST_ID
+
+              redirect_id = REQUEST_ID
             end
           end
         end
@@ -64,18 +66,22 @@ class AccountController < ApplicationController
     #FIXME - don't raise; handle it!
     raise(Wagn::Oops, "I don't understand whom to accept") unless params[:card]
     @card = Card[card_key] or raise(Wagn::NotFound, "Can't find this Account Request")
-    #warn "accept #{@card.inspect}"
-    Account[@card.id] or raise(Wagn::Oops, "This card doesn't have an account to approve")
-    #warn "accept #{@card.inspect}"
+    Rails.logger.warn "accept #{@card.inspect}"
+    @card.account or raise(Wagn::Oops, "This card doesn't have an account to approve")
     @card.ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create accounts")
 
     if request.post? and
-      @account.accept
-      #warn "accept 2 #{@account}"
-      @card.send_account_info params[:email]
-      #warn "accept 3 #{@card}"
-      tgt = target(INVITE_ID); redirect_to tgt
-      #warn "redir #{tgt}"
+    Rails.logger.warn "accept ok #{@card.inspect}"
+      @account.active.generate_password
+      @card.account = @account
+      Rails.logger.warn "accept 2 #{@account}"
+      if @card.save
+        @card.send_account_info @account, params[:email]
+        Rails.logger.warn "accept 3 #{@card}"
+        tgt = target(INVITE_ID);
+        Rails.logger.warn "redir #{tgt}"
+        redirect_to tgt
+      end
     else
       render :action=>'invite'
     end
@@ -87,17 +93,16 @@ class AccountController < ApplicationController
     if request.post?
       @card = Card.new params[:card]
       acct_params = (params[:account] || {})
-      @account = @card.account = ( Account.new( acct_params ) )
+      @account = @card.account = ( Account.new( acct_params ) ).active
+      @account.generate_password
       #warn "User should be: #{@card.inspect}"
       Rails.logger.warn "invite #{@card.inspect}, #{@account.inspect}"
       if @card.save
-        @card.send_account_info params[:email]
+        @card.send_account_info @account, params[:email]
         tgt = target( INVITE_ID ) and redirect_to tgt
       else
-        #warn "errs #{@card.errors.map{|k,v| "#{k} -> #{v}"}*"\n"}"
+        warn "errs #{@card.errors.map{|k,v| "#{k} -> #{v}"}*"\n"}"
       end
-    elsif request.put?
-      raise "put for invite?"
     else
       @account = Account.new; @card = Card.new
     end
@@ -105,16 +110,19 @@ class AccountController < ApplicationController
 
 
   def signin
-    if account=Account.from_params(params) and account.authenticated?(params)
-      self.session_account = account.account_id
-      flash[:notice] = "Successfully signed in"
-      redirect_to previous_location
-    else
-      failed_login( case
-          when account.nil?     ; "Unrecognized email."
-          when account.blocked? ; "Sorry, that account is blocked."
-          else               ; "Wrong password"
-        end )
+    if params.any?
+      Rails.logger.warn "signin #{params.inspect}"
+      if account=Account.authenticated(:email=>params[:login], :password=>params[:password])
+        self.session_account = account.account_id
+        flash[:notice] = "Successfully signed in"
+        redirect_to previous_location
+      else
+        failed_login case
+            when !account         ; "Unrecognized email."
+            when account.blocked? ; "Sorry, that account is blocked."
+            else                  ; "Wrong password"
+          end
+      end
     end
   end
 
@@ -138,7 +146,7 @@ class AccountController < ApplicationController
       @account.generate_password
       Account.as_bot { @card.save! }
 
-      @card.send_account_info({ :subject=> "Password Reset",
+      @card.send_account_info(@account, { :subject=> "Password Reset",
              :message=> "You have been given a new temporary password.  " +
                         "Please update your password once you've signed in. " } )
 

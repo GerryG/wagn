@@ -71,9 +71,11 @@ class AccountControllerTest < ActionController::TestCase
     assert ucard.account, "should access user from User card"
     assert_status @newby_email, 'pending', "pending when requested"
 
+    Rails.logger.info "accepting #{Account.from_email(@newby_email).inspect}"
     integration_login_as 'joe_admin', true
     post :accept, :card=>{:key=>'newby_dooby'}, :email=>{:subject=>'hello', :message=>'world'}
     assert_response :redirect
+    Rails.logger.info "accepted #{Account.from_email(@newby_email).inspect}"
     assert_status @newby_email, 'active', "active when accepted"
   end
 

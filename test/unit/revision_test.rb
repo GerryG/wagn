@@ -9,18 +9,21 @@ class RevisionTest < ActiveSupport::TestCase
   def test_revise
     author1 = Account.from_email('joe@user.com')
     author2 = Account.from_email('sara@user.com')
-    author_cd1 = Card[author1.account_id] and author_cd1 = author_cd1.trunk
-    author_cd2 = Card[author2.account_id] and author_cd2 = author_cd2.trunk
-    Account.session = Card::WagnBotID
-    rc1=author_cd1.fetch_or_new_trait(:roles)
-    rc1 << Card::AdminID
-    rc2 = author_cd2.fetch_or_new_trait(:roles)
-    rc2 << Card::AdminID
-    author_cd1.save
-    author_cd2.save
-    Account.session = author1
+    author_acct_cd1 = Card[author1.account_id] and author_cd1 = author_acct_cd1.trunk
+    author_acct_cd2 = Card[author2.account_id] and author_cd2 = author_acct_cd2.trunk
+    Account.as_bot {
+      rc1=author_cd1.fetch(:new=>{}, :trait=>:roles)
+      rc1 << Card::AdminID
+      rc2 = author_cd2.fetch(:new=>{}, :trait=>:roles)
+      #author1, author2 = User.find(:all, :limit=>2)
+      rc1 << Card::AdminID
+      rc2 << Card::AdminID
+      author_cd1.save
+      author_cd2.save
+    }
+    Account.session = author_acct_cd1
     card = newcard( 'alpha', 'stuff')
-    Account.session = author_cd2
+    Account.session = author_acct_cd2
     card.content = 'boogy'
     card.save
     card.reload

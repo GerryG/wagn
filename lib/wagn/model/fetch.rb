@@ -17,6 +17,14 @@ module Wagn::Model::Fetch
     #
     # "mark" here means a generic identifier -- can be a numeric id, a name, a string name, etc.
     #
+    #   Options:
+    #     :skip_vitual                Real cards only
+    #     :skip_modules               Don't load Set modules
+    #     :loaded_trunk => card       Loads the card's trunk
+    #     :new => {  card opts }      Return a new card when not found
+    #     :trait => :code (or [:c1, :c2] maybe?)  Fetches base card + tag(s)
+    #
+
     def fetch mark, opts = {}
 #      ActiveSupport::Notifications.instrument 'wagn.fetch', :message=>"fetch #{cardname}" do
       return nil if mark.nil?
@@ -52,7 +60,7 @@ module Wagn::Model::Fetch
       if Integer===mark
         raise "fetch of missing card_id #{mark}" if card.nil? || card.trash
       else
-        return nil if card && opts[:skip_virtual] && card.new_card?
+        return card.fetch_new(opts) if card && opts[:skip_virtual] && card.new_card?
 
         # NEW card -- (either virtual or missing)
         if card.nil? or ( !opts[:skip_virtual] && card.type_id==-1 )
@@ -72,7 +80,7 @@ module Wagn::Model::Fetch
         end
       end
 
-      return nil if card.new_card? and (opts[:skip_virtual] || !card.virtual?)
+      return card.fetch_new(opts) if card.new_card? and ( opts[:skip_virtual] || !card.virtual? )
 
       #warn "fetch returning #{card.inspect}"
       card.include_set_modules unless opts[:skip_modules]
@@ -130,20 +138,24 @@ module Wagn::Model::Fetch
 
   end
 
-
-  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  # TRAIT METHODS
-
-  def fetch_trait tagcode
-    Card.fetch cardname.trait_name(tagcode)
+  # ~~~~~~~~~~ Instance ~~~~~~~~~~~~~
+  
+  def fetch opts={}
+    #warn "fetch_new #{cardname.inspect}, #{opts.inspect}"
+    if traits = opts.delete(:trait)
+       traits = [traits] unless Array===traits
+       traits.inject(self) { |card, trait| Card.fetch( card.cardname.trait(trait), opts ) }
+    end
   end
 
-  def fetch_or_new_trait tagcode
-    Card.fetch_or_new cardname.trait_name(tagcode), :skip_virtual=>true
+  def fetch! opts={}
+    card = fetch(opts) and card.save! and card
   end
 
-  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  # CACHE FRESHNESS
+  def fetch_new opts={}
+    #warn "fetch_new #{cardname.inspect}, #{opts.inspect}"
+    opts = opts[:new] and Card.new opts.merge(:name=>cardname)
+  end
 
   def expire_pieces
     cardname.pieces.each do |piece|

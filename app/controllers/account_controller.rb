@@ -5,9 +5,9 @@ class AccountController < ApplicationController
   before_filter :login_required, :only => [ :invite, :update ]
   helper :wagn
 
-  INVITE_ID = Card[Card::InviteID].fetch_trait(:thanks).id
-  REQUEST_ID = Card[Card::RequestID].fetch_trait(:thanks).id
-  SIGNUP_ID  = Card[Card::SignupID].fetch_trait(:thanks).id
+  INVITE_ID = Card[Card::InviteID].fetch(:trait => :thanks).id
+  REQUEST_ID = Card[Card::RequestID].fetch(:trait => :thanks).id
+  SIGNUP_ID  = Card[Card::SignupID].fetch(:trait => :thanks).id
 
   #ENGLISH many messages throughout this file
   def signup
@@ -27,7 +27,7 @@ class AccountController < ApplicationController
     if request.post?
 
       redirect_id=nil
-      if @card.trait_ok?(:account, :create) 
+      if @card.ok?(:create, :trait=>:account) 
           @card.account= @account
           @account.active #.generate_password
           @card.save
@@ -57,10 +57,12 @@ class AccountController < ApplicationController
 
               redirect_id = REQUEST_ID
             end
-          end
+          redirect_id = REQUEST_ID
         end
+      end
 
-      tgt = target( redirect_id ) and redirect_to tgt
+      redirect_to target( redirect_id )
+
     end
   end
 

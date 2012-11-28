@@ -6,7 +6,7 @@ Given /^(.*) (is|am) watching "([^\"]+)"$/ do |user, verb, cardname|
 end
 
 Then /^(.*) should be notified that "(.*)"$/ do |username, subject|
-  account = username=='I' ? Account.authorized : Card[username].fetch_trait(:account)
+  account = username=='I' ? Account.authorized : Card[username].fetch(:trait => :account)
   user = account.account
   email = user.email
   begin

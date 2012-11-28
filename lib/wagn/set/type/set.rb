@@ -30,7 +30,7 @@ module Wagn
           end * "\n"
         end +
         raw( data.map do |setting_card|
-          rule_card = card.fetch_or_new_trait setting_card.codename
+          rule_card = card.fetch(:trait=>setting_code, :new=>{})
           process_inclusion rule_card, :view=>:closed_rule
         end * "\n" )
       end.compact * ''
@@ -81,7 +81,7 @@ module Wagn
       end
 
       def setting_cards_by_group
-        test = Card::PointerID != ( templt = fetch_trait(:content) || fetch_trait(:default) and
+        test = Card::PointerID != ( templt = templt = fetch(:trait=>:content) || fetch(:trait=>:default) and
                  templt.type_id or (right_id == Card::TypeID ? left_id : trunk.type_id) )
         Card.setting_cards_by_group.reject {|k,v| test && k == :pointer_group }
       end

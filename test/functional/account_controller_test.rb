@@ -65,8 +65,7 @@ class AccountControllerTest < ActionController::TestCase
 
     assert_response :redirect
     assert ucard=Card['Newby Dooby'], "should create User card"
-    assert card=ucard.fetch_trait(:account), "should create User+*account card"
-    Rails.logger.warn "with app #{ucard.inspect} #{card.inspect}"
+    assert card=ucard.fetch( :trait => :account ), "should create User+*account card"
     assert card.account, "should create User"
     assert ucard.account, "should access user from User card"
     assert_status @newby_email, 'pending', "pending when requested"
@@ -81,7 +80,7 @@ class AccountControllerTest < ActionController::TestCase
 
   def test_signup_without_approval
     Account.as_bot do  #make it so anyone can create accounts (ie, no approval needed)
-      create_accounts_rule = Card['*account+*right'].fetch_or_new_trait(:create)
+      create_accounts_rule = Card['*account+*right'].fetch(:trait=>:create)
       create_accounts_rule << Card::AnyoneID
       create_accounts_rule.save!
     end

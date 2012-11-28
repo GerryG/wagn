@@ -465,22 +465,22 @@ class Card < ActiveRecord::Base
     (tmpl = all_default_rule && tmpl = template).nil? ? '' : tmpl.content
   end
 
-  def content; @contend end
+  def content; @content end
 
   def content_without_tracking
     raise "??? #{inspect}" if caller.length > 500
-    #r=(
+    r=(
      !new_card? ? content : template_content
-    #); Rails.logger.warn "content #{inspect} #{r}"; r # if name =~ /\+\*right/; r
+    ); Rails.logger.warn "content #{inspect} #{r}"; r # if name =~ /\+\*right/; r
   end
 
   alias_method_chain :content, :current
   #def content_with_current; content_without_current end
 
   def raw_content
-    #r=(
+    r=(
     (hard=hard_template) ? hard.content : content_with_current
-    #); warn "raw_content #{inspect} @#{@content}, #{hard}, #{r}"; r # if name =~ /\+\*right/; r
+    ); warn "raw_content #{inspect} @#{@content}, #{hard}, #{r}"; r # if name =~ /\+\*right/; r
   end
 
   def selected_rev_id
@@ -530,7 +530,7 @@ class Card < ActiveRecord::Base
     Rails.logger.warn "save_account #{inspect} a:#{@account}"
     #warn "save_account #{type_id}, #{type_id_without_tracking} #{inspect}"
     if @account and right_id != AccountID
-      acct_card = fetch_or_new_trait(:account)
+      acct_card = fetch(:trait => :account, :new=>{})
       # make sure it has an account card and store both ids
       acct_card.save! if acct_card.new_card?
       @account.card_id = id
@@ -613,7 +613,7 @@ class Card < ActiveRecord::Base
     if @all_roles.nil?
       @all_roles = (id==AnonID ? [] : [AuthID])
       Account.as_bot do
-        rcard=fetch_trait(:roles) and
+        rcard=fetch(:trait=>:roles) and
           items = rcard.item_cards(:limit=>0).map(&:id) and
           @all_roles += items 
       end
@@ -703,7 +703,7 @@ class Card < ActiveRecord::Base
     end
   end
 
-  ALL_DEFAULT_RULE = Card[:all].fetch_trait :default
+  ALL_DEFAULT_RULE = Card[:all].fetch :trait => :default
 
   def all_default_rule
     #r=(

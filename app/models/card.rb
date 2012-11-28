@@ -200,7 +200,7 @@ class Card < ActiveRecord::Base
 
   def set_stamper
     self.updater_id = Account.authorized.id
-    Rails.logger.warn "sstamper #{Account.authorized.inspect}"
+    #Rails.logger.warn "sstamper #{Account.authorized.inspect}"
     self.creator_id = self.updater_id if new_card?
   end
 
@@ -389,7 +389,6 @@ class Card < ActiveRecord::Base
   def dependents
     new_card? ? [] : !@dependents.nil? ? @dependents : Account.as_bot do
         Card.search( :part=> id ).inject [] do |a,c|
-          #id == c.id ? a : a << c << *(c.dependents)
           id == c.id ? a : (a << c) + (c.dependents)
         end
       end

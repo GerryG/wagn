@@ -19,7 +19,7 @@ class SharedData
     joe_user = User.create! :login=>"joe_user",:email=>'joe@user.com', :status => 'active', :password=>'joe_pass', :password_confirmation=>'joe_pass', :card_id=>joe_card.id
 
     ja_card = Card.create! :typecode=>'user', :name=>"Joe Admin", :content => "I'm number one"
-    joe_admin = User.create! :login=>"joe_admin",:email=>'joe@admin.com', :status => 'active', :password=>'joe_pass', :password_confirmation=>'joe_pass', :invite_sender=>Card[Card::WagnBotID], :card_id=>ja_card.id
+    joe_admin = User.create! :login=>"joe_admin",:email=>'joe@admin.com', :status => 'active', :password=>'joe_pass', :password_confirmation=>'joe_pass', :card_id=>ja_card.id
     roles_card = ja_card.fetch(:trait=>:roles)
     #warn "roles card for #{ja_card.name} is #{roles_card.inspect}"
     roles_card << Card::AdminID

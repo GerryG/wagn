@@ -25,29 +25,32 @@ class AccountController < ApplicationController
 
     if request.post?
 
-      redirect_id = if @card.ok?(:create, :trait=>:account) 
-          @account.active
-          @account.save_card @card
+      if @card.ok?(:create, :trait=>:account) 
+        @account.active
+        @account.save_card @card
 
-          if !errors
-            email_args = { :message => Card.setting('*signup+*message') || "Thanks for signing up to #{Card.setting('*title')}!",
-                           :subject => Card.setting('*signup+*subject') || "Account info for #{Card.setting('*title')}!" }
-            @account.accept(@card, email_args)
-            SIGNUP_ID 
-          end
-        else
-          @account.pending
-          @account.save_card @card
+        if !errors
+          email_args = { :message => Card.setting('*signup+*message') || "Thanks for signing up to #{Card.setting('*title')}!",
+                         :subject => Card.setting('*signup+*subject') || "Account info for #{Card.setting('*title')}!" }
+          @account.accept(@card, email_args)
 
-          if !errors
-            Account.as_bot do
-              Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'
-            end
-            REQUEST_ID
-          end
+          redirect_id = SIGNUP_ID 
         end
+      else
+        @account.pending
+        @account.save_card @card
 
-      tgt = target( redirect_id ) and redirect_to tgt
+        if !errors
+          Account.as_bot do
+            Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'
+          end
+
+          redirect_id = REQUEST_ID
+        end
+      end
+
+      redirect_to target( redirect_id )
+
     end
   end
 

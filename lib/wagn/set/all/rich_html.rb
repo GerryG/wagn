@@ -398,11 +398,7 @@ module Wagn
          option(option_content, :name=>"roles",
         :help=>%{ <span class="small">"#{ link_to_page 'Roles' }" are used to set user permissions</span>}, #ENGLISH
         :label=>"#{card.name}'s Roles",
-<<<<<<< HEAD
-        :editable=>card.ok?(:update, :trait=>:roles)
-=======
-        :editable=>card.fetch(:trait=>:roles,:new=>{}).ok?(:update)
->>>>>>> account_migration
+        :editable=>card.ok?(:update, :trait=>:roles, :new=>{})
       )}}
     end
 

@@ -57,10 +57,12 @@ class AccountController < ApplicationController
 
               redirect_id = REQUEST_ID
             end
-          end
+          redirect_id = REQUEST_ID
         end
+      end
 
-      tgt = target( redirect_id ) and redirect_to tgt
+      redirect_to target( redirect_id )
+
     end
   end
 

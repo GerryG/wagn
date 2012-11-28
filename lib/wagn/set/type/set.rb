@@ -30,7 +30,7 @@ module Wagn
           end * "\n"
         end +
         raw( data.map do |setting_card|
-          rule_card = card.fetch(:trait=>setting_code, :new=>{})
+          rule_card = card.fetch(:trait=>setting_card.codename, :new=>{})
           process_inclusion rule_card, :view=>:closed_rule
         end * "\n" )
       end.compact * ''

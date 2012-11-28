@@ -1,4 +1,3 @@
-
 module Wagn
   module Set::Type::AccountRequest
     include Sets
@@ -15,7 +14,7 @@ module Wagn
         links << link_to( "Deny #{card.name}", path(:delete), :class=>'slotter standard-delete', :remote=>true )
       end
 
-      process_content(_render_raw) +
+      process_content_s(_render_raw) +
       if (card.new_card?); '' else
         %{<div class="invite-links help instruction">
             <div><strong>#{card.name}</strong> requested an account on #{format_date(card.created_at) }</div>
@@ -24,8 +23,5 @@ module Wagn
       end
     end
 
-    module Model
-      include Set::Type::User::Model
-    end
   end
 end

@@ -1,83 +1,101 @@
-class Account
-  # FIXME: check for this in boot and don't start if newcard?
-  # these might be newcard?, but only in migrations
-  ANONCARD = Card[Card::AnonID].fetch_trait :account
-  BOTCARD  = Card[Card::WagnBotID].fetch_trait :account
-  BOTUSER  = BOTCARD.user
 
+class Account
   # This will probably have a hash of possible account classes and a value for the class
   @@session_class = User
-  # FIXME: Probably should use nil as the 'account' for Anonymous (Card/codename)
-  # but tests depend on this being same class (User) as other accounts
-  # It shouldn't be a Card, and if User can be replaced, does each plugin need an Anonymous or
-  # we just use nil for that function.  There is a similar issue for WagnBot, it depends on
-  # User if it has an account, but if it doesn't we will need a dummy class for this
-  # For now find it by account_id in User
-  ANONUSER = User.from_id ANONCARD.id
+
+  class << self
+    # can these just be delegations:
+    # delegate @@acount_class, :new, :from_email, :from_login, :from_id, :save
+    def [](card_id)           from_user_id(card_id) || from_id(card_id) end
+    def new(*args)            @@session_class.new(*args)                end
+    def from_email(email)     @@session_class.from_email(email)         end
+    def from_login(login)     @@session_class.from_login(login)         end
+    def from_id(card_id)      @@session_class.from_id(card_id)          end
+    def from_user_id(card_id) @@session_class.from_user_id(card_id)     end
+
+    def authenticated params
+      Rails.logger.warn "A.auth? #{params.inspect}"
+      r=(
+      acct = from_params(params) and acct.authenticated?(params) and acct
+      ); Rails.logger.warn "auth? #{params.inspect}, #{acct.inspect} #{r}"; r
+    end
+
+    def from_params params
+      if email = params[:email]
+        email = email.strip.downcase
+        from_email email
+      end
+    end
+
+    def lookup account
+      if @@session_class===account
+        Card[account.account_id]
+      else
+        acct = ((Card===account) ? account : Card[account])
+        # if this isn't a Right::Account yet, fetch it
+        unless Card===acct && acct.id == Card::WagnBotID or
+           acct and ( acct.right_id == Card::AccountID or
+           acct = acct.fetch(:trait=>:account) )
+          Rails.logger.warn "no account #{account.inspect} #{acct}" #{caller*"\n"}"
+          nil
+        else
+          acct
+        end
+      end
+    end
+  end
+
+  # FIXME: check for this in boot and don't start if newcard?
+  # these might be newcard?, but only in migrations
+  ANONCARD_ID = Card[Card::AnonID].fetch(:trait=>:account).id
+  BOTCARD_ID  = Card[Card::WagnBotID].fetch(:trait=>:account).id
 
   cattr_accessor :account_class
 
   @@as_card = nil
-  @@session = ANONCARD
+  @@session = Card[ANONCARD_ID]
 
   class << self
-    def from_params params
-      if login = params[:login]
-        login = login.strip.downcase
-        (from_email login) #|| (from_login login) # by cardname or email
-      end
-    end
-    # can these just be delegations:
-    # delegate @@acount_class, :new, :from_email, :from_login, :from_id, :save_card
-    def new(args={})           @@session_class.new(args)                                    end
-    def save_card(card, email) @@session_class.save_card(card, email)                       end
-    def from_email(email)      @@session_class.from_email(email)                            end
-    def from_login(login)      @@session_class.from_login(login)                            end
-    def from_id(card_id)       @@session_class.from_id(card_id)                             end
-    def from_user_id(card_id)  @@session_class.from_user_id(card_id)                        end
-
     def admin?()
       acid = (ac=as_card).new_card? ? ac.left_id : ac.id
-      acid==BOTCARD.id || acid == Card::WagnBotID
+      acid==BOTCARD_ID || acid == Card::WagnBotID
     end
 
-    def reset()                @@session = ANONCARD; @@as_card = nil                        end
-    def session()              @@session || ANONCARD                                        end
-    def authorized_email()     as_card.trunk.user.email                                     end
-    def session=(account)      @@session = Account[account] || ANONCARD                     end
+    def reset()                @@session = Card[ANONCARD_ID]; @@as_card = nil               end
+    def session()              @@session || Card[ANONCARD_ID]                               end
+    def authorized_email()     as_card.trunk.account.email                                  end
+    def session=(account)      @@session = lookup(account) || Card[ANONCARD_ID]             end
     def as_card()              @@as_card || session                                         end
     # We only need to test for the tag presence for migrations, we are going to  make sure it
     # exists and is indestructable (add tests for that)
     def authorized()           as_card.trunk                                                end
     def as_bot(&block)         as Card::WagnBotID, &block                                   end
     def among?(authzed)        authorized.among? authzed                                    end
-    def logged_in?()           session.id != ANONCARD.id                                    end
+    def logged_in?()           session.id != ANONCARD_ID                                    end
 
     def as given_account
       save_as = @@as_card
-      @@as_card = Account[given_account] || ANONCARD
-      Rails.logger.info "set ac #{@@as_card.inspect}"
+      @@as_card = lookup(given_account) || Card[ANONCARD_ID]
+      #Rails.logger.info "set ac #{@@as_card.inspect}"
 
       if block_given?
         value = yield
         @@as_card = save_as
         return value
-      else #fail "BLOCK REQUIRED with Card#as"
+      #else fail "BLOCK REQUIRED with Card#as"
       end
     end
- 
+
     def no_logins?
       cache = Card.cache
-     #r=(
       !!(rd=cache.read('no_logins')) ? rd : cache.write( 'no_logins',
                (Card.search({:right=>Card::AccountID, :left=>{:type=>Card::UserID }}).count == 0 ))
-     #); Rails.logger.warn "Logins? #{r}"; r
     end
- 
+
     def always_ok?
       return true if admin? #cannot disable
       as_id = authorized.id
- 
+
       always = Card.cache.read('ALWAYS') || {}
       if always[as_id].nil?
         always = always.dup if always.frozen?
@@ -85,23 +103,6 @@ class Account
         Card.cache.write 'ALWAYS', always
        end
      always[as_id]
-    end
-
-    def [] account
-      if @@session_class===account
-        r=Card[account.account_id]
-        #warn "is an account #{account.inspect} #{r}"; r
-      else
-        #warn "[#{account}] a:#{Card===account ? account : Card[account]}"
-        account = acct = (Card===account ? account : Card[account])
-        # if this isn't a Right::Account yet, fetch it
-        r = if acct.right_id == Card::AccountID; acct
-        else # no WagnBot account, accept WagnBot card for migrations to work
-          acct = acct.fetch_trait(:account) and acct or
-            (account.id == Card::WagnBotID ? account : nil)
-        end
-        #warn "[#{account}] #{acct} => #{r}"; r
-      end
     end
 
   protected
@@ -126,7 +127,7 @@ class Account
 
   public
 
-    # Shouldn't this be someplace else?  Card? a Model module?
+    # FIXME: Shouldn't this be someplace else?  Card? a Model module?
     NON_CREATEABLE_TYPES = %w{ account_request setting set }
 
     def createable_types

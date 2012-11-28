@@ -6,11 +6,14 @@ module Wagn
       end
 
       def block_account
-        account and account.block!  
+        acct=account and acct.block!
+        Rails.logger.warn "blocking #{inspect} #{acct.inspect}"
+        #@account = nil
+        Rails.logger.warn "blocking #{inspect} #{acct.inspect}"
       end
-      
-      def user
-        @user ||= User.from_id id
+
+      def account
+        @account ||= Account[id]
       end
     end
   end

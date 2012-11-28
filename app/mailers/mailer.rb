@@ -10,20 +10,17 @@ class Mailer < ActionMailer::Base
 
   include LocationHelper
 
-  def account_info user, args
-    user_card = Card[user.card_id]
-    url_key = user_card.cardname.url_key
+  def account_info user_card, args
+    #warn "acc info #{Account.authorized_email}, (#{user_card.account.inspect}) #{user_card.inspect}, #{args.inspect}"
 
-    #warn "account_info #{Account.authorized.inspect}, #{user.email}, #{user_card.inspect}, #{args.inspect}"
-
-    @email = args[:to] = (user.email or raise Wagn::Oops.new("Oops didn't have user email"))
-    @password = (user.password or raise Wagn::Oops.new("Oops didn't have user password"))
+    @email, @subject, @message, @password = [:to, :subject, :message, :password].map do |f|
+          args[f] or raise Wagn::Oops.new("Oops didn't have #{f}")
+        end
     @card_url = wagn_url user_card
-    @pw_url   = wagn_url "/card/options/#{url_key}"
+    @pw_url   = wagn_url "/card/options/#{user_card.cardname.url_key}"
     @login_url= wagn_url "/account/signin"
-    @message  = args[:message].clone
+    @message  = @message.clone
 
-    #warn "account_info #{Account.authorized_email}, #{Account.authorized.name}, #{user_card.inspect}, #{user}, #{args.inspect}"
     mail_from args, Card.setting('*invite+*from') || "#{Account.authorized.name} <#{Account.authorized_email}>"
     #FIXME - might want different "from" settings for different contexts?
   end
@@ -31,7 +28,7 @@ class Mailer < ActionMailer::Base
   def signup_alert invite_request
     @site = Card.setting :title
     @card = invite_request
-    @email= invite_request.user.email
+    @email= invite_request.account.email
     @name = invite_request.name
     @content = invite_request.content
     @request_url  = wagn_url invite_request
@@ -48,7 +45,7 @@ class Mailer < ActionMailer::Base
 
   def change_notice user_card, card, action, watched, subedits=[], updated_card=nil
     user_card = Card[user_card] unless Card===user_card
-    email = user_card.user.email
+    email = user_card.account.email
     #warn "change_notice( #{user_card}, #{email}, #{card.inspect}, #{action.inspect}, #{watched.inspect} Uc:#{updated_card.inspect}...)"
 
     updated_card ||= card
@@ -67,7 +64,7 @@ class Mailer < ActionMailer::Base
       :subject      => "[#{Card.setting :title} notice] #{@updater} #{action} \"#{card.name}\"" ,
       :content_type => 'text/html',
     }
-    mail_from args, Account::BOTUSER.email
+    mail_from args, Card[Card::WagnBotID].account.email
   end
 
   def flexmail config

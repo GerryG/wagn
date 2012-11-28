@@ -15,7 +15,7 @@ class AccountCreationTest < ActionController::TestCase
   #FIXME - couldn't get this stuff to work in setup, but that's where it belongs.
   signed_in = Card[Card::AuthID]
   # need to use: Card['*account'].ok?(:create)
-  #if (tasks_card=Card.fetch_or_new(!signed_in.fetch_or_new_trait(:task_list))).
+  #if (tasks_card=Card.fetch_or_new(!signed_in.fetch(:trait=>:task_list))).
   #     item_names.member?('create_accounts')
   #  tasks_card << 'create_accounts'
   #end
@@ -50,7 +50,7 @@ class AccountCreationTest < ActionController::TestCase
     assert_equal "active", Account.from_email("ron@request.com").status
   end
 
-  def test_should_create_account_from_account_request_when_user_hard_templated
+  def test_should_create_account_from_account_request_when_account_hard_templated
     Account.as_bot { Card.create :name=>'User+*type+*content', :content=>"like this" }
     assert_equal :account_request, (c=Card.fetch('Ron Request')).typecode
     post_invite :card=>{ :key=>"ron_request"}, :action=>:accept
@@ -80,12 +80,12 @@ class AccountCreationTest < ActionController::TestCase
     end
     email = ActionMailer::Base.deliveries[-1]
     # emails should be 'from' inviting user
-    assert_equal Account.session.user.email, email.from[0]
+    assert_equal Account.session.account.email, email.from[0]
     Rails.logger.warn "testing fscr #{Account.from_email('new@user.com').inspect}"
     assert Account.from_email('new@user.com').active?
   end
 
-  def test_should_create_account_when_user_cards_are_templated   ##FIXME -- I don't think this actually catches the bug I saw.
+  def test_should_create_account_when_account_cards_are_templated   ##FIXME -- I don't think this actually catches the bug I saw.
     Account.as_bot { Card.create! :name=> 'User+*type+*content'}
     assert_new_account do
     Rails.logger.warn "login= templ #{Account.authorized}"
@@ -101,14 +101,14 @@ class AccountCreationTest < ActionController::TestCase
     Rails.logger.warn "login= genpw #{Account.authorized}"
       post_invite
     Rails.logger.warn "login= Agenpw #{Account.authorized}"
-      assert !assigns(:user).password.blank?
+      assert !assigns(:account).password.blank?
     end
   end
 
   def test_should_require_password_confirmation_if_password_given
     assert_no_new_account do
       #assert_raises(ActiveRecord::RecordInvalid) do
-        post_invite :user=>{ :password=>'tedpass' }
+        post_invite :account=>{ :password=>'tedpass' }
       #end
     end
   end
@@ -116,24 +116,24 @@ class AccountCreationTest < ActionController::TestCase
   def test_should_require_email
     assert_no_new_account do
       #assert_raises(ActiveRecord::RecordInvalid) do
-        post_invite :user=>{ :email => nil }
-        assert assigns(:user).errors[:email]
+        post_invite :account=>{ :email => nil }
+        assert assigns(:account).errors[:email]
         assert_response :success
       #end
     end
   end
 
   def test_should_require_unique_email
-    post_invite :user=>{ :email=>'duplor@user.com' }
+    post_invite :account=>{ :email=>'duplor@user.com' }
     assert_no_new_account do
-      post_invite :user=>{ :email=>'duplor@user.com' }
+      post_invite :account=>{ :email=>'duplor@user.com' }
     end
   end
 
-  def test_should_create_account_from_existing_user
+  def test_should_create_account_from_existing_account
     assert_difference ::User, :count do
       assert_no_difference Card.where(:type_id=>Card::UserID), :count do
-        post_invite :card=>{ :name=>"No Count" }, :user=>{ :email=>"no@count.com" }
+        post_invite :card=>{ :name=>"No Count" }, :account=>{ :email=>"no@count.com" }
       end
     end
   end

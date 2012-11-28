@@ -14,12 +14,13 @@ describe AccountController do
       login_as 'joe_admin'
 
       @email_args = {:subject=>'Hey Joe!', :message=>'Come on in.'}
-      post :invite, :user=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'},
+      post :invite, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'},
         :email=> @email_args
 
-      @new_user = Account.from_email 'joe@new.com'
       @user_card = Card['Joe New']
+      @user_card.should be
       @account_card = @user_card.fetch_or_new_trait :account
+      @account_card.should be
 
     end
 
@@ -27,8 +28,10 @@ describe AccountController do
       @account_card.new_card?.should be_false
       @user_card.type_id.should == Card::UserID
       @account_card.type_id.should == Card::BasicID
-      @new_user.should be
-      @new_user.account_id.should == @account_card.id
+      @new_account=Account.from_email('joe@new.com')
+      #warn "... #{@account_card.inspect}, #{@user_card.inspect} #{@new_account.inspect}"
+      @new_account.should be
+      @new_account.account_id.should == @account_card.id
     end
 
     it 'should send email' do
@@ -47,18 +50,21 @@ describe AccountController do
     end
 
     it 'should create a user' do
-      post :signup, :user=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
-      new_user = User.where(:email=>'joe@new.com').first
+      post :signup, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
+      new_account = User.where(:email=>'joe@new.com').first
       user_card = Card['Joe New']
-      new_user.should be
-      new_user.card_id.should == user_card.id
+      new_account.should be
+      new_account.card_id.should == user_card.id
       user_card.type_id.should == Card::AccountRequestID
     end
 
     it 'should send email' do
       # a user requests an account
-      post :signup, :user=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
+      post :signup, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
 
+      @card = Card['Joe New']
+      @card.should be
+      @card.account.should be
       # and the admin accepts
       login_as 'joe_admin'
       post :accept, :card=>{:key=>'joe_new'}, :email=>{:subject=>'Hey Joe!', :message=>'Come on in?'}
@@ -67,12 +73,14 @@ describe AccountController do
       @msgs[0].should be_a Mail::Message
       #puts "msg looks like #{@msgs[0].inspect}"
     end
-    
+
     it 'should detect duplicates' do
-      post :signup, :user=>{:email=>'joe@user.com'}, :card=>{:name=>'Joe Scope'}
-      post :signup, :user=>{:email=>'joe@user.com'}, :card=>{:name=>'Joe Duplicate'}
-      
-      Card['Joe Duplicate'].should be_nil
+      post :signup, :account=>{:email=>'joe@user.com'}, :card=>{:name=>'Joe Scope'}
+      post :signup, :account=>{:email=>'joe@user.com'}, :card=>{:name=>'Joe Duplicate'}
+
+      #s=Card['joe scope']
+      c=Card['Joe Duplicate']
+      c.should be_nil
     end
   end
 

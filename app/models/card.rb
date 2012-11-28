@@ -1,5 +1,4 @@
 # -*- encoding : utf-8 -*-
-
 class Card < ActiveRecord::Base
   require 'card/revision'
   require 'card/reference'
@@ -15,15 +14,18 @@ class Card < ActiveRecord::Base
   Reference
 
   has_many :revisions, :order => :id #, :foreign_key=>'card_id'
+  belongs_to :card, :class_name => 'Card', :foreign_key => :creator_id
+  belongs_to :card, :class_name => 'Card', :foreign_key => :updater_id
 
-  attr_accessor :comment, :comment_author, :selected_rev_id,
-    :confirm_rename, :confirm_destroy, :update_referencers, :allow_type_change, # seems like wrong mechanisms for this
+  attr_accessor :comment, :comment_author, :selected_rev_id, :account,
+    :broken_type, :update_referencers, :allow_type_change, # seems like wrong mechanisms for this
     :cards, :loaded_left, :nested_edit, # should be possible to merge these concepts
-    :error_view, :error_status, #yuck
-    :attachment_id #should build flexible handling for set-specific attributes
+    :error_view, :error_status #yuck
 
   attr_writer :update_read_rule_list
-  attr_reader :type_args, :broken_type
+  attr_reader :type_args
+
+  def user() @user ||= User.where(:card_id=>id).first end
 
   before_save :set_stamper, :base_before_save, :set_read_rule, :set_tracked_attributes
   after_save :base_after_save, :update_ruled_cards, :update_queue, :expire_related
@@ -113,6 +115,7 @@ class Card < ActiveRecord::Base
     args['name']    = args['name'   ].to_s
     args['type_id'] = args['type_id'].to_i
 
+    content = args.delete(:content) if args.has_key? :content
     args.delete('type_id') if args['type_id'] == 0 # can come in as 0, '', or nil
 
     @type_args = { # these are cached to optimize #new
@@ -144,17 +147,22 @@ class Card < ActiveRecord::Base
       end
 
     case type_id
-    when :noop      ;
-    when false, nil ; @broken_type = args[:type] || args[:typecode]
-    else            ; return type_id
+    when :noop
+    when false, nil
+      @broken_type = args[:type] || args[:typecode]
+      errors.add :type, "#{broken_type} is not a known type."
+    else
+      return type_id
     end
 
     if name && t=template
       reset_patterns #still necessary even with new template handling?
       t.type_id
-    else
+    #else
       # if we get here we have no *all+*default -- let's address that!
-      DefaultTypeID
+      # I think we can remove this, now it will break if ALL_DEFAULT_RULE
+      # can't be fetched, should we raise an error?
+      #DefaultTypeID
     end
   end
 
@@ -200,7 +208,6 @@ class Card < ActiveRecord::Base
 
   def set_stamper
     self.updater_id = Account.authorized.id
-    Rails.logger.warn "sstamper #{Account.authorized.inspect}"
     self.creator_id = self.updater_id if new_card?
   end
 
@@ -236,6 +243,8 @@ class Card < ActiveRecord::Base
   end
 
   def base_before_save
+    #self.content= self.content if new_card? && !updates.for?(:content)
+    #warn "bbsave #{inspect}, #{updates.inspect} [#{self.content}]"
     if self.respond_to?(:before_save) and self.before_save == false
       errors.add(:save, "could not prepare card for destruction") #fixme - screwy error handling!!
       return false
@@ -284,7 +293,7 @@ class Card < ActiveRecord::Base
     #could optimize to use fetch if we add :include_trashed_cards or something.
     #likely low ROI, but would be nice to have interface to retrieve cards from trash...
     self.id = trashed_card.id
-    @from_trash = self.confirm_rename = @trash_changed = true
+    @from_trash = @trash_changed = true
     @new_record = false
   end
 
@@ -297,7 +306,6 @@ class Card < ActiveRecord::Base
       @trash_changed = true
       self.update_attributes :trash => true
       deps.each do |dep|
-        dep.confirm_destroy = true
         dep.destroy
       end
       expire
@@ -324,24 +332,18 @@ class Card < ActiveRecord::Base
   end
 
   def destroy!
-    # FIXME: do we want to overide confirmation by setting confirm_destroy=true here?
-    self.confirm_destroy = true
     destroy or raise Wagn::Oops, "Destroy failed: #{errors.full_messages.join(',')}"
   end
 
   def validate_destroy
-    if !dependents.empty? && !confirm_destroy
-      errors.add(:confirmation_required, "because #{name} has #{dependents.size} dependents")
-    else
-      if code=self.codename
-        errors.add :destroy, "#{name} is is a system card. (#{code})\n  Deleting this card would mess up our revision records."
-      end
-      if type_id== Card::UserID && Card::Revision.find_by_creator_id( self.id )
-        errors.add :destroy, "Edits have been made with #{name}'s user account.\n  Deleting this card would mess up our revision records."
-      end
-      if respond_to? :custom_validate_destroy
-        self.custom_validate_destroy
-      end
+    if code=self.codename
+      errors.add :destroy, "#{name} is is a system card. (#{code})\n  Deleting this card would mess up our revision records."
+    end
+    if type_id== UserID && Revision.find_by_creator_id( self.id )
+      errors.add :destroy, "Edits have been made with #{name}'s user account.\n  Deleting this card would mess up our revision records."
+    end
+    if respond_to? :custom_validate_destroy
+      self.custom_validate_destroy
     end
     errors.empty?
   end
@@ -356,15 +358,15 @@ class Card < ActiveRecord::Base
   def junction?()      cardname.junction?                   end
 
   def left *args
-    unless updates.for? :name and name_without_tracking.to_name.key == cardname.left_name.key
+    unless !simple? and updates.for? :name and name_without_tracking.to_name.key == cardname.left_name.key
       #the ugly code above is to prevent recursion when, eg, renaming A+B to A+B+C
       #it should really be testing for any trunk
       Card.fetch cardname.left, *args
     end
   end
-  
+
   def right *args
-    Card.fetch cardname.right, *args
+    simple? ? nil : Card.fetch(cardname.right, *args)
   end
 
   def trunk *args
@@ -387,12 +389,16 @@ class Card < ActiveRecord::Base
   #def trunk_id()       raise "Deprecated, use left_id"      end
 
   def dependents
-    new_card? ? [] : !@dependents.nil? ? @dependents : Account.as_bot do
-        Card.search( :part=> id ).inject [] do |a,c|
-          #id == c.id ? a : a << c << *(c.dependents)
-          id == c.id ? a : (a << c) + (c.dependents)
-        end
-      end
+    if new_card?; [] 
+
+    else
+      @dependents ||=
+          Account.as_bot do
+            Card.search( :part=> id ).inject [] do |a,c|
+              id == c.id ? a : (a << c) + (c.dependents)
+            end
+          end
+    end
   end
 
   def repair_key
@@ -434,10 +440,12 @@ class Card < ActiveRecord::Base
     Wagn::Codename[ type_id.to_i ]
   end
 
+  def all_default_rule; end
+
   def type_name
-    return if type_id.nil?
-    card = Card.fetch type_id, :skip_modules=>true, :skip_virtual=>true
-    card and card.name
+    raise "??? #{inspect}" if caller.length > 500
+    Rails.logger.warn "type name #{inspect}"
+    Card.fetch(type_id == -1 ? DefaultTypeID : type_id, :skip_virtual=>true, :skip_modules=>true ).name
   end
 
   def type= type_name
@@ -447,32 +455,49 @@ class Card < ActiveRecord::Base
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   # CONTENT / REVISIONS
 
-  def content
-    if new_card?
-      template ? template.content : ''
-    else
+  def content_with_current
+    raise "??? #{inspect}" if caller.length > 500
+    content_without_current ||
       current_revision.content
-    end
   end
 
+  def template_content
+    Rails.logger.warn "tcont #{inspect} == #{ALL_DEFAULT_RULE.inspect}"
+    (tmpl = all_default_rule && tmpl = template).nil? ? '' : tmpl.content
+  end
+
+  def content; @content end
+
+  def content_without_tracking
+    raise "??? #{inspect}" if caller.length > 500
+    r=(
+     !new_card? ? content : template_content
+    ); Rails.logger.warn "content #{inspect} #{r}"; r # if name =~ /\+\*right/; r
+  end
+
+  alias_method_chain :content, :current
+  #def content_with_current; content_without_current end
+
   def raw_content
-    hard_template ? template.content : content
+    r=(
+    (hard=hard_template) ? hard.content : content_with_current
+    ); warn "raw_content #{inspect} @#{@content}, #{hard}, #{r}"; r # if name =~ /\+\*right/; r
   end
 
   def selected_rev_id
-    @selected_rev_id or ( ( cr = current_revision ) ? cr.id : 0 )
+    @selected_rev_id or ( cr = current_revision and cr.id or 0 )
   end
 
   def current_revision
-    #return current_revision || Card::Revision.new
+    #return current_revision || Revision.new
     if @cached_revision and @cached_revision.id==current_revision_id
-    elsif ( Card::Revision.cache &&
-       @cached_revision=Card::Revision.cache.read("#{cardname.safe_key}-content") and
+    elsif ( Revision.cache &&
+       @cached_revision=Revision.cache.read("#{cardname.safe_key}-content") and
        @cached_revision.id==current_revision_id )
     else
-      rev = current_revision_id ? Card::Revision.find(current_revision_id) : Card::Revision.new()
-      @cached_revision = Card::Revision.cache ?
-        Card::Revision.cache.write("#{cardname.safe_key}-content", rev) : rev
+      rev = current_revision_id ? Revision.find(current_revision_id) : Revision.new()
+      @cached_revision = Revision.cache ?
+        Revision.cache.write("#{cardname.safe_key}-content", rev) : rev
     end
     @cached_revision
   end
@@ -490,21 +515,56 @@ class Card < ActiveRecord::Base
     (current_revision && current_revision.created_at) || Time.now
   end
 
-  def user
-    # no id? try using the cardname to find the user Account[]
-    if @user.nil? and uid = id.nil? ? (user_card = Account[name] and user_card.id) : id
-      @user = Account.from_user_id uid
+  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  # ACCOUNT / SESSION
+
+  def account
+    # no id? try using the cardname to find the user Account.lookup
+    if @account.nil? and uid = id.nil? ?
+          ( user_card = Account.lookup(name) and user_card.id ) : id
+      @account = Account[uid]
     end
-    @user
+    @account
   end
 
-  def author
+  def save_account
+    Rails.logger.warn "save_account #{inspect} a:#{@account}"
+    #warn "save_account #{type_id}, #{type_id_without_tracking} #{inspect}"
+    if @account and right_id != AccountID
+      acct_card = fetch(:trait => :account, :new=>{})
+      # make sure it has an account card and store both ids
+      acct_card.save! if acct_card.new_card?
+      @account.card_id = id
+      @account.account_id = acct_card.id
+      @account.active if @account.pending?
+      #warn "save_account A:#{@account.inspect}, #{inspect}, Ac:#{acct_card.inspect}"
+      unless @account.save
+        @account.errors.each { |k,v| errors.add k,v }
+        warn "sav errs #{@account.errors.map { |k,v| "#{k} -> #{v }"}*"\n"}"
+        return false
+      end
+    end
+    true
+  end
+
+  def send_account_info args
+    Mailer.account_info(self, args).deliver
+  rescue Exception=>e
+    warn "ACCOUNT INFO DELIVERY FAILED: \n #{args.inspect}\n   #{e.message}"
+    Rails.logger.info "ACCOUNT INFO DELIVERY FAILED: \n #{args.inspect}\n   #{e.message}, #{e.backtrace*"\n"}"
+    false
+  end
+
+  def creator
     Card[ creator_id ]
   end
 
   def updater
-    Card[ updater_id || Card::AnonID ]
+    Card[ updater_id || AnonID ]
   end
+
+  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  # DRAFTS
 
   def drafts
     revisions.find(:all, :conditions=>["id > ?", current_revision_id])
@@ -518,7 +578,7 @@ class Card < ActiveRecord::Base
   protected
 
   def clear_drafts # yuck!
-    connection.execute(%{delete from card_revisions where card_id=#{id} and id > #{current_revision_id} })
+    connection.execute %{delete from card_revisions where card_id=#{id} and id > #{current_revision_id} }
   end
 
   public
@@ -530,7 +590,7 @@ class Card < ActiveRecord::Base
   def among? authzed
     prties = parties
     authzed.each { |auth| return true if prties.member? auth }
-    authzed.member? Card::AnyoneID
+    authzed.member? AnyoneID
   end
 
   def parties
@@ -539,10 +599,10 @@ class Card < ActiveRecord::Base
 
   def read_rules
     @read_rules ||= begin
-      if id==Card::WagnBotID or left_id ==Card::WagnBotID
+      if id==WagnBotID or left_id ==WagnBotID
         [] # avoids infinite loop
       else
-        party_keys = ['in', Card::AnyoneID] + parties
+        party_keys = ['in', AnyoneID] + parties
         Account.as_bot do
           Card.search(:right=>{:codename=>'read'}, :refer_to=>{:id=>party_keys}, :return=>:id).map &:to_i
         end
@@ -552,11 +612,11 @@ class Card < ActiveRecord::Base
 
   def all_roles
     if @all_roles.nil?
-      @all_roles = (id==Card::AnonID ? [] : [Card::AuthID])
+      @all_roles = (id==AnonID ? [] : [AuthID])
       Account.as_bot do
-        rcard=fetch_trait(:roles) and
+        rcard=fetch(:trait=>:roles) and
           items = rcard.item_cards(:limit=>0).map(&:id) and
-          @all_roles += items 
+          @all_roles += items
       end
     end
     #warn "aroles #{inspect}, #{@all_roles.inspect}"
@@ -584,15 +644,15 @@ class Card < ActiveRecord::Base
   #def debug_type() "#{typename}:#{type_id}" end # this can cause infinite recursion
 
   def to_s
-    "#<#{self.class.name}[#{debug_type}]#{self.attributes['name']}>"
+    "#<#{self.class.name}[#{debug_type}]#{self.attributes['name']}:#{name}>"
   end
 
   def inspect
     "#<#{self.class.name}" + "##{id}" + # "###{object_id}" +
     #":l:#{left_id}r:#{right_id}" +
-    (@user.nil? ? '' : "U[#{user}]") +
+    (@account.nil? ? 'noU' : "Usr[#{@account}]") + (errors.any? ? '*E*' : '') +
     "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
-    "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{virtual? &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }}" +
+    #"#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{virtual? &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }}" +
     #" Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}" +
     '>'
   end
@@ -602,7 +662,8 @@ class Card < ActiveRecord::Base
 
   include Wagn::Model
 
-  after_save :after_save_hooks
+  after_save :save_account, :after_save_hooks
+
   # moved this after Wagn::Model inclusions because aikido module needs to come after Paperclip triggers,
   # which are set up in attach model.  CLEAN THIS UP!!!
 
@@ -629,7 +690,7 @@ class Card < ActiveRecord::Base
     self.name_without_resets = newname.to_s
   end
   alias_method_chain :name=, :resets
-  alias cardname= name=
+  #alias cardname= name=   Deprecate, see if we can pull it
 
   def cardname
     @cardname ||= name.to_name
@@ -643,6 +704,14 @@ class Card < ActiveRecord::Base
     end
   end
 
+  ALL_DEFAULT_RULE = Card[:all].fetch :trait => :default
+
+  def all_default_rule
+    #r=(
+         cardname.key == ALL_DEFAULT_RULE.key ? ALL_DEFAULT_RULE : nil
+    #); warn "adr #{ALL_DEFAULT_RULE.inspect} #{inspect} #{r.inspect}" unless r.nil?; r
+  end
+
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   # VALIDATIONS
 
@@ -650,128 +719,122 @@ class Card < ActiveRecord::Base
 
   protected
 
-  validate do |rec|
+  validate do |card|
     return true if @nested_edit
-    return true unless Wagn::Conf[:recaptcha_on] && Card.toggle( rec.rule(:captcha) )
+    return true unless Wagn::Conf[:recaptcha_on] && Card.toggle( card.rule(:captcha) )
     c = Wagn::Conf[:controller]
     return true if (c.recaptcha_count += 1) > 1
-    c.verify_recaptcha( :model=>rec ) || rec.error_status = 449
+    c.verify_recaptcha( :model=>card ) || card.error_status = 449
   end
 
-  validates_each :name do |rec, attr, value|
-    if rec.new_card? && value.blank?
-      if autoname_card = rec.rule_card(:autoname)
+  validates_each :name do |card, a, name|
+    if card.new_card? && name.blank?
+      if autoname_card = card.rule_card(:autoname)
         Account.as_bot do
           autoname_card = autoname_card.refresh
-          value = rec.name = rec.autoname( autoname_card.content )
-          autoname_card.content = value  #fixme, should give placeholder on new, do next and save on create
+          name = card.name = card.autoname( autoname_card.content )
+          autoname_card.content = name  #fixme, should give placeholder on new, do next and save on create
           autoname_card.save!
         end
       end
     end
 
-    cdname = value.to_name
+    cdname = name.to_name
     if cdname.blank?
-      rec.errors.add :name, "can't be blank"
-    elsif rec.updates.for?(:name)
-      #Rails.logger.debug "valid name #{rec.name.inspect} New #{value.inspect}"
+      card.errors.add :name, "can't be blank"
+    elsif card.updates.for?(:name)
+      #Rails.logger.debug "valid name #{card.name.inspect} New #{name.inspect}"
 
       unless cdname.valid?
-        rec.errors.add :name,
+        card.errors.add :name,
           "may not contain any of the following characters: #{ SmartName.banned_array * ' ' }"
       end
       # this is to protect against using a plus card as a tag
       # if right_id is non-nil, and it has a simple cardname, we must be in a rename from junction to
       # existing simple? card.
-      if rec.right_id and rec.cardname.simple? and Account.as_bot { Card.count_by_wql :tag_id=>rec.id } > 0
-        rec.errors.add :name, "#{value} in use as a tag"
+      if card.right_id and card.cardname.simple? and Account.as_bot { Card.count_by_wql :tag_id=>card.id } > 0
+        card.errors.add :name, "#{name} in use as a tag"
       end
 
       # validate uniqueness of name
       condition_sql = "cards.key = ? and trash=?"
       condition_params = [ cdname.key, false ]
-      unless rec.new_record?
+      unless card.new_record?
         condition_sql << " AND cards.id <> ?"
-        condition_params << rec.id
+        condition_params << card.id
       end
       if c = Card.find(:first, :conditions=>[condition_sql, *condition_params])
-        rec.errors.add :name, "must be unique-- A card named '#{c.name}' already exists"
+        card.errors.add :name, "must be unique-- '#{c.name}' already exists"
       end
 
-      # require confirmation for renaming multiple cards
-      # FIXME - none of this should happen in the model.
-      if !rec.confirm_rename
-        pass = true
-        if !rec.dependents.empty?
-          pass = false
-          rec.errors.add :confirmation_required, "#{rec.name} has #{rec.dependents.size} dependents"
-        end
-
-        if rec.update_referencers.nil? and !rec.extended_referencers.empty?
-          pass = false
-          rec.errors.add :confirmation_required, "#{rec.name} has #{rec.extended_referencers.size} referencers"
-        end
-
-        if !pass
-          rec.error_view = :edit
-          rec.error_status = 200 #I like 401 better, but would need special processing
-        end
-      end
     end
   end
 
-  validates_each :content do |rec, attr, value|
-    if rec.new_card? && !rec.updates.for?(:content)
-      value = rec.content = rec.content #this is not really a validation.  is the double rec.content meaningful?  tracked attributes issue?
-    end
-
-    if rec.updates.for? :content
-      rec.reset_patterns_if_rule
-      rec.send :validate_content, value
-    end
-  end
-
-  validates_each :current_revision_id do |rec, attrib, value|
-    if !rec.new_card? && rec.current_revision_id_changed? && value.to_i != rec.current_revision_id_was.to_i
-      rec.current_revision_id = rec.current_revision_id_was
-      rec.errors.add :conflict, "changes not based on latest revision"
-      rec.error_view = :conflict
-      rec.error_status = 409
+  validates_each :account do |card, a, account|
+    #warn "valid account #{card.inspect}, @:#{@account.inspect} r;#{account.inspect}"
+    if account.nil?
+      false
+    elsif account.valid?
+      Rails.logger.warn "type_id #{card.inspect}"
+      card.type_id = UserID unless card.type_id == UserID || card.type_id == AccountRequestID
+      Rails.logger.warn "type_id #{card.inspect}"
+      true
+    else
+      account && account.errors.each {|k,v| card.errors.add k,v }
+      false
     end
   end
 
-  validates_each :type_id do |rec, attr, value|
+  validates_each :content do |card, a, content|
+    if card.new_card? && !card.updates.for?(:content)
+      content = card.content #this is not really a validation.  is the double card.content meaningful? let's find out 
+    end
+
+    if card.updates.for? :content
+      card.reset_patterns_if_rule
+      card.send :validate_content, content
+    end
+  end
+
+  validates_each :current_revision_id do |card, a, cur_rev_id|
+    if !card.new_card? && card.current_revision_id_changed? && cur_rev_id.to_i != card.current_revision_id_was.to_i
+      card.current_revision_id = card.current_revision_id_was
+      card.errors.add :conflict, "changes not based on latest revision"
+      card.error_view = :conflict
+    end
+  end
+
+  validates_each :type_id do |card, a, type_id|
     # validate on update
-    #warn "validate type #{rec.inspect}, #{attr}, #{value}"
-    if rec.updates.for?(:type_id) and !rec.new_card?
-      if !rec.validate_type_change
-        rec.errors.add :type, "of #{ rec.name } can't be changed; errors changing from #{ rec.type_name }"
+    if card.updates.for?(:type_id) and !card.new_card?
+      if !card.validate_type_change
+        card.errors.add :type, "of #{ card.name } can't be changed; errors changing from #{ card.type_name }"
       end
-#      if c = Card.new(:name=>'*validation dummy', :type_id=>value, :content=>'') and !c.valid?
-      if c = rec.dup and c.type_id_without_tracking = value and c.id = nil and !c.valid?
-        rec.errors.add :type, "of #{ rec.name } can't be changed; errors creating new #{ value }: #{ c.errors.full_messages * ', ' }"
+      if c = card.dup and c.type_id_without_tracking = type_id and c.id = nil and !c.valid?
+        card.errors.add :type, "of #{ card.name } can't be changed; errors creating new #{ type_id }: #{ c.errors.full_messages * ', ' }"
       end
     end
 
     # validate on update and create
-    if rec.updates.for?(:type_id) or rec.new_record?
+    if card.updates.for?(:type_id) or card.new_card?
       # invalid type recorded on create
-      if rec.broken_type
-        rec.errors.add :type, "won't work.  There's no cardtype named '#{rec.broken_type}'"
+      if card.broken_type
+        card.errors.add :type, "won't work.  There's no cardtype named '#{card.broken_type}'"
       end
 
       # invalid to change type when type is hard_templated
-      if rt = rec.hard_template and !rt.type_template? and value!=rt.type_id and !rec.allow_type_change
-        rec.errors.add :type, "can't be changed because #{rec.name} is hard templated to #{rt.type_name}"
+      if rt = card.hard_template and !rt.type_template? and type_id!=rt.type_id and !card.allow_type_change
+        card.errors.add :type, "can't be changed because #{card.name} is hard templated to #{rt.type_name}"
       end
     end
   end
 
-  validates_each :key do |rec, attr, value|
-    if value.empty?
-      rec.errors.add :key, "cannot be blank"
-    elsif value != rec.cardname.key
-      rec.errors.add :key, "wrong key '#{value}' for name #{rec.name}"
+  validates_each :key do |card, a, key|
+    if key.empty?
+      card.errors.add :key, "cannot be blank"
+    elsif key != card.cardname.key
+      card.errors.add :key, "wrong key '#{key}' for name #{card.name}"
+    else Rails.logger.warn "valid key #{key} #{card.inspect}"
     end
   end
 

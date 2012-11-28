@@ -25,7 +25,7 @@ class Wagn::Set::Type::AccountRequestTest < ActionController::TestCase
   def test_should_redirect_to_account_request_landing_card
     Account.session =Card['joe_admin+*account']
     Rails.logger.info "testing #{@jaymail.inspect}"
-    post :create_account, :user=>{:email=>@jaymail}, :card=>{
+    post :create_account, :account=>{:email=>@jaymail}, :card=>{
       :type=>"Account Request",
       :name=>"Word Third",
       :content=>"Let me in!"
@@ -38,7 +38,7 @@ class Wagn::Set::Type::AccountRequestTest < ActionController::TestCase
   end
 
   def test_should_create_account_request
-    post :create_account, :user=>{:email=>@jaymail}, :card=>{
+    post :create_account, :account=>{:email=>@jaymail}, :card=>{
       :type=>"Account Request",
       :name=>"Word Third",
       :content=>"Let me in!"
@@ -46,7 +46,7 @@ class Wagn::Set::Type::AccountRequestTest < ActionController::TestCase
     Rails.logger.warn "testing created account #{Card['word third'].inspect}"
 
     assert (@card = Card["Word Third"]), "should be created"
-    assert (@acard =  @card.fetch_trait(:account)), "with +*account card"
+    assert (@acard =  @card.fetch(:trait=>:account)), "with +*account card"
     @user = Account.from_email(@jaymail)
     assert @user, "User is created"
 
@@ -56,8 +56,8 @@ class Wagn::Set::Type::AccountRequestTest < ActionController::TestCase
 
     assert_instance_of User, @user
     #assert @user.default_status?, "#{@user} has default status" # is this correct?  if so FIXME
-    assert_equal 'jamaster@jay.net', @acard.user.email, "#{@acard} card has email method"
-    assert_equal 'jamaster@jay.net', @card.user.email, "#{@card} card has email method"
+    assert_equal 'jamaster@jay.net', @acard.account.email, "#{@acard} card has email method"
+    assert_equal 'jamaster@jay.net', @card.account.email, "#{@card} card has email method"
 
   end
 

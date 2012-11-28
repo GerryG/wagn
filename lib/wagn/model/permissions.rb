@@ -39,7 +39,22 @@ module Wagn::Model::Permissions
     @operation_approved
   end
 
+
   # ok? and ok! are public facing methods to approve one operation at a time
+  #
+  #   fetching: if the optional :trait parameter is supplied, it is passed
+  #      to fetch and the test is perfomed on the fetched card, therefore:
+  #
+  #      :trait=>:account         would fetch this card plus a tag codenamed :account
+  #      :trait=>:roles, :new=>{} would be a fetch_or_new_trait
+
+  def ok_with_fetch? operation, opts={}
+    #warn "ok? #{operation}, #{opts.inspect}, #{caller[0..4]*", "}"
+    card = opts[:trait].nil? ? self : fetch(opts)
+
+    card.ok_without_fetch? operation
+  end
+
   def ok? operation
     #warn "ok? #{operation}"
     #Rails.logger.info "ok? #{Account.authorized.inspect}, #{Account.as_card.inspect}, #{operation} #{inspect}" if operation == :read
@@ -53,23 +68,14 @@ module Wagn::Model::Permissions
     # so we hack around the errors added in approve_* by clearing them here.
     # self.errors.clear
 
-    
+
     #Rails.logger.info "ok? #{Account.session.inspect}, #{Account.as_card.inspect}, #{operation} #{inspect} R:#{@operation_approved}" if operation == :create
     @operation_approved
   end
+  alias_method_chain :ok?, :fetch
 
-  def ok! operation
-    raise Card::PermissionDenied.new self unless ok? operation
-  end
-
-  def trait_ok! tagcode, operation
-    raise Card::PermissionDenied.new self unless trait_ok? tagcode, operation
-  end
-
-  def trait_ok? tagcode, operation
-    # it can be new? for create, others have to exist
-    operation == :create ? fetch_or_new_trait(tagcode).ok?(operation) :
-      (trait = fetch_trait(tagcode) and trait.ok?(operation))
+  def ok! operation, opts={}
+    raise Card::PermissionDenied.new self unless ok? operation, opts
   end
 
   def who_can operation
@@ -110,9 +116,9 @@ module Wagn::Model::Permissions
     @operation_approved = false
   end
 
-  def lets_user operation
+  def lets_account operation
     #warn "creating *account ??? #{caller[0..25]*"\n"}" if name == '*account' && operation==:create
-    #warn "lets_user[#{operation}]#{inspect}" #if name=='Buffalo'
+    #warn "lets_account[#{operation}]#{inspect}" #if name=='Buffalo'
     return false if operation != :read    and Wagn::Conf[:read_only]
     return true  if operation != :comment and Account.always_ok?
 
@@ -122,7 +128,7 @@ module Wagn::Model::Permissions
       # admin can comment if anyone can
       !permitted_ids.empty?
     else
-      #warn "lets_user[#{operation}]#{name} permitted:#{permitted_ids.map {|id|Card[id].name}*', '} " if name=='c1' and operation==:update
+      #warn "lets_account[#{operation}]#{name} permitted:#{permitted_ids.map {|id|Card[id].name}*', '} " if name=='c1' and operation==:update
       Account.among? permitted_ids
     end
   end
@@ -131,7 +137,12 @@ module Wagn::Model::Permissions
     deny_because "Currently in read-only mode" if operation != :read && Wagn::Conf[:read_only]
     verb ||= operation.to_s
     #Rails.logger.info "approve_task[#{inspect}](#{operation}, #{verb})" if operation == :delete
-    deny_because you_cant("#{verb} this card") unless self.lets_user( operation )
+    deny_because you_cant("#{verb} this card") unless self.lets_account( operation )
+  end
+
+  def approve_account
+    #approve_task :accountable  # maybe we want that setting as a permission task?
+    approve_task :update
   end
 
   def approve_create
@@ -169,7 +180,7 @@ module Wagn::Model::Permissions
     case
     when !type_name
       deny_because("No such type")
-    when !new_card? && reset_patterns && !lets_user(:create)
+    when !new_card? && reset_patterns && !lets_account(:create)
       deny_because you_cant("change to this type (need create permission)"  )
     end
     #NOTE: we used to check for delete permissions on previous type, but this would really need to happen before the name gets changes

@@ -2,7 +2,7 @@ source 'http://rubygems.org'
 #source "http://gems.github.com"
 
 # DEFAULT
-gem 'smartname',    '0.1.3'
+gem 'smartname',    '0.1.4'
 
 gem 'rails',        '~> 3.2.9'
 gem 'htmlentities', '~> 4.3'
@@ -42,7 +42,7 @@ group :assets do
   gem 'coffee-rails', "~> 3.1"                 # pretty code; compiles to JS
   gem 'uglifier'                               # makes pretty code ugly again.  compresses js/css for fast loading
 
-  gem 'jquery-rails',  '~> 1.0'                # main js framework, along with rails-specific unobtrusive lib
+  gem 'jquery-rails',  '~> 2.0'                # main js framework, along with rails-specific unobtrusive lib
   gem 'tinymce-rails', '~> 3.4'                # wysiwyg editor
   
   gem 'therubyracer'                           # execjs is necessary for developing coffeescript.  mac users have execjs built-in; don't need this one

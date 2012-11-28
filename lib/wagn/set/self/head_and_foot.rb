@@ -32,7 +32,7 @@ module Wagn
       end
 
       # CSS
-
+      bits << stylesheet_link_tag('http://code.jquery.com/ui/1.9.1/themes/base/jquery-ui.css')
       bits << stylesheet_link_tag('application-all')
       bits << stylesheet_link_tag('application-print', :media=>'print')
       if css_card = Card[:css]
@@ -54,6 +54,9 @@ module Wagn
       </script>
       )
       # tinyMCE doesn't load on non-root wagns w/o preinit line above
+
+      bits << javascript_include_tag('http://code.jquery.com/jquery-1.8.2.js')
+      bits << javascript_include_tag('http://code.jquery.com/ui/1.9.1/jquery-ui.js')
       bits << javascript_include_tag('application')
 
       if ga_key=Card.setting("*google analytics key")

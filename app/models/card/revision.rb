@@ -1,9 +1,6 @@
 # -*- encoding : utf-8 -*-
 class Card::Revision < ActiveRecord::Base
-  belongs_to :card, :class_name=>"Card", :foreign_key=>'card_id'
-
   cattr_accessor :cache
-
   before_save :set_stamper
 
   def set_stamper
@@ -12,6 +9,10 @@ class Card::Revision < ActiveRecord::Base
 
   def creator
     Card[ creator_id ]
+  end
+
+  def card
+    Card[ card_id ]
   end
 
   def title #ENGLISH

@@ -5,12 +5,11 @@ require File.expand_path('../../test_helper', File.dirname(__FILE__))
 
 
 class TransclusionTest < ActiveSupport::TestCase
-  include ChunkTestHelper
   include ActionView::Helpers::TextHelper
 
   def setup
     super
-    setup_default_user
+    setup_default_account
   end
 
   def test_truth

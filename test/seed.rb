@@ -20,15 +20,9 @@ class SharedData
 
     ja_card = Card.create! :typecode=>'user', :name=>"Joe Admin", :content => "I'm number one"
     joe_admin = User.create! :login=>"joe_admin",:email=>'joe@admin.com', :status => 'active', :password=>'joe_pass', :password_confirmation=>'joe_pass', :card_id=>ja_card.id
-    roles_card = ja_card.fetch_or_new_trait(:roles)
+    roles_card = ja_card.fetch(:trait=>:roles)
     #warn "roles card for #{ja_card.name} is #{roles_card.inspect}"
     roles_card << Card::AdminID
-    # FIXME: improve API: roles_card = jc_card.fetch_or_new_trait(:roles) << ja_card
-    #roles_card = Card.fetch_or_new(jc_card.cardname.trait_name(:roles),
-    #                               :type_id=>Card::PointerID)
-    #roles_card.add_item( ja_card.name )
-    #jc_card.fetch_or_new_trait(:roles) << joe_admin
-    #Role[:admin].users<< [ joe_admin ]
 
     jc_card = Card.create! :typecode=>'user', :name=>"Joe Camel", :content => "Mr. Buttz"
     joe_camel = User.create! :login=>"joe_camel",:email=>'joe@camel.com', :status => 'active', :password=>'joe_pass', :password_confirmation=>'joe_pass', :card_id=>jc_card.id
@@ -75,16 +69,11 @@ class SharedData
     r3 = Card.create!( :typecode=>'role', :name=>'r3' )
     r4 = Card.create!( :typecode=>'role', :name=>'r4' )
 
-    u1.fetch_or_new_trait(:roles) << r1 << r2 << r3
-    u2.fetch_or_new_trait(:roles) << r1 << r2 << r4
-    u3_star = u3.fetch_or_new_trait(:roles) << r1 << r4
-    #r1.users = [ u1, u2, u3 ]
-    #r2.users = [ u1, u2 ]
-    #r3.users = [ u1 ]
-    #r4.users = [ u3, u2 ]
+    u1.fetch(:trait=>:roles) << r1 << r2 << r3
+    u2.fetch(:trait=>:roles) << r1 << r2 << r4
+    u3_star = u3.fetch(:trait=>:roles) << r1 << r4
 
     u3_star << Card::AdminID
-    #Role[:admin].users<< [ u3 ]
 
     c1 = Card.create! :name=>'c1'
     c2 = Card.create! :name=>'c2'
@@ -120,7 +109,7 @@ class SharedData
     Card.create! :typecode=>'cardtype_e', :name=>"type-e-card", :content=>"type_e_content"
     Card.create! :typecode=>'cardtype_f', :name=>"type-f-card", :content=>"type_f_content"
 
-    #warn "current user #{User.session_user.inspect}.  always ok?  #{Account.always_ok?}"
+    #warn "current user #{User.session_account.inspect}.  always ok?  #{Account.always_ok?}"
     c = Card.create! :name=>'revtest', :content=>'first'
     c.update_attributes! :content=>'second'
     c.update_attributes! :content=>'third'
@@ -187,7 +176,7 @@ class SharedData
     Card.create :name=>'TwwoHeading', :content => "<h1>One Heading</h1>\r\n<p>and some text</p>\r\n<h2>And a Subheading</h2>\r\n<p>and more text</p>"
     Card.create :name=>'ThreeHeading', :content =>"<h1>A Heading</h1>\r\n<p>and text</p>\r\n<h2>And Subhead</h2>\r\n<p>text</p>\r\n<h1>And another top Heading</h1>"
 
-    c=Card.fetch_or_new('Basic+*type').fetch_or_new_trait(:table_of_contents)
+    c=Card[:basic].fetch(:trait=>[:right, :table_of_contents], :new=>{})
     c.content='2'
     c.save
 

@@ -39,34 +39,21 @@ html>body .open-view {
   border-radius: 6px 6px 0 0;
   text-align: left;
 }
-.title-menu {
-  line-height: 18px;
+.card-header h1 {
+  display: inline;
 }
-.title {
+h1.card-title {
   margin: 0px 2px;
   font-weight: bold;
   font-size: 13px;
   padding: 2px 0px 2px 25px;
   white-space: nowrap;
 }
-.card-header a.right-arrow {
-  background: url(arrow_right.gif) no-repeat left;
+.card-header .card-menu-link {
+  float: right;
 }
-html>body .card-header a.right-arrow {
-  background-image: url(arrow_right.png);
-}
-.card-header a.down-arrow {
-  background: url(arrow_down.gif) no-repeat left;
-}
-html>body .card-header a.down-arrow {
-  background-image: url(arrow_down.png);
-}
-.card-header a.page-icon {
-  padding: 2px 7px;
-  background: url(page.gif) no-repeat right;
-}
-html>body .card-header a.page-icon {
-  background-image: url(page.png);
+.cardMenu {
+  display:none;
 }
 
 
@@ -98,96 +85,10 @@ html>body .card-header a.page-icon {
 .card-header a {
   color: #fff
 }
-html>body .card-menu-left,
-html>body .page-icon {
-  display: none;
-}
 
-
-div:hover.setting .page-icon,
-div:hover.card-header .page-icon,
-div:hover.card-header .card-menu-left {
-  display:inline;
-}
-
-.card-menu {
-   float:right;
-   white-space: nowrap;
-   position: relative;
-   right: 0px;
-   z-index: 1;
-}
-.card-menu li {
-  padding: 1px 5px;
-  margin: 0px;
-  -moz-border-radius: 4px 4px 0 0;
-  border-radius: 4px 4px 0 0;
-}
 .current {
   background: #bbb;
   padding-bottom: 5px !important;
-}
-
-.submenu {
-  background: #bbb;
-  padding: 0px 10px;
-  text-align: right;
-}
-.submenu-left {
-  float: left;
-  display: none;
-  white-space: nowrap;
-  text-align: left;
-  font-style: italic;
-  width: 30%;
-}
-.submenu a {
-  padding: 0px 5px;
-  color: #005800
-}
-.submenu a.current-subtab {
-  background: #fff;
-  color: #777;
-  padding-bottom: 3px;
-  -moz-border-radius: 4px 4px 0 0;
-  border-radius: 4px 4px 0 0;
-}
-
-.card-header li {
-  display:inline;
-}
-
-
-
-/* card footer-------------------------------*/
-.card-footer,
-.revision-navigation {
-  padding: 0px 10px;
-  font-size: 9px;
-  text-align: left;
-}
-.card-footer,
-.revision-navigation {
-   background: #bbb;
-}
-.card-footer {
-  clear: both;
-  -moz-border-radius: 0px 0px 6px 6px;
-  border-radius: 0px 0px 6px 6px;
-}
-html>body  .card-footer .footer-content {
-  display: none;
-}
-div:hover.card-footer .footer-content {
-  display: inline;
-}
-.card-footer .footer-content {
-  width: 100%;
-}
-.card-footer .watch-view {
-  float: right;
-  text-align: right;
-  white-space: nowrap;
 }
 
 
@@ -242,131 +143,49 @@ a.email-link {
 
 /* ---------- edit tab / new / inline editing--------*/
 
-.new-name,
-.new-type {
-  white-space: nowrap;
-}
-.new-name .title {
-  padding-left: 2px;
-}
-.new-name .card-name-field {
-  width: 50%;
-}
-.new-type {
-  float: right;
-}
+.new-current-revision-id,
 .editor .revision-navigation,
 .editor .autosave-alert {
   display: none
 }
-.card-name-field {
-  background: #eef;
-  font-weight: bold;
-  color: #448;
-  -moz-border-radius: 6px;
-  border-radius: 6px;
-  padding: 1px 5px;
-}
-.edit-area {
-  background: #f9f9f9;
-  border: 0px;
-  padding: 4px;
-}
-.in-multi {
-  background: #e3e3e3;
+fieldset {
   padding: 1 0px;
-  margin: 1px;
+  margin: 10px 1px;
+  clear: both;
   float: none !important;
   display:block;
+  border: 0;
 }
-.new-type .cardtype {
-  font-size: 14px;
-  float:right;
-}
-.edit-area p {
-  padding: 2px;
-}
-ul.pointer {
-  margin: 0px;
-  padding: 0px;
-}
-.edit-area .label {
-/* not(.fieldset)  did not compile */
-  display: block;
-  margin: 2px;
-  font-size: 12px;
-}
-.edit-area .field {
-/* not(.fieldset)  did not compile */
-  display: block;
-  margin: 4px;
-}
-.edit-area table {
-  width: 98%;
-  margin-bottom: 5px;
-}
-.edit-area .mceEditor table,
-.edit-area .mceEditor table td{
-  margin: 0px;
-  padding:0px 1px;
-  border: 0px;
-}
-.edit-area td {
-  vertical-align: middle;
-}
-.edit-area .title,
-.content-view .edit-area .title {
-  display: block;
-  font-size: 11px;
-}
-
-.label-in-multi {
-  float: left;
-  width: 25%;
-}
-.label-in-multi .title {
-  white-space: inherit;
-  padding: 1px 5px;
-}
-.field-in-multi {
+fieldset > .button-area,
+fieldset > .editor {
   float: right;
   width: 70%;
   padding: 3px;
 }
-.field-in-multi > .content-editor > input {
+fieldset > .editor > input {
   margin-left: 0;
 }
-.edit-button-area {
-  margin-top: 7px;
+fieldset > legend {
+  white-space: inherit;
+  float:left;
+  text-align:right;
+  width: 25%;
+  padding: 3px;
+  margin: 0;
 }
-.in-multi .instruction,
-.in-multi .instruction p{
-  clear:left;
-  border: 0px;
-  background-color: #e3e3e3; /*hard-coded because inherit wasn't working right in IE */
-  text-align: left;
-  padding: 0 3px;
+fieldset > legend > .instruction {
+  text-align: right;
+  padding: 3px 0;
 }
+.button-area input,
+.button-area button {
+  margin-right: 2%;
+}
+
+
 /* for IE */
 div.content-view {
   display: inline;
-}
-.edit-name input,
-.edit-type select {
-  margin: 10px 0px;
-}
-.edit-name .instruction {
-  text-align: left;
-  margin: 10px;
-}
-.edit-name .radio {
-  padding-left: 20px;
-}
-.edit-name .field_with_errors {
-  display: inline-block;
-}
-.edit-area .delete-button {
-  float: right;
 }
 .conflict-view {
   text-align: left;
@@ -374,9 +193,6 @@ div.content-view {
   border: 1px solid grey;
   padding: 10px;
   margin-top: 12px;
-}
-.new-current-revision-id {
-  display:none;
 }
 
 /* ---------- changes tab -------*/
@@ -464,12 +280,11 @@ del.diffmod,
   display: block;
   padding: 5px 15px 10px 15px;
 }
-
 .instruction {
   border-left: 0px;
   border-right: 0px;
 }
-
+.hidden,
 .denied {
   display: none;
 }
@@ -477,14 +292,6 @@ del.diffmod,
 
 /* -----   CONTEXTS  -------------------------------*/
 
-
-/*----- Secondary (sidebar) ----------------*/
-
-
-#secondary .card-menu {
-  display: none;
-  float:none;  /* necessary for IE */
-}
 
 /*----------recent changes -----------*/
 
@@ -627,6 +434,10 @@ body#wagn .card-slot.recent-changes h2 {
 }
 
 /*-------------( Pointer )--------*/
+ul.pointer {
+  margin: 0px;
+  padding: 0px;
+}
 .pointer-list-editor {
   margin: 0px;
   padding: 0px;

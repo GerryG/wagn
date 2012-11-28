@@ -103,8 +103,8 @@ describe Wagn::Renderer, "" do
       it "multi edit" do
         c = Card.new :name => 'ABook', :type => 'Book'
         rendered =  Wagn::Renderer.new(c).render( :edit )
-        #warn "rendered = #{rendered}"
-        assert_view_select rendered, 'div[class="field-in-multi"]' do
+
+        assert_view_select rendered, 'fieldset' do
           assert_select 'textarea[name=?][class="tinymce-textarea card-content"]', 'card[cards][~plus~illustrator][content]'
         end
       end
@@ -128,7 +128,7 @@ describe Wagn::Renderer, "" do
       it "should have the appropriate attributes on open" do
         assert_view_select @ocslot.render(:open), 'div[class="card-slot open-view ALL TYPE-basic SELF-a"]' do
           assert_select 'div[class="card-header"]' do
-            assert_select 'div[class="title-menu"]'
+            assert_select 'h1[class="card-title"]'
           end
           assert_select 'span[class~="open-content content"]'
         end
@@ -138,7 +138,7 @@ describe Wagn::Renderer, "" do
         v = @ocslot.render(:closed)
         assert_view_select v, 'div[class="card-slot closed-view ALL TYPE-basic SELF-a"]' do
           assert_select 'div[class="card-header"]' do
-            assert_select 'div[class="title-menu"]'
+            assert_select 'h1[class="card-title"]'
           end
           assert_select 'span[class~="closed-content content"]'
         end
@@ -166,7 +166,10 @@ describe Wagn::Renderer, "" do
       end
 
       it "renders card header" do
-        assert_view_select @simple_page, 'a[href="/A+B"][class="page-icon"][title="Go to: A+B"]'
+        # lots of duplication here...
+        assert_view_select @simple_page, 'div[class="card-header"]' do
+          assert_select 'h1[class="card-title"]'
+        end
       end
 
       it "renders card content" do
@@ -176,14 +179,6 @@ describe Wagn::Renderer, "" do
 
       it "renders notice info" do
         assert_view_select @simple_page, 'div[class="card-notice"]'
-      end
-
-      it "renders card footer" do
-        assert_view_select @simple_page, 'div[class="card-footer"]' do
-          assert_select 'span[class="watch-link"]' do
-            assert_select 'a[title="send emails about changes to A+B"]', "watch"
-          end
-        end
       end
 
       it "renders card credit" do
@@ -306,7 +301,7 @@ describe Wagn::Renderer, "" do
         help_card    = Card.create!(:name=>"Cardtype E+*type+*add help", :content=>"Help me dude" )
         card = Card.new(:type=>'Cardtype E')
 
-        assert_view_select Wagn::Renderer::Html.new(card).render_new, 'div[class="content-editor"]' do
+        assert_view_select Wagn::Renderer::Html.new(card).render_new, 'div[class~="content-editor"]' do
           assert_select 'textarea[class="tinymce-textarea card-content"]', :text => '{{+Yoruba}}'
         end
       end
@@ -324,7 +319,7 @@ describe Wagn::Renderer, "" do
         mock(card).rule_card(:add_help, {:fallback=>:edit_help} ).returns(help_card)
         rendered = Wagn::Renderer::Html.new(card).render_new
         #warn "rendered = #{rendered}"
-        assert_view_select rendered, 'div[class="field-in-multi"]' do
+        assert_view_select rendered, 'fieldset' do
           assert_select 'textarea[name=?][class="tinymce-textarea card-content"]', "card[cards][~plus~Yoruba][content]"
         end
       end
@@ -340,7 +335,7 @@ describe Wagn::Renderer, "" do
       @card = Card.fetch('templated')# :name=>"templated", :content => "Bar" )
       @card.content = 'Bar'
       result = Wagn::Renderer.new(@card).render(:edit)
-      assert_view_select result, 'div[class="field-in-multi"]' do
+      assert_view_select result, 'fieldset' do
         assert_select 'textarea[name=?][class="tinymce-textarea card-content"]', 'card[cards][templated~plus~alpha][content]'
       end
     end
@@ -351,7 +346,7 @@ describe Wagn::Renderer, "" do
       end
       c = Card.new :name=>'Yo Buddddy', :type=>'Book'
       result = Wagn::Renderer::Html.new(c).render( :edit )
-      assert_view_select result, 'div[class="field-in-multi"]' do
+      assert_view_select result, 'fieldset' do
         assert_select 'input[name=?][type="text"][value="Zamma Flamma"]', 'card[cards][~plus~author][content]'
         assert_select %{input[name=?][type="hidden"][value="#{Card::PhraseID}"]},     'card[cards][~plus~author][type_id]'
       end
@@ -517,9 +512,10 @@ describe Wagn::Renderer, "" do
       Account.session = Card::WagnBotID
     end
 
+    # FIXME: this isn't really a renderer test now, should move it
     it "replace references should work on inclusions inside links" do
-      card = Card.create!(:name=>"test", :content=>"[[test{{test}}]]"  )
-      assert_equal "[[test{{best}}]]", Wagn::Renderer.new(card).replace_references("test", "best" )
+      card = Card.create!(:name=>"test", :content=>"[[test_card|test{{test}}]]"  )
+      assert_equal "[[test_card|test{{best}}]]", card.replace_references("test", "best" )
     end
   end
 

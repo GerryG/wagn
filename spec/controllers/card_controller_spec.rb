@@ -164,7 +164,7 @@ describe CardController do
     include AuthenticatedTestHelper
 
     before do
-      @user = Card['joe_user'].user
+      @user = Card['joe_user'].account
       @request    = ActionController::TestRequest.new
       @response   = ActionController::TestResponse.new
       @controller = CardController.new
@@ -246,10 +246,9 @@ describe CardController do
 
 
     it "rename without update references should work" do
-      Account.as 'joe_user'
+      Account.session= Card['joe_user'].fetch :trait => :account
       f = Card.create! :type=>"Cardtype", :name=>"Apple"
       xhr :post, :update, :id => "~#{f.id}", :card => {
-        :confirm_rename => true,
         :name => "Newt",
         :update_referencers => "false",
       }
@@ -259,7 +258,7 @@ describe CardController do
     end
 
     it "update typecode" do
-      Account.as 'joe_user'
+      Account.session = Card['joe user'].fetch :trait => :account
       xhr :post, :update, :id=>"~#{@simple_card.id}", :card=>{ :type=>"Date" }
       assert_response :success, "changed card type"
       Card['Sample Basic'].typecode.should == :date
@@ -272,7 +271,7 @@ describe CardController do
     #  for now.
     #
     #  def test_update_cardtype_no_stripping
-    #    Account.as 'joe_user'
+    #    Account.session = Card['joe user'].fetch :trait => :account
     #    post :update, {:id=>@simple_card.id, :card=>{ :type=>"CardtypeA",:content=>"<br/>" } }
     #    #assert_equal "boo", assigns['card'].content
     #    assert_equal "<br/>", assigns['card'].content

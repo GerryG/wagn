@@ -33,9 +33,9 @@ class ApplicationController < ActionController::Base
 
       Wagn::Cache.renew
 
-      #warn "set curent_user (app-cont) #{self.session_user}, U.cu:#{Account.session}"
-      Account.session = self.session_user || Card::AnonID
-      #warn "set curent_user a #{session_user}, U.cu:#{Account.session}"
+      #warn "set curent_account (app-cont) #{self.session_account}, U.cu:#{Account.session}"
+      Account.session = self.session_account || Card::AnonID
+      #warn "set curent_account a #{session_account}, U.cu:#{Account.session}"
 
       # RECAPTCHA HACKS
       Wagn::Conf[:recaptcha_on] = !Account.logged_in? &&     # this too
@@ -106,8 +106,14 @@ class ApplicationController < ActionController::Base
     case
     when known                # renderers can handle it
       renderer = Wagn::Renderer.new @card, :format=>ext, :controller=>self
-      render :text=>renderer.render_show( :view => view ),
-        :status=>(renderer.error_status || status)
+      view ||= params[:view]
+      if ext == 'json'
+        render_object = renderer.render_show( :view => view )
+        render :json=>render_object, :status=>(renderer.error_status || status)
+      else
+        render :text=>renderer.render_show( :view => view ),
+          :status=>(renderer.error_status || status)
+      end
     when show_file            # send_file can handle it
     else                      # dunno how to handle it
       render :text=>"unknown format: #{extension}", :status=>404
@@ -140,7 +146,7 @@ class ApplicationController < ActionController::Base
 
 
   rescue_from Exception do |exception|
-    Rails.logger.info "exception = #{exception.class}: #{exception.message}"
+    Rails.logger.debug "exception = #{exception.class}: #{exception.message} #{exception.backtrace*"\n"}"
 
     view, status = case exception
     when Wagn::NotFound, ActiveRecord::RecordNotFound

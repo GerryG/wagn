@@ -8,18 +8,17 @@ class AdminController < ApplicationController
     if request.post?
       #Card::User  # wtf - trigger loading of Card::User, otherwise it tries to use U
       Account.as_bot do
-        @account = Account.new params[:account]
-        @account.active
-        @card = @account.save_card params[:card]
+        @card.account = Card.new params[:card]
+        aparams = params[:account]
+        aparams[:name] = @card.name
+        @account = @card.account = Account.new( aparams ).active
         set_default_request_recipient
 
-        #warn "ext id = #{@account.id}"
-
-        if @account.errors.empty?
+        if @card.save
           roles_card = Card.fetch_or_new(@card.cardname.trait_name(:roles))
           roles_card.content = "[[#{Card[Card::AdminID].name}]]"
           roles_card.save
-          self.session_user = @card.id
+          self.session_account = @card.id
           Card.cache.delete 'no_logins'
           flash[:notice] = "You're good to go!"
           redirect_to Card.path_setting('/')
@@ -28,15 +27,17 @@ class AdminController < ApplicationController
         end
       end
     else
-      @card = Card.new( params[:card] || {} ) #should prolly skip defaults
-      @account = Account.new( params[:user] || {} )
+      @card = Card.new params[:card] #should prolly skip defaults
+      aparams = aparams[:user] || {}
+      aparams[:name] = @card.name
+      @account = Account.new aparams
     end
   end
 
   def show_cache
     key = params[:id].to_name.key
-    @cache_card = Card.fetch(key)
-    @db_card = Card.find_by_key(key)
+    @cache_card = Card.fetch key
+    @db_card = Card.find_by_key key
   end
 
   def clear_cache

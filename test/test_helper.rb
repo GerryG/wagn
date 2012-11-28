@@ -7,7 +7,6 @@ unless defined? TEST_ROOT
   TEST_ROOT = Pathname.new(File.expand_path(File.dirname(__FILE__))).cleanpath(true).to_s
   load TEST_ROOT + '/helpers/wagn_test_helper.rb'
   load TEST_ROOT + '/helpers/permission_test_helper.rb'
-  load TEST_ROOT + '/helpers/chunk_test_helper.rb'  # FIXME-- should only be in certain tests
 
   class ActiveSupport::TestCase
     # Setup all fixtures in test/fixtures/*.(yml|csv) for all tests in alphabetical order.
@@ -61,7 +60,6 @@ unless defined? TEST_ROOT
   class ActiveSupport::TestCase
     include AuthenticatedTestHelper
     include WagnTestHelper
-    include ChunkTestHelper
 
     def prepare_url(url, cardtype)
       if url =~ /:id/
@@ -101,11 +99,11 @@ unless defined? TEST_ROOT
     end
 
     class RenderTest
-      attr_reader :title, :url, :cardtype, :user, :status, :card
+      attr_reader :title, :url, :cardtype, :account, :status, :card
       def initialize(test_class,url,args={})
         @test_class,@url = test_class,url
 
-        args[:users] ||= { :anonymous=>200 }
+        args[:account] ||= { :anonymous=>200 }
         args[:cardtypes] ||= ['Basic']
         if args[:cardtypes]==:all
           # FIXME: need a better data source for this?

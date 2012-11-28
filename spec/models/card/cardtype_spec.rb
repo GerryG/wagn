@@ -167,13 +167,13 @@ describe User, "Joe User" do
     end
 
     Account.as 'joe_user'
-    @user = Account.as_card.user
+    @user = Account.as_card.account
     @ucard = Card[@user.account_id]
     @type_names = Account.createable_types
   end
 
   it "should not have r3 permissions" do
-    @ucard.fetch_or_new_trait(:roles).item_names.member?(@r3.name).should be_false
+    @ucard.fetch(:new=>{}, :trait=>:roles).item_names.member?(@r3.name).should be_false
   end
   it "should ponder creating a card of Cardtype F, but find that he lacks create permissions" do
     Card.new(:type=>'Cardtype F').ok?(:create).should be_false
@@ -199,7 +199,6 @@ describe Card, "Cardtype with Existing Cards" do
 
   it "should raise an error when you try to delete it" do
     Account.as_bot do
-      @ct.confirm_destroy = true
       @ct.destroy
       @ct.errors[:cardtype].should_not be_empty
     end

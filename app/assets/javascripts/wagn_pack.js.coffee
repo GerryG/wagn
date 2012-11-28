@@ -32,7 +32,7 @@ wagn.initTinyMCE = (el_id) ->
   hard_conf = {
     mode: 'exact'
     elements: el_id
-    #the two below should probably be made optional, but it may involve migrating old legacy *tinyMCE settings to get rid of stale stuff.    
+    #the two below should probably be made optional, but it may involve migrating old legacy *tinyMCE settings to get rid of stale stuff.
     content_css: wagn.rootPath + '/assets/application-all.css' + ',' + wagn.rootPath + wagn.local_css_path
     entity_encoding: 'raw'
   }
@@ -77,6 +77,19 @@ $(window).ready ->
     # this makes it so the first option ("search") is pre-selected.
     # sadly, it also causes odd navbox behavior, resetting the search term
   }
+
+
+  $('.card-menu-link').live 'click', ->
+    # if card menu already exists
+    #   show it
+    # else
+    #   get the template menu
+    #   make a copy right after menu link (or associate if necessary)
+    #   do simple substitutions?
+    cm = $(this).slot().find '.cardMenu'
+    cm.menu()
+    cm.show()
+    #   do a request to flesh out remaining menu parts
 
   #pointer pack
   $('.pointer-item-add').live 'click', (event)->

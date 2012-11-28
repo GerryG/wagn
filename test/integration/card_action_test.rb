@@ -13,7 +13,7 @@ class CardActionTest < ActionController::IntegrationTest
 
   def setup
     super
-    setup_default_user
+    setup_default_account
     integration_login_as 'joe_user'
   end
 
@@ -82,9 +82,11 @@ class CardActionTest < ActionController::IntegrationTest
   end
 
   def test_newcard_gives_reasonable_error_for_invalid_cardtype
-    get 'card/new', :card => { :type=>'bananamorph' }
-    assert_response :success
-    assert_tag :tag=>'div', :attributes=>{:class=>'error', :id=>'no-cardtype-error'}
+    Account.as_bot do
+      get 'card/new', :card => { :type=>'bananamorph' }
+      assert_response 422
+      assert_tag :tag=>'div', :attributes=>{:class=>/errors-view/}, :content=>/not a known type/
+    end
   end
 
   # FIXME: this should probably be files in the spot for a delete test
@@ -110,25 +112,25 @@ class CardActionTest < ActionController::IntegrationTest
   def test_should_create_account_from_scratch
     integration_login_as 'joe_admin'
     assert_difference ActionMailer::Base.deliveries, :size do
-      post '/card/create_account/', :id=>'a', :user=>{:email=>'foo@bar.com'}
+      post '/card/create_account/', :id=>'a', :account=>{:email=>'foo@bar.com'}
       assert_response 200
     end
     email = ActionMailer::Base.deliveries[-1]
-    assert_equal Account.session.user.email, email.from[0]
+    assert_equal Account.session.account.email, email.from[0]
     assert user = Account.from_email('foo@bar.com')
     assert_equal 'active', user.status
   end
 
-  def test_update_user_account_email
+  def test_update_account_account_email
     post '/card/update_account', :id=>"Joe User".to_name.key, :account => { :email => 'joe@user.co.uk' }
-    assert user = Card['joe_user+*account'].user
-    assert user.email == 'joe@user.co.uk'
+    assert account = Card['joe_user+*account'].account
+    assert account.email == 'joe@user.co.uk', "should update email"
   end
 
-  def test_user_cant_block_self
-    assert user = Card['joe_user+*account'].user
+  def test_account_cant_block_self
+    assert account = Card['joe_user+*account'].account
     post '/card/update_account', :id=>"Joe User".to_name.key, :account => { :blocked => '1' }
-    assert !user.blocked?
+    assert !account.blocked?
   end
 end
 

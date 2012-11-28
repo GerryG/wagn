@@ -1,6 +1,5 @@
 module Wagn
   class Renderer
-    include ReferenceTypes
     include LocationHelper
 
     DEPRECATED_VIEWS = { :view=>:open, :card=>:open, :line=>:closed, :bare=>:core, :naked=>:core }
@@ -9,6 +8,7 @@ module Wagn
     DEFAULT_ITEM_VIEW = :link  # should be set in card?
 
     RENDERERS = { #should be defined in renderer
+      :json => :JsonRenderer,
       :email => :EmailHtml,
       :css  => :Text,
       :txt  => :Text
@@ -48,11 +48,12 @@ module Wagn
     attr_accessor :form, :main_content, :error_status
 
     def render view = :view, args={}
-      prefix = args[:allowed] ? '_' : ''
+      prefix = args.delete(:allowed) ? '_' : ''
       method = "#{prefix}render_#{canonicalize_view view}"
       if respond_to? method
         send method, args
       else
+        #Rails.logger.warn "bad view #{view.inspect}, #{self.class}"
         "<strong>unknown view: <em>#{view}</em></strong>"
       end
     end
@@ -62,12 +63,16 @@ module Wagn
       render view, args
     end
 
-    #should also be a #optional_render that checks perms
-    def _optional_render view, args, default_hidden=false
+    def optional_render view, args, default_hidden=false
       test = default_hidden ? :show : :hide
       override = args[test] && args[test].member?(view.to_s)
       return nil if default_hidden ? !override : override
-      send "_render_#{ view }", args
+      render view, args
+    end
+
+    def _optional_render view, args, default_hidden=false
+      args[:allowed] = true
+      optional_render view, args, default_hidden
     end
 
     def rendering_error exception, cardname
@@ -78,11 +83,13 @@ module Wagn
       Renderer.current_slot ||= self unless(opts[:not_current])
       @card = card
       opts.each { |key, value| instance_variable_set "@#{key}", value }
-
-      @context_names = []
       @format ||= :html
       @char_count = @depth = 0
       @root = self
+
+      @context_names ||= if context_name_list = params[:name_context]
+        context_name_list.split(',').map &:to_name
+      else [] end
 
       if card && card.collection? && params[:item] && !params[:item].blank?
         @item_view = params[:item]
@@ -94,7 +101,11 @@ module Wagn
     def controller()   @controller ||= StubCardController.new                     end
     def session()      CardController===controller ? controller.session : {}      end
     def ajax_call?()   @@ajax_call                                                end
-    def showname()     @showname   ||= card.name                                  end
+
+    def showname
+      @showname ||=
+        card.cardname.to_show card.cardname, :ignore=>@context_names, :params=>params
+    end
 
     def main?
       if ajax_call?
@@ -141,18 +152,22 @@ module Wagn
       @depth += 1
       @item_view = @main_content = @showname = nil
       opts.each { |key, value| instance_variable_set "@#{key}", value }
+      #Rails.logger.warn "subrenderer inited #{card && card.name} #{opts.inspect}, iv:#{@item_view}, #{@item}, #{@view}"
       self
     end
 
+    def process_content_s content=nil, opts={}
+      process_content(content, opts).to_s
+    end
 
     def process_content content=nil, opts={}
       return content unless card
       content = card.content if content.blank?
 
-      wiki_content = WikiContent.new(card, content, self)
-      update_references( wiki_content, true ) if card.references_expired
+      obj_content = ObjectContent===content ? content : ObjectContent.new(content, {:card=>card, :renderer=>self})
+      card.update_references( obj_content, true ) if card.references_expired # I thik we need this genralized
 
-      wiki_content.render! do |opts|
+      obj_content.process_content do |opts|
         expand_inclusion(opts) { yield }
       end
     end
@@ -267,14 +282,8 @@ module Wagn
     end
 
     def process_inclusion tcard, opts
-      opts[:showname] = if opts[:tname]
-        opts[:tname].to_name.to_show card.cardname, :ignore=>@context_names, :params=>params
-      else
-        tcard.name
-      end
-
       sub_opts = { :item_view =>opts[:item] }
-      [:type, :size, :showname ].each { |key| sub_opts[key] = opts[key] }
+      [ :type, :size ].each { |key| sub_opts[key] = opts[key] }
       sub = subrenderer tcard, sub_opts
 
       oldrenderer, Renderer.current_slot = Renderer.current_slot, sub
@@ -300,7 +309,7 @@ module Wagn
           end
       end
 
-      result = raw sub.render( view, opts )
+      result = sub.render(view, opts)
       Renderer.current_slot = oldrenderer
       result
     end
@@ -357,6 +366,7 @@ module Wagn
       end
     end
 
+    # FIXME: this is really html links, should be in html renderer
     def build_link href, text, known_card = nil
       # Rails.logger.info( "~~~~~~~~~~~~~~~ bl #{href.inspect}, #{text.inspect}, #{known_card.inspect}" )
       klass = case href.to_s
@@ -373,11 +383,9 @@ module Wagn
 
           #href+= "?type=#{type.url_key}" if type && card && card.new_card?  WANT THIS; NEED TEST
           cardname = href.to_name
-          href = known_card ? cardname.url_key : CGI.escape(cardname.s)
-          href = full_uri href.to_s
+          href = full_uri(known_card ? cardname.url_key : CGI.escape(cardname.s))
           known_card ? 'known-card' : 'wanted-card'
-
-      end
+        end
       %{<a class="#{klass}" href="#{href}">#{text.to_s}</a>}
     end
 
@@ -398,58 +406,13 @@ module Wagn
 
     def add_name_context name=nil
       name ||= card.name
-      @context_names += name.to_name.parts
+      @context_names += name.to_name.part_names
       @context_names.uniq!
     end
 
-
-     ### FIXME -- this should not be here!   probably in Card::Reference model?
-    def replace_references old_name, new_name
-      #warn "replacing references...card name: #{card.name}, old name: #{old_name}, new_name: #{new_name}"
-      wiki_content = WikiContent.new(card, card.content, self)
-
-      wiki_content.find_chunks(Chunk::Link).each do |chunk|
-        if chunk.cardname
-          link_bound = chunk.cardname == chunk.link_text
-          chunk.cardname = chunk.cardname.replace_part(old_name, new_name)
-          chunk.link_text=chunk.cardname.to_s if link_bound
-          #Rails.logger.info "repl ref: #{chunk.cardname.to_s}, #{link_bound}, #{chunk.link_text}"
-        end
-      end
-
-      wiki_content.find_chunks(Chunk::Transclude).each do |chunk|
-        chunk.cardname =
-          chunk.cardname.replace_part(old_name, new_name) if chunk.cardname
-      end
-
-      String.new wiki_content.unrender!
-    end
-
-    #FIXME -- should not be here.
-    def update_references rendering_result = nil, refresh = false
-      return unless card && card.id
-      Card::Reference.delete_all ['card_id = ?', card.id]
-      card.connection.execute("update cards set references_expired=NULL where id=#{card.id}")
-      card.expire if refresh
-      rendering_result ||= WikiContent.new(card, _render_refs, self)
-      rendering_result.find_chunks(Chunk::Reference).each do |chunk|
-        reference_type =
-          case chunk
-            when Chunk::Link;       chunk.refcard ? LINK : WANTED_LINK
-            when Chunk::Transclude; chunk.refcard ? TRANSCLUSION : WANTED_TRANSCLUSION
-            else raise "Unknown chunk reference class #{chunk.class}"
-          end
-
-        Card::Reference.create!( :card_id=>card.id,
-          :referenced_name=> (rc=chunk.refcardname()) && rc.key() || '',
-          :referenced_card_id=> chunk.refcard ? chunk.refcard.id : nil,
-          :link_type=>reference_type
-         )
-      end
-    end
   end
 
-  class Renderer::Json < Renderer
+  class Renderer::JsonRenderer < Renderer
   end
 
   class Renderer::Text < Renderer

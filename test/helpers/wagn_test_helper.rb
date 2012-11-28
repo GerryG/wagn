@@ -5,7 +5,7 @@ module WagnTestHelper
 
   include CardBuilderMethods
 
-  def setup_default_user
+  def setup_default_account
     Account.reset
 
     Account.session = 'joe_user'
@@ -27,7 +27,7 @@ module WagnTestHelper
   def render_test_card( card )
     r = Wagn::Renderer.new(card)
     r.add_name_context card.name
-    r.process_content()
+    r.process_content_s
   end
 
   def assert_difference(object, method = nil, difference = 1, name=nil)
@@ -49,7 +49,7 @@ module WagnTestHelper
   def integration_login_as(user_login, functional=nil)
 
     raise "Don't know email & password for #{user_login}, #{Card[user_login].inspect}" unless user_card=Card[user_login] and
-        usr=user_card.user and login = usr.email and pass = USERS[login]
+        usr=user_card.account and login = usr.email and pass = USERS[login]
 
     if functional
       Rails.logger.warn "functional login #{login}, #{pass}"
@@ -68,7 +68,7 @@ module WagnTestHelper
   def post_invite(options = {})
     action = options[:action] || :invite
     post action,
-      :user => { :email => 'new@user.com' }.merge(options[:user]||{}),
+      :account => { :email => 'new@user.com' }.merge(options[:account]||{}),
       :card => { :name => "New User" }.merge(options[:card]||{}),
       :email => { :subject => "mailit",  :message => "baby"  }
   end

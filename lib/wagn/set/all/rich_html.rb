@@ -290,8 +290,7 @@ module Wagn
     define_view :options, :perms=>:none do |args|
       attribute = params[:attribute]
 
-      attribute ||= ( card.account and (Account.authorized.id == card.id or card.ok?(:update, :trait=>:account)) ) ?
-        'account' : 'settings'
+      attribute ||= card.account && card.ok?(:update, :trait=>:account) ?  'account' : 'settings'
       render "option_#{attribute}"
     end
 
@@ -399,7 +398,11 @@ module Wagn
          option(option_content, :name=>"roles",
         :help=>%{ <span class="small">"#{ link_to_page 'Roles' }" are used to set user permissions</span>}, #ENGLISH
         :label=>"#{card.name}'s Roles",
+<<<<<<< HEAD
         :editable=>card.ok?(:update, :trait=>:roles)
+=======
+        :editable=>card.fetch(:trait=>:roles,:new=>{}).ok?(:update)
+>>>>>>> account_migration
       )}}
     end
 

@@ -387,11 +387,16 @@ class Card < ActiveRecord::Base
   #def trunk_id()       raise "Deprecated, use left_id"      end
 
   def dependents
-    new_card? ? [] : !@dependents.nil? ? @dependents : Account.as_bot do
-        Card.search( :part=> id ).inject [] do |a,c|
-          id == c.id ? a : (a << c) + (c.dependents)
-        end
-      end
+    if new_card?; [] 
+
+    else
+      @dependents ||=
+          Account.as_bot do
+            Card.search( :part=> id ).inject [] do |a,c|
+              id == c.id ? a : (a << c) + (c.dependents)
+            end
+          end
+    end
   end
 
   def repair_key

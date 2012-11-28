@@ -768,25 +768,6 @@ class Card < ActiveRecord::Base
         card.errors.add :name, "must be unique-- '#{c.name}' already exists"
       end
 
-      # require confirmation for renaming multiple cards
-      # FIXME - none of this should happen in the model.
-      if !card.confirm_rename
-        pass = true
-        if !card.dependents.empty?
-          pass = false
-          card.errors.add :confirmation_required, "#{card.name} has #{card.dependents.size} dependents"
-        end
-
-        if card.update_referencers.nil? and !card.extended_referencers.empty?
-          pass = false
-          card.errors.add :confirmation_required, "#{card.name} has #{card.extended_referencers.size} referencers"
-        end
-
-        if !pass
-          card.error_view = :edit
-          card.error_status = 200 #I like 401 better, but would need special processing
-        end
-      end
     end
   end
 
@@ -826,17 +807,17 @@ class Card < ActiveRecord::Base
 
   validates_each :type_id do |card, a, type_id|
     # validate on update
-    if rec.updates.for?(:type_id) and !rec.new_card?
-      if !rec.validate_type_change
-        rec.errors.add :type, "of #{ rec.name } can't be changed; errors changing from #{ rec.type_name }"
+    if card.updates.for?(:type_id) and !card.new_card?
+      if !card.validate_type_change
+        card.errors.add :type, "of #{ card.name } can't be changed; errors changing from #{ card.type_name }"
       end
-      if c = rec.dup and c.type_id_without_tracking = value and c.id = nil and !c.valid?
-        rec.errors.add :type, "of #{ rec.name } can't be changed; errors creating new #{ value }: #{ c.errors.full_messages * ', ' }"
+      if c = card.dup and c.type_id_without_tracking = type_id and c.id = nil and !c.valid?
+        card.errors.add :type, "of #{ card.name } can't be changed; errors creating new #{ type_id }: #{ c.errors.full_messages * ', ' }"
       end
     end
 
     # validate on update and create
-    if card.updates.for?(:type_id) or card.new_record?
+    if card.updates.for?(:type_id) or card.new_card?
       # invalid type recorded on create
       if card.broken_type
         card.errors.add :type, "won't work.  There's no cardtype named '#{card.broken_type}'"

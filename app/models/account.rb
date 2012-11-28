@@ -28,7 +28,7 @@ class Account
         # if this isn't a Right::Account yet, fetch it
         unless Card===acct && acct.id == Card::WagnBotID or
            acct.right_id == Card::AccountID or
-           acct = acct.fetch_trait(:account)
+           acct = acct.fetch(:trait => :account)
           raise "no account #{acct}"
         end
         acct
@@ -38,8 +38,8 @@ class Account
 
   # FIXME: check for this in boot and don't start if newcard?
   # these might be newcard?, but only in migrations
-  ANONCARD = Card[Card::AnonID].fetch_trait :account
-  BOTCARD  = Card[Card::WagnBotID].fetch_trait :account
+  ANONCARD = Card[Card::AnonID].fetch :trait => :account
+  BOTCARD  = Card[Card::WagnBotID].fetch :trait => :account
 
   # FIXME: Probably should use nil as the 'account' for Anonymous (Card/codename)
   ANONUSER = User.from_id ANONCARD.id

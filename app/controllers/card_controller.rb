@@ -92,7 +92,7 @@ class CardController < ApplicationController
 
 
   def watch
-    watchers = @card.fetch_or_new_trait(:watchers )
+    watchers = @card.fetch :trait=>:watchers, :new=>{}
     watchers = watchers.refresh
     myname = Account.authorized.name
     #warn "watch (#{myname}) #{watchers.inspect}, #{watchers.item_names.inspect}"
@@ -108,9 +108,9 @@ class CardController < ApplicationController
   #-------- ( ACCOUNT METHODS )
 
   def update_account
-    #Rails.logger.warn "updating account #{params[:account].inspect}, #{@card.fetch_trait(:account).account}"
+    #Rails.logger.warn "updating account #{params[:account].inspect}, #{@card.fetch(:trait => :account).account}"
     if account_args = params[:account] and
-        acct_cd = @card.fetch_trait(:account) and
+        acct_cd = @card.fetch(:trait=>:account) and
         acct = acct_cd.account
 
       my_card = Account.authorized.id == acct_cd.id
@@ -118,7 +118,7 @@ class CardController < ApplicationController
       Account.authorized.id == acct_cd.id and !account_args[:blocked] and
         @card.ok! :update
 
-      if params[:save_roles] and my_card || roles_card = @card.fetch_or_new_trait(:roles) and roles_card.ok?(:create)
+      if params[:save_roles] and my_card || roles_card = @card.fetch(:trait=>:roles, :new=>{}) and roles_card.ok?(:create)
         roles = (params[:user_roles]||{}).keys.map(&:to_i)
         roles_card = roles_card.refresh
         roles_card.items= roles
@@ -139,7 +139,7 @@ class CardController < ApplicationController
 
   # FIXME: make this part of create
   def create_account
-    @card.trait_ok! :account, :create
+    @card.ok!(:create, :new=>{}, :trait=>:account)
     email_args = { :subject => "Your new #{Card.setting :title} account.",   #ENGLISH
                    :message => "Welcome!  You now have an account on #{Card.setting :title}." } #ENGLISH
     Rails.logger.info "create_account #{params.inspect}, #{email_args.inspect}"

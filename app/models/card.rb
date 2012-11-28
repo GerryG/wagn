@@ -499,7 +499,7 @@ class Card < ActiveRecord::Base
     @account
   end
 
-  def author
+  def creator
     Card[ creator_id ]
   end
 
@@ -555,7 +555,7 @@ class Card < ActiveRecord::Base
     if @all_roles.nil?
       @all_roles = (id==Card::AnonID ? [] : [Card::AuthID])
       Account.as_bot do
-        rcard=fetch_trait(:roles) and
+        rcard=fetch(:trait=>:roles) and
           items = rcard.item_cards(:limit=>0).map(&:id) and
           @all_roles += items 
       end

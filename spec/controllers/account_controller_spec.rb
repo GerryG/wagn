@@ -19,7 +19,7 @@ describe AccountController do
 
       @new_account = Account.from_email 'joe@new.com'
       @user_card = Card['Joe New']
-      @account_card = @user_card.fetch_or_new_trait :account
+      @account_card = @user_card.fetch(:trait => :account)
 
     end
 
@@ -72,7 +72,9 @@ describe AccountController do
       post :signup, :account=>{:email=>'joe@user.com'}, :card=>{:name=>'Joe Scope'}
       post :signup, :account=>{:email=>'joe@user.com'}, :card=>{:name=>'Joe Duplicate'}
       
-      Card['Joe Duplicate'].should be_nil
+      #s=Card['joe scope']
+      c=Card['Joe Duplicate']
+      c.should be_nil
     end
   end
 

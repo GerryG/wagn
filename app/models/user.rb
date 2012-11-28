@@ -44,7 +44,7 @@ class User < ActiveRecord::Base
       begin
         User.transaction do
           card = card.refresh
-          account = card.fetch_or_new_trait :account
+          account = card.fetch(:trait => :account, :new=>{})
 
           card.type_id = Card::UserID unless card.type_id == Card::UserID ||
                                       card.type_id == Card::AccountRequestID

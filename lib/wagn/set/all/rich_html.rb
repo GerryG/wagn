@@ -290,14 +290,14 @@ module Wagn
     define_view :options, :perms=>:none do |args|
       attribute = params[:attribute]
 
-      attribute ||= if card.account and (Account.authorized.id == card.id or card.trait_ok? :account, :update)
-        'account' else 'settings' end
+      attribute ||= ( card.account and (Account.authorized.id == card.id or card.ok?(:update, :trait=>:account)) ) ?
+        'account' : 'settings'
       render "option_#{attribute}"
     end
 
     define_view :option_account, :perms=> lambda { |r|
         # Should :update be on the card with account or the account?  This design decision is implemented a couple of places
-        Account.as_card.id==r.card.id or r.card.ok?(:update)
+        Account.as_card.id==r.card.id or r.card.ok?(:update, :trait=>:account)
       } do |args|
     
       locals = {:slot=>self, :card=>card, :account=>card.account }
@@ -352,7 +352,7 @@ module Wagn
                   #{ raw subrenderer( Card.fetch current_set).render_content }
                 </div>
              
-                #{ if (tc=card.fetch_or_new_trait :account).new_card? && tc.ok?(:create) && Card.toggle(card.rule :accountable)
+                #{ if (tc=card.fetch(:trait => :account, :new=>{})).new_card? && tc.ok?(:create) && Card.toggle(card.rule :accountable)
                     %{<div class="new-account-link">
                     #{ link_to %{Add a sign-in account for "#{card.name}"},
                         path(:options, :attrib=>:new_account),
@@ -372,10 +372,9 @@ module Wagn
         [Card::AnyoneID, Card::AuthID].member? x.id.to_i
       end
 
-
-      option_content = if traitc = card.fetch_trait(:roles) and
+      option_content = if traitc = card.fetch(:trait => :roles, :new=>{})
         user_roles = traitc.item_cards(:limit=>0) or ( user_roles or
-            traitc = card.fetch_or_new_trait(:roles) and traitc.ok?(:update) and
+            traitc = card.fetch(:trait=>:roles, :new=>{}) and traitc.ok?(:update) and
         user_roles = traitc.item_cards(:limit=>0) )
           user_role_ids = user_roles.map &:id
           hidden_field_tag(:save_roles, true) +
@@ -400,7 +399,7 @@ module Wagn
          option(option_content, :name=>"roles",
         :help=>%{ <span class="small">"#{ link_to_page 'Roles' }" are used to set user permissions</span>}, #ENGLISH
         :label=>"#{card.name}'s Roles",
-        :editable=>card.trait_ok?(:roles, :update)
+        :editable=>card.ok?(:update, :trait=>:roles)
       )}}
     end
 

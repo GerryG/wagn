@@ -65,11 +65,11 @@ class UserTest < ActiveSupport::TestCase
 
   protected
   def create_account(options = {})
-    u=Account.new({ :login => 'quire', :email => 'quire@example.com',  # login isn't really used now
+    acct=Account.new({ :login => 'quire', :email => 'quire@example.com',  # login isn't really used now
       :password => 'quire', :password_confirmation => 'quire', :card_id=>0, :account_id=>0
     }.merge(options))
-    Rails.logger.warn "create_account #{u.inspect}"
-    u.save
-    u
+    #Rails.logger.warn "create_account #{acct.inspect}"
+    acct.save
+    acct
   end
 end

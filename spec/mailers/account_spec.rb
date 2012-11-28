@@ -23,7 +23,7 @@ describe Mailer do
   context "account info, new password" do # forgot password
     before do
       c=Card['sara']
-      Account.session = c.fetch_trait :account
+      Account.session = c.fetch :trait => :account
       @user = c.account
       @user.generate_password
       @email = Mailer.account_info c, {:to=>@user.email, :password=>@user.password,

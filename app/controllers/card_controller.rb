@@ -165,7 +165,7 @@ Done"
 
 
   def watch
-    watchers = @card.fetch_or_new_trait(:watchers )
+    watchers = @card.fetch :trait=>:watchers, :new=>{}
     watchers = watchers.refresh
     myname = Account.authorized.name
     #warn "watch (#{myname}) #{watchers.inspect}, #{watchers.item_names.inspect}"
@@ -181,9 +181,9 @@ Done"
   #-------- ( ACCOUNT METHODS )
 
   def update_account
-    #Rails.logger.warn "updating account #{params[:account].inspect}, #{@card.fetch_trait(:account).account}"
+    #Rails.logger.warn "updating account #{params[:account].inspect}, #{@card.fetch(:trait => :account).account}"
     if account_args = params[:account] and
-        acct_cd = @card.fetch_trait(:account) and
+        acct_cd = @card.fetch(:trait=>:account) and
         acct = acct_cd.account
 
       my_card = Account.authorized.id == acct_cd.id
@@ -191,7 +191,7 @@ Done"
       Account.authorized.id == acct_cd.id and !account_args[:blocked] and
         @card.ok! :update
 
-      if params[:save_roles] and my_card || roles_card = @card.fetch_or_new_trait(:roles) and roles_card.ok?(:create)
+      if params[:save_roles] and my_card || roles_card = @card.fetch(:trait=>:roles, :new=>{}) and roles_card.ok?(:create)
         roles = (params[:user_roles]||{}).keys.map(&:to_i)
         roles_card = roles_card.refresh
         roles_card.items= roles
@@ -212,7 +212,7 @@ Done"
 
   # FIXME: make this part of create
   def create_account
-    @card.trait_ok! :account, :create
+    @card.ok!(:create, :new=>{}, :trait=>:account)
     @account = @card.account = Account.new( params[:account] ).active
     Rails.logger.info "create_account 1 #{@account.inspect}, #{@card.inspect}"
     if @card.save

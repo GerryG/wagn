@@ -35,7 +35,7 @@ class Account
         # if this isn't a Right::Account yet, fetch it
         unless Card===acct && acct.id == Card::WagnBotID or
            acct and ( acct.right_id == Card::AccountID or
-           acct = acct.fetch_trait(:account) )
+           acct = acct.fetch(:trait=>:account) )
           Rails.logger.warn "no account #{account.inspect} #{acct}" #{caller*"\n"}"
           nil
         else
@@ -47,8 +47,8 @@ class Account
 
   # FIXME: check for this in boot and don't start if newcard?
   # these might be newcard?, but only in migrations
-  ANONCARD_ID = Card[Card::AnonID].fetch_trait(:account).id
-  BOTCARD_ID  = Card[Card::WagnBotID].fetch_trait(:account).id
+  ANONCARD_ID = Card[Card::AnonID].fetch(:trait=>:account).id
+  BOTCARD_ID  = Card[Card::WagnBotID].fetch(:trait=>:account).id
 
   cattr_accessor :account_class
 

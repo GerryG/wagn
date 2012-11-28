@@ -78,7 +78,9 @@ describe AccountController do
       post :signup, :account=>{:email=>'joe@user.com'}, :card=>{:name=>'Joe Scope'}
       post :signup, :account=>{:email=>'joe@user.com'}, :card=>{:name=>'Joe Duplicate'}
 
-      Card['Joe Duplicate'].should be_nil
+      #s=Card['joe scope']
+      c=Card['Joe Duplicate']
+      c.should be_nil
     end
   end
 

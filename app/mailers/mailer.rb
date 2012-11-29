@@ -10,12 +10,29 @@ class Mailer < ActionMailer::Base
 
   include LocationHelper
 
+  EMAIL_FIELDS = [ :to, :subject, :message, :password ]
+
+  def valid_args? user_card, args
+    nil_args = EMAIL_FIELDS.find_all { |k| args[k].nil? }.compact
+    if nil_args.any?
+      unless user_card.errors[:email].any?
+        user_card.errors[:email].add(:email, "Missing email parameters: #{nil_args.map(&:to_s)*', '}")
+      end
+      false
+    else
+      true
+    end
+  end
+
+
   def account_info user_card, args
     #warn "acc info #{Account.authorized_email}, (#{user_card.account.inspect}) #{user_card.inspect}, #{args.inspect}"
 
-    @email, @subject, @message, @password = [:to, :subject, :message, :password].map do |f|
-          args[f] or raise Wagn::Oops.new("Oops didn't have #{f}")
-        end
+    arg_array = EMAIL_FIELDS.map { |f| args[f] }
+    return if arg_array.find(&:nil?)
+
+    @email, @subject, @message, @password = arg_array
+
     @card_url = wagn_url user_card
     @pw_url   = wagn_url "/card/options/#{user_card.cardname.url_key}"
     @login_url= wagn_url "/account/signin"

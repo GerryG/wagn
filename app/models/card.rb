@@ -319,6 +319,7 @@ class Card < ActiveRecord::Base
     if errors.any?
       return false
     else
+      Rails.logger.warn "before dest rto? #{inspect}, #{respond_to? :before_destroy}"
       self.before_destroy if respond_to? :before_destroy
     end
   end
@@ -538,8 +539,10 @@ class Card < ActiveRecord::Base
   end
 
   def send_account_info args
+    return false unless Mailer.valid_args?(self, args)
     Mailer.account_info(self, args).deliver
   rescue Exception=>e
+    errors.add(:email, "Exception sending email: #{e.inspect}")
     warn "ACCOUNT INFO DELIVERY FAILED: \n #{args.inspect}\n   #{e.message}"
     Rails.logger.info "ACCOUNT INFO DELIVERY FAILED: \n #{args.inspect}\n   #{e.message}, #{e.backtrace*"\n"}"
     false

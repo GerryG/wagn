@@ -192,3 +192,20 @@ describe Card, "junction revival" do
     @c.content.should == 'revived content'
   end
 end
+
+#
+# code should be prevented from damaging the system by removing critical cards.
+#
+ 
+describe Card, "indestructables" do
+  it "should not destroy" do
+    Account.as_bot do
+      [:all, :default, '*all+*default'].each do |key|
+        card = Card[key] and card.destroy
+        warn "card #{card.inspect}, #{card.errors.full_messages*', '}"
+        #dcard.errors.any?.should be_true
+        Card[key].should be
+      end
+    end
+  end
+end

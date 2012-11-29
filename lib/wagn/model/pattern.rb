@@ -221,7 +221,7 @@ module Wagn::Model
       register 'right', :right, :junction_only=>true
       def self.label(name)              %{All "+#{name}" cards}    end
       def self.prototype_args(base)     {:name=>"*dummy+#{base}"}  end
-      def self.trunk_name(card)         card.cardname.tag     end
+      def self.trunk_name(card)         card.cardname.tag          end
     end
 
     class LeftTypeRightNamePattern < BasePattern

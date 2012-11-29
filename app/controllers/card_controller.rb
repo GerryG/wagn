@@ -17,7 +17,7 @@ class CardController < ApplicationController
     if @card.save
       success
     else
-      errors
+      errors!
     end
   end
 
@@ -34,7 +34,7 @@ class CardController < ApplicationController
     case
     when @card.new_card?                          ;  create
     when @card.update_attributes( params[:card] ) ;  success
-    else                                             errors
+    else                                             errors!
     end
   end
 
@@ -59,7 +59,7 @@ class CardController < ApplicationController
     if @card.save_draft params[:card][:content]
       render :nothing=>true
     else
-      errors
+      errors!
     end
   end
 
@@ -82,7 +82,7 @@ class CardController < ApplicationController
     if @card.save
       show
     else
-      errors
+      errors!
     end
   end
 
@@ -133,7 +133,7 @@ class CardController < ApplicationController
 
       if acct.errors.any?
         acct.errors.each {|f,e| @card.errors.add f, e }
-        errors
+        errors!
       else
         success
       end
@@ -157,8 +157,8 @@ class CardController < ApplicationController
     raise ActiveRecord::RecordInvalid.new(@account) if @account.errors.any?
 #    flash[:notice] ||= "Done.  A password has been sent to that email." #ENGLISH
     params[:attribute] = :account
-    # FIXME: this is broken, create acount doesn't process errors or return
-    show
+
+    wagn_redirect( previous_location )
   end
 
 

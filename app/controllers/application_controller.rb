@@ -85,7 +85,7 @@ class ApplicationController < ActionController::Base
     errors
   end
 
-  def errors options={}
+  def errors! options={}
     return false unless @card.errors.any?
     @card ||= Card.new
     view   = options[:view]   || (@card && @card.error_view  ) || :errors

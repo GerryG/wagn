@@ -25,22 +25,26 @@ class AccountController < ApplicationController
 
     if request.post?
 
-      if @card.ok?(:create, :trait=>:account) 
+      redirect_id = SIGNUP_ID 
+      if @card.ok?( :create, :trait=>:account )
         @account.active
         @account.save_card @card
 
-        if !errors
+        if errors!
+          return true
+        else
           email_args = { :message => Card.setting('*signup+*message') || "Thanks for signing up to #{Card.setting('*title')}!",
                          :subject => Card.setting('*signup+*subject') || "Account info for #{Card.setting('*title')}!" }
           @account.accept(@card, email_args)
-
-          redirect_id = SIGNUP_ID 
         end
       else
         @account.pending
         @account.save_card @card
 
-        if !errors
+        #warn "errors #{@account.errors.full_messages*", "}"
+        if errors!
+          return true
+        else
           Account.as_bot do
             Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'
           end
@@ -49,6 +53,7 @@ class AccountController < ApplicationController
         end
       end
 
+      #warn "redir #{redirect_id}, #{target(redirect_id).inspect}"
       redirect_to target( redirect_id )
 
     end
@@ -137,7 +142,7 @@ class AccountController < ApplicationController
   def target target_id
     r=(
     card = Card[target_id] and Card.path_setting( Card.setting card.name )
-    ); Rails.logger.warn "target( #{target_id} } is #{r}"; r
+    ); Rails.logger.warn "target( #{target_id} ) #{card.inspect} is #{r}"; r
   end
 
   def failed_login(message)

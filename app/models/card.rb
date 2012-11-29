@@ -153,11 +153,6 @@ class Card < ActiveRecord::Base
     if name && t=template
       reset_patterns #still necessary even with new template handling?
       t.type_id
-    else
-      # if we get here we have no *all+*default -- let's address that!
-      # I think we can remove this, now it will break if ALL_DEFAULT_RULE
-      # can't be fetched, should we raise an error?
-      raise "Error: missing *all+*default missing, no type"
     end
   end
 
@@ -458,29 +453,22 @@ class Card < ActiveRecord::Base
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   # CONTENT / REVISIONS
 
-  def current_content
-    r=current_revision.content
-    warn "crev #{inspect} :#{r}"; r
-  end
-
-  def template_content
-    Rails.logger.warn "tcont #{inspect} == #{ALL_DEFAULT_RULE.inspect}"
-    tmpl = all_default_rule && tmpl = template
-    #warn "tcont #{inspect} T:#{tmpl.inspect} == #{ALL_DEFAULT_RULE.inspect}"
-    tmpl.nil? ? '' : tmpl.content
-  end
-
   def content
-    raise "??? #{inspect}" if caller.length > 500
-    #r=(
-     !new_card? ? current_revision.content : template_content
-    #); Rails.logger.warn "content #{inspect} #{r}"; r # if name =~ /\+\*right/; r
+    if !new_card?
+      current_revision.content
+    elsif tmpl = template
+      tmpl.content
+    else
+      ''
+    end
   end
 
   def raw_content
-    r=(
-    (hard=hard_template) ? hard.content : current_revision.content
-    ); warn "raw_content #{inspect} h:#{hard}, r:#{r}"; r # if name =~ /\+\*right/; r
+    if hard_template.nil?
+      content
+    else
+      template.content
+    end
   end
 
   def selected_rev_id
@@ -528,20 +516,23 @@ class Card < ActiveRecord::Base
 
   def save_account
     Rails.logger.warn "save_account #{inspect} a:#{@account}"
-    #warn "save_account #{type_id}, #{type_id_without_tracking} #{inspect}"
+    #warn "save_account #{@account.inspect}, #{inspect} #{@account and right_id != AccountID}"
     if @account and right_id != AccountID
-      acct_card = fetch(:trait => :account, :new=>{})
+      acct_card = self.fetch(:trait => :account, :new=>{})
       # make sure it has an account card and store both ids
-      acct_card.save! if acct_card.new_card?
+      acct_card.save if acct_card.new_card?
+      #warn "save_account A:#{@account.inspect}, #{inspect}, Ac:#{acct_card.inspect}"
       @account.card_id = id
       @account.account_id = acct_card.id
       @account.active if @account.pending?
       #warn "save_account A:#{@account.inspect}, #{inspect}, Ac:#{acct_card.inspect}"
       unless @account.save
+        acct_card.errors.each { |k,v| errors.add k,v }
         @account.errors.each { |k,v| errors.add k,v }
-        warn "sav errs #{@account.errors.map { |k,v| "#{k} -> #{v }"}*"\n"}"
+        warn "sav errs #{errors.map { |k,v| "#{k} -> #{v }"}*"\n"}"
         return false
       end
+    #else warn "acct is #{@account.inspect}"
     end
     true
   end
@@ -647,12 +638,15 @@ class Card < ActiveRecord::Base
   end
 
   def inspect
-    "#<#{self.class.name}" + "##{id}" + # "###{object_id}" +
-    #":l:#{left_id}r:#{right_id}" +
-    (@account.nil? ? 'noU' : "Usr[#{@account}]") + (errors.any? ? '*E*' : '') +
+    "#<#{self.class.name}" + "##{id}" +
     "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
-    #"#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{virtual? &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }}" +
-    #" Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}" +
+    # "###{object_id}" +
+     ":Rt:#{right_id}Lf:#{left_id}" +
+    (@account.nil? ? 'noU' : "Usr[#{@account}]") +
+    (errors.any? ? '*Errors*' : 'noE') +
+    (errors.any? ? "<E*#{errors.full_messages*', '}*>" : '') +
+    # "#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{virtual? &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }}" +
+    # " Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}" +
     '>'
   end
 
@@ -701,14 +695,6 @@ class Card < ActiveRecord::Base
     else
       name
     end
-  end
-
-  ALL_DEFAULT_RULE = Card[:all].fetch :trait => :default
-
-  def all_default_rule
-    #r=(
-         cardname.key == ALL_DEFAULT_RULE.key ? ALL_DEFAULT_RULE : nil
-    #); warn "adr #{ALL_DEFAULT_RULE.inspect} #{inspect} #{r.inspect}" unless r.nil?; r
   end
 
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

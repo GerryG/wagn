@@ -19,12 +19,13 @@ describe AccountController do
 
       @user_card = Card['Joe New']
       @user_card.should be
-      @account_card = @user_card.fetch_or_new_trait :account
-      @account_card.should be
+      @account_card = @user_card.fetch :trait => :account, :new=>{}
 
     end
 
     it 'should create a user' do
+      warn "testing #{@user_card.inspect}, #{@account_card.inspect}"
+      @account_card.should be
       @account_card.new_card?.should be_false
       @user_card.type_id.should == Card::UserID
       @account_card.type_id.should == Card::BasicID

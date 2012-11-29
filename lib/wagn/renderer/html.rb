@@ -158,7 +158,7 @@ module Wagn
         [ :content, :name, :type ].map do |attr|
           next if attr == :type and # this should be a set callback
             card.type_template? ||
-            (card.type_id==Card::SetID && card.hard_template?) || #
+            (card.type_id==Card::SetID && card.is_hard_template?) || #
             (card.type_id==Card::CardtypeID && card.cards_of_type_exist?)
 
           link_to attr, path(:edit, :attrib=>attr), :remote=>true,

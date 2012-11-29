@@ -24,14 +24,17 @@ class AccountController < ApplicationController
     acct_params[:name] = @card.name
     @account = Account.new(acct_params).pending
 
+    #warn "signup #{request.put?} #{params.inspect}, #{@account.inspect}, #{@card.inspect}"
     if request.post?
+      @card.account= @account
+    #warn "signup post #{params.inspect}, #{@card.account.inspect}, #{@card.inspect}"
 
       redirect_id = SIGNUP_ID 
       if @card.ok?(:create, :trait=>:account) 
-        @card.account= @account
         @account.active
         @card.save
 
+        warn "errors? #{@card.inspect} .errors.full_messages*", "}" if @card.errors.any?
         if errors!
           return true
         else
@@ -43,8 +46,8 @@ class AccountController < ApplicationController
 
       else
 
-        @card.account = @account.pending
-        @card.save
+        @account.pending
+        Account.as_bot { @card.save }
 
         if errors!
           #warn "errors #{@account.errors.full_messages*", "}"
@@ -95,10 +98,11 @@ class AccountController < ApplicationController
       acct_params = (params[:account] || {})
       acct_params[:name] = @card.name
       @account = @card.account = ( Account.new( acct_params ) )
-      Rails.logger.warn "invite #{@card.inspect}, #{@account.inspect}, #{acct_params.inspect} #{params[:card]}"
+      #warn "invite #{@card.inspect}, #{@account.inspect}, #{acct_params.inspect} #{params[:card]}"
       @account.active.generate_password
       #warn "User should be: #{@card.inspect}"
       if @card.save
+        @account.valid?
         eparams = params[:email]
         @card.send_account_info eparams.merge( :password => @account.password, :to => @account.email )
         redirect_to target( INVITE_ID )

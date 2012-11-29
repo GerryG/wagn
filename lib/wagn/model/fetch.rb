@@ -163,7 +163,7 @@ module Wagn::Model::Fetch
   def expire_related
     self.expire
 
-    if self.hard_template?
+    if self.is_hard_template?
       self.hard_templatee_names.each do |name|
         Card.expire name
       end

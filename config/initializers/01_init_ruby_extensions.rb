@@ -86,10 +86,4 @@ class Object
     }
     klone
   end
-
-  def m
-    time = Benchmark.measure { yield }
-    sprintf("%.2f",time.real * 1000) + 'ms'
-  end
-
 end

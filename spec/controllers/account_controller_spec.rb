@@ -39,10 +39,16 @@ describe AccountController do
 
   describe "#signup" do
     before do
+      # to make it send signup mail, and mock the mailer methods
+      Account.as_bot { Card.create! :name=>'*request+*to', :content=>'joe@user.com' }
       @msgs=[]
-      mock.proxy(Mailer).account_info.with_any_args.times(any_times) do |m|
-        @msgs << m
-        mock(m).deliver
+      mock.proxy(Mailer).signup_alert.with_any_args.times(any_times) do |mck|
+        @msgs << mck
+        mock(mck).deliver
+      end
+      mock.proxy(Mailer).account_info.with_any_args.times(any_times) do |mck|
+        @msgs << mck
+        mock(mck).deliver
       end
     end
 
@@ -59,13 +65,24 @@ describe AccountController do
       # a user requests an account
       post :signup, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
 
+      @msgs.size.should == 1
+      @msgs[0].should be_a Mail::Message
+      #warn "msg looks like #{@msgs[0].inspect}"
+    end
+
+    it 'should send email' do
+      # a user requests an account
+      post :signup, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
+
+      #warn "msg looks like #{@msgs[0].inspect}"
+      @msgs.size.should == 1
       # and the admin accepts
       login_as 'joe_admin'
       post :accept, :card=>{:key=>'joe_new'}, :email=>{:subject=>'Hey Joe!', :message=>'Come on in?'}
 
-      @msgs.size.should == 1
+      @msgs.size.should == 2
       @msgs[0].should be_a Mail::Message
-      #puts "msg looks like #{@msgs[0].inspect}"
+      #warn "msg looks like #{@msgs[0].inspect}"
     end
     
     it 'should detect duplicates' do

@@ -18,14 +18,12 @@ class Card < ActiveRecord::Base
   belongs_to :card, :class_name => 'Card', :foreign_key => :updater_id
 
   attr_accessor :comment, :comment_author, :selected_rev_id, :account,
-    :broken_type, :update_referencers, :allow_type_change, # seems like wrong mechanisms for this
+    :update_referencers, :allow_type_change, # seems like wrong mechanisms for this
     :cards, :loaded_left, :nested_edit, # should be possible to merge these concepts
     :error_view, :error_status #yuck
       
   attr_writer :update_read_rule_list
-  attr_reader :type_args
-
-  def user() @user ||= User.where(:card_id=>id).first end
+  attr_reader :type_args, :broken_type
 
   before_save :set_stamper, :base_before_save, :set_read_rule, :set_tracked_attributes
   after_save :base_after_save, :update_ruled_cards, :update_queue, :expire_related

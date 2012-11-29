@@ -140,6 +140,11 @@ module Wagn::Model::Permissions
     deny_because you_cant("#{verb} this card") unless self.lets_account( operation )
   end
 
+  def approve_account
+    #approve_task :accountable  # maybe we want that setting as a permission task?
+    approve_task :update
+  end
+
   def approve_create
     approve_task :create
   end

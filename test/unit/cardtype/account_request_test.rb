@@ -28,6 +28,7 @@ class AccountRequestTest < ActiveSupport::TestCase
     Account.as 'joe_admin' do c.destroy!  end
 
     assert_equal nil, Card.fetch('Ron Request')
+    Rails.logger.warn "acct #{Card['RonRequest'].inspect}, U#{Account.from_email('ron@request.com').inspect}"
     assert_equal 'blocked', Account.from_email('ron@request.com').status
   end
 

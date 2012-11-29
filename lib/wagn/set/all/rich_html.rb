@@ -290,7 +290,8 @@ module Wagn
     define_view :options, :perms=>:none do |args|
       attribute = params[:attribute]
 
-      attribute ||= card.account && card.ok?(:update, :trait=>:account) ?  'account' : 'settings'
+      my_card = card.id == Account.authorized.id
+      attribute ||= card.to_user && (my_card || card.ok?(:update, :trait=>:account)) ?  'account' : 'settings'
       render "option_#{attribute}"
     end
 

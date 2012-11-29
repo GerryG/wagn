@@ -140,19 +140,22 @@ class CardController < ApplicationController
   # FIXME: make this part of create
   def create_account
     @card.ok!(:create, :new=>{}, :trait=>:account)
-    email_args = { :subject => "Your new #{Card.setting :title} account.",   #ENGLISH
-                   :message => "Welcome!  You now have an account on #{Card.setting :title}." } #ENGLISH
+    @account = @card.account = Account.new( params[:account] ).active
+    Rails.logger.info "create_account 1 #{@account.inspect}, #{@card.inspect}"
+    if @card.save
+      email_args = { :password => @account.password,
+                     :subject  => "Your new #{Card.setting :title} account.",   #ENGLISH
+                     :message  => "Welcome!  You now have an account on #{Card.setting :title}." } #ENGLISH
     Rails.logger.info "create_account #{params.inspect}, #{email_args.inspect}"
-    @account = Account.new params[:account]
-    @account.active
-    @card = @account.save_card(@card, email_args)
+      @card.send_account_info email_args
+    end
     Rails.logger.warn "create_account error: #{@account.errors.map{|k,v|"#{k} -> #{v}"}*', '}" if @account.errors.any?
     # FIXME: don't raise, handle it
     raise ActiveRecord::RecordInvalid.new(@account) if @account.errors.any?
 #    flash[:notice] ||= "Done.  A password has been sent to that email." #ENGLISH
     params[:attribute] = :account
-    # FIXME: this is broken, create acount doesn't process errors or return
-    show
+
+    wagn_redirect( previous_location )
   end
 
 

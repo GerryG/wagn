@@ -4,7 +4,8 @@ class AccountTrait < ActiveRecord::Migration
       User.all.each do |user|
         #next if user.card_id == Card::WagnBotID || user.card_id == Card::AnonID
         card = Card.find user.card_id
-        if account = card.fetch(:trait=>:account, :new=>{}) and account.save
+        if account = card.fetch(:trait=>:account, :new=>{})
+          account.save!
           user.account_id = account.id
           user.save!
         end
@@ -14,7 +15,7 @@ class AccountTrait < ActiveRecord::Migration
   end
 
   def down
-    Account.as :wagn_bot do
+    Account.as_bot do
       Card.search(:right=>Card::AccountID).items { |c| c.delete; }
     end
   end

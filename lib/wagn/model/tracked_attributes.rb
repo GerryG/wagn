@@ -89,7 +89,7 @@ module Wagn::Model::TrackedAttributes
     self.type_id_without_tracking= new_type_id
     return true if new_card?
     on_type_change # FIXME this should be a callback
-    if hard_template? && !type_template?
+    if is_hard_template? && !type_template?
       hard_templatee_names.each do |templatee_name|
         tee = Card[templatee_name]
         tee.allow_type_change = true  #FIXME? this is a hacky way around the standard validation
@@ -105,15 +105,15 @@ module Wagn::Model::TrackedAttributes
   end
 
   def set_content(new_content)
-    #warn Rails.logger.info("set_content #{name} #{new_content}")
+    #warn "set_content #{inspect}, #{self.content}, #{self.content_without_tracking}, #{new_content}"
     return false unless self.id
     new_content ||= ''
     new_content = WikiContent.clean_html!(new_content) if clean_html?
     clear_drafts if current_revision_id
-    #warn Rails.logger.info("set_content #{name} #{Account.session}, #{new_content}")
+    Rails.logger.warn "set_content #{inspect} CurC:#{content_without_tracking}, N:#{new_content}, #{Account.session}"
     new_rev = Card::Revision.create :card_id=>self.id, :content=>new_content, :creator_id =>Account.authorized.id
     self.current_revision_id = new_rev.id
-    reset_patterns_if_rule
+    reset_patterns_if_rule unless new_card?
     @name_or_content_changed = true
   end
 

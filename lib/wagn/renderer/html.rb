@@ -158,7 +158,7 @@ module Wagn
         [ :content, :name, :type ].map do |attr|
           next if attr == :type and # this should be a set callback
             card.type_template? ||
-            (card.type_id==Card::SetID && card.hard_template?) || #
+            (card.type_id==Card::SetID && card.is_hard_template?) || #
             (card.type_id==Card::CardtypeID && card.cards_of_type_exist?)
 
           link_to attr, path(:edit, :attrib=>attr), :remote=>true,
@@ -168,8 +168,8 @@ module Wagn
     end
 
     def options_submenu(current)
-      #return '' unless !card || [Card::WagnBotID, Card::AnonID].member?(card.id) || card.type_id == Card::UserID
-      return '' unless card.account && card.ok?(:update, :trait=>:account)
+      my_card = card.id == Account.authorized.id
+      return '' unless card.to_user && (my_card || card.ok?(:update, :trait=>:account))
       wrap_submenu do
         [:account, :settings].map do |key|
           link_to key, path(:options, :attrib=>key), :remote=>true,

@@ -17,16 +17,20 @@ describe AccountController do
       post :invite, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'},
         :email=> @email_args
 
-      @new_account = Account.from_email 'joe@new.com'
       @user_card = Card['Joe New']
-      @account_card = @user_card.fetch(:trait => :account)
+      @user_card.should be
+      @account_card = @user_card.fetch :trait => :account, :new=>{}
 
     end
 
     it 'should create a user' do
+      warn "testing #{@user_card.inspect}, #{@account_card.inspect}"
+      @account_card.should be
       @account_card.new_card?.should be_false
       @user_card.type_id.should == Card::UserID
       @account_card.type_id.should == Card::BasicID
+      @new_account=Account.from_email('joe@new.com')
+      #warn "... #{@account_card.inspect}, #{@user_card.inspect} #{@new_account.inspect}"
       @new_account.should be
       @new_account.account_id.should == @account_card.id
     end
@@ -65,16 +69,18 @@ describe AccountController do
       # a user requests an account
       post :signup, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
 
+      @card = Card['Joe New']
+      @card.should be
+      @card.account.should be
+
       @msgs.size.should == 1
       @msgs[0].should be_a Mail::Message
-      #warn "msg looks like #{@msgs[0].inspect}"
     end
 
     it 'should send email' do
       # a user requests an account
       post :signup, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
 
-      #warn "msg looks like #{@msgs[0].inspect}"
       @msgs.size.should == 1
       # and the admin accepts
       login_as 'joe_admin'

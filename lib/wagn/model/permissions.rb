@@ -49,30 +49,18 @@ module Wagn::Model::Permissions
   #      :trait=>:roles, :new=>{} would be a fetch_or_new_trait
 
   def ok_with_fetch? operation, opts={}
-    #warn "ok? #{operation}, #{opts.inspect}, #{caller[0..4]*", "}"
     card = opts[:trait].nil? ? self : fetch(opts)
-
     card.ok_without_fetch? operation
   end
 
   def ok? operation
-    #warn "ok? #{operation}"
-    #Rails.logger.info "ok? #{Account.authorized.inspect}, #{Account.as_card.inspect}, #{operation} #{inspect}" if operation == :read
     @operation_approved = true
     @permission_errors = []
 
     send "approve_#{operation}"
-    # approve_* methods set errors on the card.
-    # that's what we want when doing approve? on save and checking each attribute
-    # but we don't want just checking ok? to set errors.
-    # so we hack around the errors added in approve_* by clearing them here.
-    # self.errors.clear
-
-    
-    #Rails.logger.info "ok? #{Account.session.inspect}, #{Account.as_card.inspect}, #{operation} #{inspect} R:#{@operation_approved}" if operation == :create
     @operation_approved
   end
-  alias_method_chain :ok?, :fetch
+  alias_method_chain :ok?, :fetch # note: method is chained so that we can return the instance variable @operation_approved
 
   def ok! operation, opts={}
     raise Card::PermissionDenied.new self unless ok? operation, opts

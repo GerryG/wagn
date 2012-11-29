@@ -3,13 +3,11 @@ module Wagn::Model
     mattr_accessor :subclasses
     @@subclasses = []
 
-    def self.register_class(klass) @@subclasses.unshift klass end
-    def self.method_key opts
     def self.register_class klass
       @@subclasses.unshift klass
     end
     
-    def self.method_key(opts)
+    def self.method_key opts
       @@subclasses.each do |pclass|
         if !pclass.opt_keys.map(&opts.method(:has_key?)).member? false;
           return pclass.method_key_from_opts(opts)

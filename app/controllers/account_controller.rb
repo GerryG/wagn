@@ -20,8 +20,9 @@ class AccountController < ApplicationController
     #FIXME - don't raise; handle it!
     raise(Wagn::PermissionDenied, "Sorry, no Signup allowed") unless @card.ok? :create
 
-    acct_params = params[:account]
+    acct_params = params[:account] || {}
     acct_params[:name] = @card.name
+    warn "acct? #{params.inspect}, #{acct_params.inspect}"
     @account = Account.new(acct_params).pending
 
     #warn "signup #{request.put?} #{params.inspect}, #{@account.inspect}, #{@card.inspect}"

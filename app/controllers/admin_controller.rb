@@ -8,9 +8,11 @@ class AdminController < ApplicationController
     if request.post?
       #Card::User  # wtf - trigger loading of Card::User, otherwise it tries to use U
       Account.as_bot do
-        @card.account = Card.new params[:card]
+        @card = Card.new params[:card]
         aparams = params[:account]
         aparams[:name] = @card.name
+        acct = Account.new( aparams ).active
+        warn "acct setup #{acct.inspect}, #{@card.account}"
         @account = @card.account = Account.new( aparams ).active
         set_default_request_recipient
 
@@ -28,7 +30,7 @@ class AdminController < ApplicationController
       end
     else
       @card = Card.new params[:card] #should prolly skip defaults
-      aparams = aparams[:user] || {}
+      aparams = params[:user] || {}
       aparams[:name] = @card.name
       @account = Account.new aparams
     end

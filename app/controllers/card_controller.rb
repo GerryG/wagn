@@ -154,8 +154,8 @@ class CardController < ApplicationController
     raise ActiveRecord::RecordInvalid.new(@account) if @account.errors.any?
 #    flash[:notice] ||= "Done.  A password has been sent to that email." #ENGLISH
     params[:attribute] = :account
-    # FIXME: this is broken, create acount doesn't process errors or return
-    show
+
+    wagn_redirect( previous_location )
   end
 
 

@@ -168,8 +168,8 @@ module Wagn
     end
 
     def options_submenu(current)
-      #return '' unless !card || [Card::WagnBotID, Card::AnonID].member?(card.id) || card.type_id == Card::UserID
-      return '' unless card.account && card.ok?(:update, :trait=>:account)
+      my_card = card.id == Account.authorized.id
+      return '' unless card.to_user && (my_card || card.ok?(:update, :trait=>:account))
       wrap_submenu do
         [:account, :settings].map do |key|
           link_to key, path(:options, :attrib=>key), :remote=>true,

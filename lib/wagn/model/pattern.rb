@@ -5,6 +5,11 @@ module Wagn::Model
 
     def self.register_class(klass) @@subclasses.unshift klass end
     def self.method_key opts
+    def self.register_class klass
+      @@subclasses.unshift klass
+    end
+    
+    def self.method_key(opts)
       @@subclasses.each do |pclass|
         if !pclass.opt_keys.map(&opts.method(:has_key?)).member? false;
           return pclass.method_key_from_opts(opts)
@@ -33,6 +38,7 @@ module Wagn::Model
     def patterns
       @patterns ||= @@subclasses.map { |sub| sub.new(self) }.compact
     end
+
     def patterns_with_new
       new_card? ? patterns_without_new[1..-1] : patterns_without_new
     end
@@ -72,16 +78,17 @@ module Wagn::Model
         attr_accessor :key, :key_id, :opt_keys, :junction_only, :method_key
 
         def find_module mod
-          #warn "find_mod #{mod}"
-          return if mod.nil?
-          (mod.split('/') << 'model').inject(BASE_MODULE) do |base, part|
+          module_name_parts = mod.split('/') << 'model'
+          module_name_parts.inject BASE_MODULE do |base, part|
             return if base.nil?
-            part = part.camelize; key = base.to_s + '::' + part
-            MODULES.has_key?(key) ? MODULES[key] : MODULES[key] = if @@ruby19
-                  base.const_defined?(part, false) ? base.const_get(part, false) : nil
-                else
-                  base.const_defined?(part)        ? base.const_get(part)        : nil
-                end
+            part = part.camelize
+            key = "#{base}::#{part}"
+            if MODULES.has_key?(key)
+              MODULES[key]
+            else
+              args = @@ruby19 ? [part, false] : [part]
+              MODULES[key] = base.const_defined?(*args) ? base.const_get(*args) : nil
+            end
           end
         rescue NameError
           nil

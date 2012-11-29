@@ -113,7 +113,7 @@ class Card < ActiveRecord::Base
     args['name']    = args['name'   ].to_s
     args['type_id'] = args['type_id'].to_i
 
-    content = args.delete(:content) if args.has_key? :content
+    #content = args.delete(:content) if args.has_key? :content
     args.delete('type_id') if args['type_id'] == 0 # can come in as 0, '', or nil
 
     @type_args = { # these are cached to optimize #new
@@ -153,11 +153,11 @@ class Card < ActiveRecord::Base
     if name && t=template
       reset_patterns #still necessary even with new template handling?
       t.type_id
-    #else
+    else
       # if we get here we have no *all+*default -- let's address that!
       # I think we can remove this, now it will break if ALL_DEFAULT_RULE
       # can't be fetched, should we raise an error?
-      #DefaultTypeID
+      raise "Error: missing *all+*default missing, no type"
     end
   end
 
@@ -458,33 +458,29 @@ class Card < ActiveRecord::Base
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   # CONTENT / REVISIONS
 
-  def content_with_current
-    raise "??? #{inspect}" if caller.length > 500
-    content_without_current ||
-      current_revision.content
+  def current_content
+    r=current_revision.content
+    warn "crev #{inspect} :#{r}"; r
   end
 
   def template_content
     Rails.logger.warn "tcont #{inspect} == #{ALL_DEFAULT_RULE.inspect}"
-    (tmpl = all_default_rule && tmpl = template).nil? ? '' : tmpl.content
+    tmpl = all_default_rule && tmpl = template
+    #warn "tcont #{inspect} T:#{tmpl.inspect} == #{ALL_DEFAULT_RULE.inspect}"
+    tmpl.nil? ? '' : tmpl.content
   end
 
-  def content; @content end
-
-  def content_without_tracking
+  def content
     raise "??? #{inspect}" if caller.length > 500
-    r=(
-     !new_card? ? content : template_content
-    ); Rails.logger.warn "content #{inspect} #{r}"; r # if name =~ /\+\*right/; r
+    #r=(
+     !new_card? ? current_revision.content : template_content
+    #); Rails.logger.warn "content #{inspect} #{r}"; r # if name =~ /\+\*right/; r
   end
-
-  alias_method_chain :content, :current
-  #def content_with_current; content_without_current end
 
   def raw_content
     r=(
-    (hard=hard_template) ? hard.content : content_with_current
-    ); warn "raw_content #{inspect} @#{@content}, #{hard}, #{r}"; r # if name =~ /\+\*right/; r
+    (hard=hard_template) ? hard.content : current_revision.content
+    ); warn "raw_content #{inspect} h:#{hard}, r:#{r}"; r # if name =~ /\+\*right/; r
   end
 
   def selected_rev_id

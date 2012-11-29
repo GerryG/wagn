@@ -398,7 +398,7 @@ module Wagn
         [Card::AnyoneID, Card::AuthID].member? x.id.to_i
       end
 
-      traitc = card.fetch( :trait => :roles, :new=>{} )
+      traitc = card.fetch :trait => :roles, :new=>{}
       user_roles = traitc.item_cards :limit=>0
 
       option_content = if traitc.ok? :update
@@ -523,7 +523,6 @@ module Wagn
          <br style="clear:both"/>}
       end
     end
-
 
     define_view :errors, :perms=>:none do |args|
       wrap :errors, args do

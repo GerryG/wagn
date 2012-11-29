@@ -20,7 +20,7 @@ class User < ActiveRecord::Base
   validates_length_of       :password, :within => 5..40, :if => :password_required?
   validates_confirmation_of :password,                   :if => :password_required?
 
-  before_validation :downcase_email! #, :generate_if
+  before_validation :downcase_email!, :generate_if
   before_save :encrypt_password
 
   class << self
@@ -43,11 +43,6 @@ class User < ActiveRecord::Base
   def built_in?()       status=='system'    end
   def pending?()        status=='pending'   end
   def default_status?() status=='request'   end
-
-  def generate_if
-    #warn "gen #{self} if #{password.blank? && password_required?}"
-    generate_password if password.blank? && password_required?
-  end
 
   def active ; self.status='active' ; self  end
   def pending; self.status='pending'; self  end
@@ -72,7 +67,9 @@ class User < ActiveRecord::Base
     "#<#{self.class.name}:#{login}<#{email}>#{status[0,1]}:#{password_required? ? 'R' : ''}#{password.blank? ? 'b' : ''}>"
   end
   def mocha_inspect()   to_s                                                              end
-  def downcase_email!() (em = self.email) =~ /[A-Z]/ and em=em.downcase and self.email=em end
+  def downcase_email!()
+    #warn "dc email #{self.email}"
+    (em = self.email) =~ /[A-Z]/ and em=em.downcase and self.email=em end
 
   # Authenticates a user by their login name and unencrypted password.  Returns the user or nil.
   def authenticated? params
@@ -83,7 +80,7 @@ class User < ActiveRecord::Base
  protected
 
   def generate_if
-    #warn "gen #{self} if #{password.blank?}, #{password_required?}"
+    #warn "gen #{self} if #{password.blank?} && #{password_required?}"
     generate_password if password.blank? && password_required?
   end
 
@@ -102,9 +99,8 @@ class User < ActiveRecord::Base
   end
 
   def password_required?
-    #warn "pwq? #{built_in?}, #{pending?}, #{crypted_password.blank?} #{password.blank?}"
-     !built_in? && active?  && self.class.password_required? &&
-     (crypted_password.blank? or not password.blank?)
+     !built_in? and !active? and self.class.password_required? and
+       (crypted_password.blank? or not password.blank?)
   end
 
 end

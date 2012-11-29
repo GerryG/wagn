@@ -82,10 +82,10 @@ class ApplicationController < ActionController::Base
     params[:action] = action if action
     @card.error_view = :denial
     @card.error_status = 403
-    errors
+    errors!
   end
 
-  def errors options={}
+  def errors! options={}
     return false unless @card.errors.any?
     @card ||= Card.new
     view   = options[:view]   || (@card && @card.error_view  ) || :errors
@@ -167,7 +167,7 @@ class ApplicationController < ActionController::Base
       end
     end
 
-    errors :view=>view, :status=>status
+    errors! :view=>view, :status=>status
   end
 
 end

@@ -19,12 +19,13 @@ describe AccountController do
 
       @user_card = Card['Joe New']
       @user_card.should be
-      @account_card = @user_card.fetch_or_new_trait :account
-      @account_card.should be
+      @account_card = @user_card.fetch :trait => :account, :new=>{}
 
     end
 
     it 'should create a user' do
+      warn "testing #{@user_card.inspect}, #{@account_card.inspect}"
+      @account_card.should be
       @account_card.new_card?.should be_false
       @user_card.type_id.should == Card::UserID
       @account_card.type_id.should == Card::BasicID
@@ -42,10 +43,16 @@ describe AccountController do
 
   describe "#signup" do
     before do
+      # to make it send signup mail, and mock the mailer methods
+      Account.as_bot { Card.create! :name=>'*request+*to', :content=>'joe@user.com' }
       @msgs=[]
-      mock.proxy(Mailer).account_info.with_any_args.times(any_times) do |m|
-        @msgs << m
-        mock(m).deliver
+      mock.proxy(Mailer).signup_alert.with_any_args.times(any_times) do |mck|
+        @msgs << mck
+        mock(mck).deliver
+      end
+      mock.proxy(Mailer).account_info.with_any_args.times(any_times) do |mck|
+        @msgs << mck
+        mock(mck).deliver
       end
     end
 
@@ -65,21 +72,34 @@ describe AccountController do
       @card = Card['Joe New']
       @card.should be
       @card.account.should be
+
+      @msgs.size.should == 1
+      @msgs[0].should be_a Mail::Message
+    end
+
+    it 'should send email' do
+      # a user requests an account
+      post :signup, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
+
+      @msgs.size.should == 1
       # and the admin accepts
       login_as 'joe_admin'
       post :accept, :card=>{:key=>'joe_new'}, :email=>{:subject=>'Hey Joe!', :message=>'Come on in?'}
 
-      @msgs.size.should == 1
+      @msgs.size.should == 2
       @msgs[0].should be_a Mail::Message
-      #puts "msg looks like #{@msgs[0].inspect}"
+      #warn "msg looks like #{@msgs[0].inspect}"
     end
 
     it 'should detect duplicates' do
       post :signup, :account=>{:email=>'joe@user.com'}, :card=>{:name=>'Joe Scope'}
+      #warn "first #{Card['joe scope'].inspect}"
+
       post :signup, :account=>{:email=>'joe@user.com'}, :card=>{:name=>'Joe Duplicate'}
 
       #s=Card['joe scope']
       c=Card['Joe Duplicate']
+      #warn "second #{c.inspect}"
       c.should be_nil
     end
   end

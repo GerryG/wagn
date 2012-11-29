@@ -18,14 +18,12 @@ class Card < ActiveRecord::Base
   belongs_to :card, :class_name => 'Card', :foreign_key => :updater_id
 
   attr_accessor :comment, :comment_author, :selected_rev_id, :account,
-    :broken_type, :update_referencers, :allow_type_change, # seems like wrong mechanisms for this
+    :update_referencers, :allow_type_change, # seems like wrong mechanisms for this
     :cards, :loaded_left, :nested_edit, # should be possible to merge these concepts
     :error_view, :error_status #yuck
 
   attr_writer :update_read_rule_list
-  attr_reader :type_args
-
-  def user() @user ||= User.where(:card_id=>id).first end
+  attr_reader :type_args, :broken_type
 
   before_save :set_stamper, :base_before_save, :set_read_rule, :set_tracked_attributes
   after_save :base_after_save, :update_ruled_cards, :update_queue, :expire_related
@@ -115,7 +113,7 @@ class Card < ActiveRecord::Base
     args['name']    = args['name'   ].to_s
     args['type_id'] = args['type_id'].to_i
 
-    content = args.delete(:content) if args.has_key? :content
+    #content = args.delete(:content) if args.has_key? :content
     args.delete('type_id') if args['type_id'] == 0 # can come in as 0, '', or nil
 
     @type_args = { # these are cached to optimize #new
@@ -158,11 +156,6 @@ class Card < ActiveRecord::Base
     if name && t=template
       reset_patterns #still necessary even with new template handling?
       t.type_id
-    #else
-      # if we get here we have no *all+*default -- let's address that!
-      # I think we can remove this, now it will break if ALL_DEFAULT_RULE
-      # can't be fetched, should we raise an error?
-      #DefaultTypeID
     end
   end
 
@@ -455,33 +448,22 @@ class Card < ActiveRecord::Base
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   # CONTENT / REVISIONS
 
-  def content_with_current
-    raise "??? #{inspect}" if caller.length > 500
-    content_without_current ||
+  def content
+    if !new_card?
       current_revision.content
+    elsif tmpl = template
+      tmpl.content
+    else
+      ''
+    end
   end
-
-  def template_content
-    Rails.logger.warn "tcont #{inspect} == #{ALL_DEFAULT_RULE.inspect}"
-    (tmpl = all_default_rule && tmpl = template).nil? ? '' : tmpl.content
-  end
-
-  def content; @content end
-
-  def content_without_tracking
-    raise "??? #{inspect}" if caller.length > 500
-    r=(
-     !new_card? ? content : template_content
-    ); Rails.logger.warn "content #{inspect} #{r}"; r # if name =~ /\+\*right/; r
-  end
-
-  alias_method_chain :content, :current
-  #def content_with_current; content_without_current end
 
   def raw_content
-    r=(
-    (hard=hard_template) ? hard.content : content_with_current
-    ); warn "raw_content #{inspect} @#{@content}, #{hard}, #{r}"; r # if name =~ /\+\*right/; r
+    if hard_template.nil?
+      content
+    else
+      template.content
+    end
   end
 
   def selected_rev_id
@@ -529,20 +511,23 @@ class Card < ActiveRecord::Base
 
   def save_account
     Rails.logger.warn "save_account #{inspect} a:#{@account}"
-    #warn "save_account #{type_id}, #{type_id_without_tracking} #{inspect}"
+    #warn "save_account #{@account.inspect}, #{inspect} #{@account and right_id != AccountID}"
     if @account and right_id != AccountID
-      acct_card = fetch(:trait => :account, :new=>{})
+      acct_card = self.fetch(:trait => :account, :new=>{})
       # make sure it has an account card and store both ids
-      acct_card.save! if acct_card.new_card?
+      acct_card.save if acct_card.new_card?
+      #warn "save_account A:#{@account.inspect}, #{inspect}, Ac:#{acct_card.inspect}"
       @account.card_id = id
       @account.account_id = acct_card.id
       @account.active if @account.pending?
       #warn "save_account A:#{@account.inspect}, #{inspect}, Ac:#{acct_card.inspect}"
       unless @account.save
+        acct_card.errors.each { |k,v| errors.add k,v }
         @account.errors.each { |k,v| errors.add k,v }
-        warn "sav errs #{@account.errors.map { |k,v| "#{k} -> #{v }"}*"\n"}"
+        warn "sav errs #{errors.map { |k,v| "#{k} -> #{v }"}*"\n"}"
         return false
       end
+    #else warn "acct is #{@account.inspect}"
     end
     true
   end
@@ -648,12 +633,15 @@ class Card < ActiveRecord::Base
   end
 
   def inspect
-    "#<#{self.class.name}" + "##{id}" + # "###{object_id}" +
-    #":l:#{left_id}r:#{right_id}" +
-    (@account.nil? ? 'noU' : "Usr[#{@account}]") + (errors.any? ? '*E*' : '') +
+    "#<#{self.class.name}" + "##{id}" +
     "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
-    #"#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{virtual? &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }}" +
-    #" Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}" +
+    # "###{object_id}" +
+     ":Rt:#{right_id}Lf:#{left_id}" +
+    (@account.nil? ? 'noU' : "Usr[#{@account}]") +
+    (errors.any? ? '*Errors*' : 'noE') +
+    (errors.any? ? "<E*#{errors.full_messages*', '}*>" : '') +
+    # "#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{virtual? &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }}" +
+    # " Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}" +
     '>'
   end
 
@@ -702,14 +690,6 @@ class Card < ActiveRecord::Base
     else
       name
     end
-  end
-
-  ALL_DEFAULT_RULE = Card[:all].fetch :trait => :default
-
-  def all_default_rule
-    #r=(
-         cardname.key == ALL_DEFAULT_RULE.key ? ALL_DEFAULT_RULE : nil
-    #); warn "adr #{ALL_DEFAULT_RULE.inspect} #{inspect} #{r.inspect}" unless r.nil?; r
   end
 
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

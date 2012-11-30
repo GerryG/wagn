@@ -436,8 +436,7 @@ class Card < ActiveRecord::Base
   def all_default_rule; end
 
   def type_name
-    raise "??? #{inspect}" if caller.length > 500
-    Rails.logger.warn "type name #{inspect}"
+    #raise "??? #{inspect}" if caller.length > 500
     Card.fetch(type_id == -1 ? DefaultTypeID : type_id, :skip_virtual=>true, :skip_modules=>true ).name
   end
 
@@ -501,16 +500,16 @@ class Card < ActiveRecord::Base
   # ACCOUNT / SESSION
 
   def account
-    # no id? try using the cardname to find the user Account.lookup
+    # no id? try using the cardname to find the user Account.get_account
     if @account.nil? and uid = id.nil? ?
-          ( user_card = Account.lookup(name) and user_card.id ) : id
+          ( user_card = Account.get_account(name) and user_card.id ) : id
       @account = Account[uid]
     end
     @account
   end
 
   def save_account
-    Rails.logger.warn "save_account #{inspect} a:#{@account}"
+    #Rails.logger.warn "save_account #{inspect} a:#{@account}"
     #warn "save_account #{@account.inspect}, #{inspect} #{@account and right_id != AccountID}"
     if @account and right_id != AccountID
       acct_card = self.fetch(:trait => :account, :new=>{})
@@ -533,8 +532,10 @@ class Card < ActiveRecord::Base
   end
 
   def send_account_info args
+    return false unless Mailer.valid_args?(self, args)
     Mailer.account_info(self, args).deliver
   rescue Exception=>e
+    errors.add(:email, "Exception sending email: #{e.inspect}")
     warn "ACCOUNT INFO DELIVERY FAILED: \n #{args.inspect}\n   #{e.message}"
     Rails.logger.info "ACCOUNT INFO DELIVERY FAILED: \n #{args.inspect}\n   #{e.message}, #{e.backtrace*"\n"}"
     false
@@ -755,9 +756,8 @@ class Card < ActiveRecord::Base
     if account.nil?
       false
     elsif account.valid?
-      Rails.logger.warn "type_id #{card.inspect}"
-      card.type_id = UserID unless card.type_id == UserID || card.type_id == AccountRequestID
-      Rails.logger.warn "type_id #{card.inspect}"
+      #Rails.logger.warn "type_id #{card.inspect}"
+      #card.type_id = UserID unless card.type_id == UserID || card.type_id == AccountRequestID
       true
     else
       account && account.errors.each {|k,v| card.errors.add k,v }

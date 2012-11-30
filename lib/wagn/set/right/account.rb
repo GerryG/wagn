@@ -2,6 +2,7 @@ module Wagn
   module Set::Right::Account
     module Model
       def before_destroy
+        Rails.logger.warn "before dest #{inspect}"
         block_account
       end
 

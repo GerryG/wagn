@@ -9,7 +9,7 @@ class UserTest < ActiveSupport::TestCase
 
 
   def test_should_reset_password
-    Account.from_params(:email=>'joe@user.com').update_attributes(:password => 'new password', :password_confirmation => 'new password')
+    Account.lookup(:email=>'joe@user.com').update_attributes(:password => 'new password', :password_confirmation => 'new password')
     assert_auth 'joe@user.com', 'new password'
   end
 
@@ -47,7 +47,7 @@ class UserTest < ActiveSupport::TestCase
   end
 
   def test_should_not_rehash_password
-    Account.from_params(:email=>'joe@user.com').update_attributes!(:email => 'joe2@user.com')
+    Account.lookup(:email=>'joe@user.com').update_attributes!(:email => 'joe2@user.com')
     assert_auth 'joe2@user.com', 'joe_pass'
   end
 

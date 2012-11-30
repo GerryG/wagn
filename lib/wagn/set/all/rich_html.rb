@@ -34,9 +34,10 @@ module Wagn
     define_view :titled do |args|
       hidden = { :menu_link=>true, :type=>true, :closed_link=>true }
       wrap :titled, args do
-        %{ #{ _render_header args.merge( { :default_hidden => hidden } ) }
-           #{ wrap_content( :titled ) { _render_core args } }   
-        }
+        _render_header( args.merge :default_hidden => hidden ) +
+        wrap_content( :titled ) do
+          _render_core args
+        end
       end
     end
 
@@ -71,7 +72,6 @@ module Wagn
         #{ _optional_render :closed_link, args, hidden[:closed_link] }        
         #{ _render_title }
         #{ _optional_render :type, args, hidden[:type] }
-        
       </div>
       }
     end
@@ -81,10 +81,7 @@ module Wagn
     end
   
     define_view :menu_link do |args|
-      %{<div class="card-menu-link">
-          #{ _render_menu }
-          &equiv;
-        </div>}
+      %{<div class="card-menu-link">#{ _render_menu }&equiv;</div>}
     end
 
     define_view :menu do |args|
@@ -98,12 +95,18 @@ module Wagn
         <ul class="card-menu">
             <li>#{ link_to_action 'edit', :edit, :class=>'slotter' }
               <ul>
-                  <li>#{ link_to_action 'content', :edit, :class=>'slotter' }
-                  <li>#{ link_to_action 'name', :edit_name, :class=>'slotter' }
-                  <li>#{ link_to_action 'type', :edit_type, :class=>'slotter' }
+                  <li>#{ link_to_action 'content', :edit, :class=>'slotter' }</li>
+                  <li>#{ link_to_action 'name', :edit_name, :class=>'slotter' }</li>
+                  <li>#{ link_to_action 'type', :edit_type, :class=>'slotter' }</li>
+                  <li>#{ link_to_action 'history', :changes, :class=>'slotter' }</li>
               </ul>
             </li>
-            <li>#{ link_to_action 'view', :view, :class=>'slotter' }</li>
+            <li>#{ link_to_action 'view', :read, :class=>'slotter' }            
+              <ul>
+                <li>#{ link_to_action 'refresh', :read, :class=>'slotter' }</li>
+                <li>#{ link_to 'as main', path(:read) }</li>
+              </ul>
+            </li>
             <li>#{ link_to_action 'admin', :options, :class=>'slotter' }</li>
 
         </ul>
@@ -165,7 +168,7 @@ module Wagn
         card_form :create, 'card-form card-new-form', 'main-success'=>'REDIRECT' do |form|
           @form = form
           %{
-            <div class="edit-area">
+            <div class="card-header">          
               #{ hidden_field_tag :success, card.rule(:thanks) || '_self' }
               #{ help_text :add_help, :fallback=>:edit_help }
               #{
@@ -176,11 +179,15 @@ module Wagn
               end
               }
               #{ params[:type] ? form.hidden_field( :type_id ) : _render_type_editor }
+            </div>
+            <div class="card-body">
               <div class="card-editor editor">#{ edit_slot args }</div>
-              <div class="edit-button-area">
-                #{ submit_tag 'Submit', :class=>'create-submit-button' }
-                #{ button_tag 'Cancel', :type=>'button', :class=>"create-cancel-button #{cancel[:class]}", :href=>cancel[:href] }
-              </div>
+              <fieldset>
+                <div class="button-area">
+                  #{ submit_tag 'Submit', :class=>'create-submit-button' }
+                  #{ button_tag 'Cancel', :type=>'button', :class=>"create-cancel-button #{cancel[:class]}", :href=>cancel[:href] }
+                </div>
+              </fieldset>
             </div>
             #{ notice }
           }
@@ -473,29 +480,28 @@ module Wagn
       load_revisions
       if @revision
         wrap :changes, args.merge(:frame=>true) do
-          %{#{ _render_header unless params['no_changes_header'] }
-          <div class="revision-navigation">#{ revision_menu }</div>
-
-          <div class="revision-header">
-            <span class="revision-title">#{ @revision.title }</span>
-            posted by #{ link_to_page @revision.creator.name }
-          on #{ format_date(@revision.created_at) } #{
-          if !card.drafts.empty?
-            %{<p class="autosave-alert">
-              This card has an #{ autosave_revision }
-            </p>}
-          end}#{
-          if @show_diff and @revision_number > 1  #ENGLISH
-            %{<p class="revision-diff-header">
-              <small>
-                Showing changes from revision ##{ @revision_number - 1 }:
-                <ins class="diffins">Added</ins> | <del class="diffmod">Deleted</del>
-              </small>
-            </p>}
-          end}
-          </div>
-          <div class="revision content">#{_render_diff}</div>
-          <div class="revision-navigation">#{ revision_menu }</div>}
+          %{#{ _render_header }
+            <div class="revision-header">
+              <span class="revision-title">#{ @revision.title }</span>
+              posted by #{ link_to_page @revision.creator.name }
+              on #{ format_date(@revision.created_at) } #{
+              if !card.drafts.empty?
+                %{<div class="autosave-alert">
+                  This card has an #{ autosave_revision }
+                </div>}
+              end}#{
+              if @show_diff and @revision_number > 1  #ENGLISH
+                %{<div class="revision-diff-header">
+                  <small>
+                    Showing changes from revision ##{ @revision_number - 1 }:
+                    <ins class="diffins">Added</ins> | <del class="diffmod">Deleted</del>
+                  </small>
+                </div>}
+              end}
+            </div>
+            <div class="revision-navigation">#{ revision_menu }</div>
+            #{ wrap_content( :revision, :body=>true ) { _render_diff } }
+          }
         end
       end
     end

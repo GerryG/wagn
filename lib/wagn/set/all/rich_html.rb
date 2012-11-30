@@ -32,7 +32,8 @@ module Wagn
     end
 
     define_view :titled do |args|
-      hidden = { :menu_link=>true, :type=>true, :closed_link=>true }
+      hidden = { :menu_link=>true, :closed_link=>true }
+#      hidden = { :menu_link=>true, :type=>true, :closed_link=>true }
       wrap :titled, args do
         _render_header( args.merge :default_hidden => hidden ) +
         wrap_content( :titled ) do
@@ -69,50 +70,62 @@ module Wagn
       %{
       <div class="card-header">
         #{ _optional_render :menu_link, args, hidden[:menu_link] }
-        #{ _optional_render :closed_link, args, hidden[:closed_link] }        
+        #{ _optional_render :closed_link, args, hidden[:closed_link] }
         #{ _render_title }
-        #{ _optional_render :type, args, hidden[:type] }
       </div>
       }
+
+      #{ _optional_render :type, args, hidden[:type] }
     end
 
     define_view :closed_link do |args|
       link_to raw('&otimes;'), path(:read, :view=>:closed), :title => "close #{card.name}", :class => "toggler slotter", :remote => true
     end
-  
+
     define_view :menu_link do |args|
       %{<div class="card-menu-link">#{ _render_menu }&equiv;</div>}
     end
 
     define_view :menu do |args|
-     # options = [
-     #   { :text => 'view', :view=>:titled },
-     #   { :text =>  'edit' },
-     #   { :text => 'admin' }
-     # ]
-    
+
+      admin_items = if card && card.update_account_ok? #sigh.  very inefficient to do this with every header!!
+        [ link_to_action( 'rules', :options, :class=>'slotter' ),
+          link_to_action( 'account', :option_account, :class=>'slotter')
+        ]
+      else
+        []
+      end
+
       option_html = %{
         <ul class="card-menu">
-            <li>#{ link_to_action 'edit', :edit, :class=>'slotter' }
-              <ul>
-                  <li>#{ link_to_action 'content', :edit, :class=>'slotter' }</li>
-                  <li>#{ link_to_action 'name', :edit_name, :class=>'slotter' }</li>
-                  <li>#{ link_to_action 'type', :edit_type, :class=>'slotter' }</li>
-                  <li>#{ link_to_action 'history', :changes, :class=>'slotter' }</li>
-              </ul>
-            </li>
-            <li>#{ link_to_action 'view', :read, :class=>'slotter' }            
-              <ul>
-                <li>#{ link_to_action 'refresh', :read, :class=>'slotter' }</li>
-                <li>#{ link_to 'as main', path(:read) }</li>
-              </ul>
-            </li>
-            <li>#{ link_to_action 'admin', :options, :class=>'slotter' }</li>
-
+          <li>#{ link_to_action 'edit', :edit, :class=>'slotter' }
+            <ul>
+                <li>#{ link_to_action 'content', :edit, :class=>'slotter' }</li>
+                <li>#{ link_to_action 'name', :edit_name, :class=>'slotter' }</li>
+                <li>#{ link_to_action 'type', :edit_type, :class=>'slotter' }</li>
+                <li>#{ link_to_action 'history', :changes, :class=>'slotter' }</li>
+            </ul>
+          </li>
+          <li>#{ link_to_action 'view', :read, :class=>'slotter' }
+            <ul>
+              <li>#{ link_to_action 'refresh', :read, :class=>'slotter' }</li>
+              <li>#{ link_to 'as main', path(:read) }</li>
+              <li>#{ link_to_page "type: #{card.type_name}", card.type_name }</li>
+            </ul>
+          </li>
+          <li>#{ link_to_action 'admin', :options, :class=>'slotter' }
+            #{
+            if !admin_items.empty?
+              %{<ul>#{ admin_items.map do |i| "<li>#{i}</li>" end.join } </ul>}
+            end
+            }
+          </li>
+          #{ if Session.logged_in? && !card.new_card?
+              "<li>#{ render_watch }</li>"
+             end }
         </ul>
-
-
       }
+      #fixme - many of these (including watch) need permission checks for activation
     end
 
     define_view :closed do |args|
@@ -158,17 +171,17 @@ module Wagn
         { :class=>'redirecter', :href=>Card.path_setting('/*previous') }
       end
 
-      if ajax_call?
+      if !ajax_call?
         header_text = card.type_id == Card::DefaultTypeID ? 'Card' : card.type_name
         %{ <h1 class="page-header">New #{header_text}</h1>}
       else '' end +
-      
-      
-      (wrap :new, args.merge(:frame=>true) do  
+
+
+      (wrap :new, args.merge(:frame=>true) do
         card_form :create, 'card-form card-new-form', 'main-success'=>'REDIRECT' do |form|
           @form = form
           %{
-            <div class="card-header">          
+            <div class="card-header">
               #{ hidden_field_tag :success, card.rule(:thanks) || '_self' }
               #{ help_text :add_help, :fallback=>:edit_help }
               #{
@@ -216,9 +229,9 @@ module Wagn
       if dependents = card.dependents and dependents.any?
         confirm_delete +=  %{ \n\nThat would mean removing #{dependents.size} related pieces of information. }
       end
-      
+
       wrap :edit, args.merge(:frame=>true) do
-        %{ 
+        %{
         #{_render_header }
         #{ help_text :edit_help }
         #{ wrap_content :edit, :body=>true, :class=>'card-editor' do
@@ -258,15 +271,15 @@ module Wagn
       card.update_referencers = false
       referers = card.extended_referencers
       dependents = card.dependents
-    
+
       wrap :edit_name, args.merge(:frame=>true) do
         _render_header +
         wrap_content( :edit_name, :body=>true, :class=>'card-editor' ) do
           card_form( path(:update, :id=>card.id), 'card-name-form', 'main-success'=>'REDIRECT' ) do |f|
             @form = f
-            %{  
+            %{
               #{ _render_name_editor}
-          
+
               #{ f.hidden_field :update_referencers, :class=>'update_referencers'   }
               #{ hidden_field_tag :success, '_self'  }
               #{ hidden_field_tag :old_name, card.name }
@@ -279,7 +292,7 @@ module Wagn
                   #{ %{<li>automatically alter #{ dependents.size } related name(s). } if dependents.any? }
                   #{ %{<li>break at least #{referers.size} reference(s) to this name.} if referers.any? }
                 </ul>
-                #{ %{<p>You may choose to <em>ignore or fix</em> the references. Fixing will update references to use the new name.</p>} if referers.any? }  
+                #{ %{<p>You may choose to <em>ignore or fix</em> the references. Fixing will update references to use the new name.</p>} if referers.any? }
               </div>
               <fieldset>
                 <div class="button-area">
@@ -309,7 +322,7 @@ module Wagn
         wrap_content( :edit_type, :body=>true, :class=>'card-editor' ) do
           card_form( :update, 'card-edit-type-form' ) do |f|
             #'main-success'=>'REDIRECT: _self', # adding this back in would make main cards redirect on cardtype changes
-            %{ 
+            %{
               #{ hidden_field_tag :view, :edit }
               #{if card.type_id == Card::CardtypeID and !Card.search(:type_id=>card.card.id).empty? #ENGLISH
                 %{<div>Sorry, you can't make this card anything other than a Cardtype so long as there are <strong>#{ card.name }</strong> cards.</div>}
@@ -317,7 +330,7 @@ module Wagn
                 _render_type_editor :variety=>:edit #FIXME dislike this api -ef
               end}
               <fieldset>
-                <div class="button-area">              
+                <div class="button-area">
                   #{ submit_tag 'Submit', :disable_with=>'Submitting' }
                   #{ button_tag 'Cancel', :href=>path(:edit), :type=>'button', :class=>'edit-type-cancel-button slotter' }
                 </div>
@@ -349,7 +362,7 @@ module Wagn
       } do |args|
 
       locals = {:slot=>self, :card=>card, :account=>card.account }
-      wrap :options, args do
+      wrap :options, args.merge(:frame=>true) do
         %{ #{ _render_header }
           <div class="options-body">
             #{ card_form :update_account, '', 'notify-success'=>'account details updated' do |form|
@@ -372,7 +385,7 @@ module Wagn
         }
       end
     end
-  
+
     define_view :options do |args|
       related_sets = card.related_sets
       current_set = params[:current_set] || related_sets[card.type_id==Card::CardtypeID ? 1 : 0]  #FIXME - explicit cardtype reference
@@ -414,7 +427,7 @@ module Wagn
           }
        end
     end
-    
+
     define_view :option_roles do |args|
       roles = Card.search( :type=>Card::RoleID, :limit=>0 ).reject do |x|
         [Card::AnyoneID, Card::AuthID].member? x.id.to_i
@@ -623,9 +636,9 @@ module Wagn
           watching_type_cards
         else
           link_args = if card.watching?
-            ["unwatch", :off, "stop sending emails about changes to #{card.cardname}"]
+            ["following", :off, "stop sending emails about changes to #{card.cardname}", { :hover_content=> 'unfollow' } ]
           else
-            ["watch", :on, "send emails about changes to #{card.cardname}"]
+            ["follow", :on, "send emails about changes to #{card.cardname}" ]
           end
           watch_link *link_args
         end
@@ -637,7 +650,7 @@ end
 
 class Wagn::Renderer::Html
   def watching_type_cards
-    "watching #{ link_to_page card.type_name } cards"
+    %{<div class="faint">(following)</div>} #yuck
   end
 
   def watch_link text, toggle, title, extra={}

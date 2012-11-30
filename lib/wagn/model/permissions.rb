@@ -65,6 +65,10 @@ module Wagn::Model::Permissions
   def ok! operation, opts={}
     raise Card::PermissionDenied.new self unless ok? operation, opts
   end
+  
+  def update_account_ok? #FIXME - temporary API
+    to_user and Session.as_id==id || fetch(:trait=>:account, :new=>{}).ok?( :update )
+  end
 
   def who_can operation
     #warn "who_can[#{name}] #{(prc=permission_rule_card(operation)).inspect}, #{prc.first.item_cards.map(&:id)}" if operation == :update

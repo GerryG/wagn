@@ -116,7 +116,7 @@ class CardActionTest < ActionController::IntegrationTest
     email = ActionMailer::Base.deliveries[-1]
     Rails.logger.warn "email #{email} #{Account.authorized.account}"
     assert_equal Account.authorized.account.email, email.from[0]
-    assert user = Account.from_email('foo@bar.com')
+    assert user = Account.find_by_email('foo@bar.com')
     assert_equal 'active', user.status
   end
 

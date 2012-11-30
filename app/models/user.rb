@@ -24,13 +24,9 @@ class User < ActiveRecord::Base
   before_save :encrypt_password
 
   class << self
-    def from_email(email)
-      User.where(:email=>email.strip.downcase).first
+    def find_by_email email
+      super email.strip.downcase
     end
-
-    def from_login(login)       User.where(:login=>login).first                  end
-    def from_id(cid)            User.where({:account_id=>cid}).first             end
-    def from_user_id(card_id)   User.where(:card_id=>card_id).first              end
 
     def encrypt(password, salt) Digest::SHA1.hexdigest("#{salt}--#{password}--") end
     def password_required?;     true                                             end
@@ -73,9 +69,17 @@ class User < ActiveRecord::Base
     (em = self.email) =~ /[A-Z]/ and em=em.downcase and self.email=em end
 
   # Authenticates a user by their login name and unencrypted password.  Returns the user or nil.
-  def authenticated? params
-    password = params[:password] and password = password.strip and
-      crypted_password == encrypt(password) and active?
+  def authenticate acct_card, params
+    return unless acct_card
+
+    if password = params[:password]
+      password = password.strip
+      acct_card.errors.add :account, "Authentication failed." unless crypted_password == encrypt(password)
+      acct_card.errors.add :account, "Account is blocked." unless active?
+    else
+      acct_card.errors.add :account, "No password."
+    end
+    acct_card
   end
 
  protected

@@ -5,29 +5,34 @@ class Account
 
   class << self
     # can these just be delegations:
-    # delegate @@acount_class, :new, :from_email, :from_login, :from_id, :save
-    def [](card_id)           from_user_id(card_id) || from_id(card_id) end
-    def new(*args)            @@session_class.new(*args)                end
-    def from_email(email)     @@session_class.from_email(email)         end
-    def from_login(login)     @@session_class.from_login(login)         end
-    def from_id(card_id)      @@session_class.from_id(card_id)          end
-    def from_user_id(card_id) @@session_class.from_user_id(card_id)     end
 
-    def authenticated params
-      Rails.logger.warn "A.auth? #{params.inspect}"
-      r=(
-      acct = from_params(params) and acct.authenticated?(params) and acct
-      ); Rails.logger.warn "auth? #{params.inspect}, #{acct.inspect} #{r}"; r
+    def [] id
+      @@session_class.find_by_card_id id or
+        @@session_class.find_by_account_id id
     end
 
-    def from_params params
+    def new *args            ; @@session_class.new(*args)            end
+    def find_by_email email  ; @@session_class.find_by_email(email)  end
+    #def find_by_login login  ; @@session_class.find_by_login(login)  end
+    def find_by_account_id id; @@session_class.find_by_account_id id end
+    def find_by_card_id id   ; @@session_class.find_by_card_id id    end
+
+    # return the account card
+    def authenticate params
+      Rails.logger.warn "A.auth? #{params.inspect}"
+      acct = lookup(params) and acct_cd = acct.authenticate(  Card[ acct.account_id ], params )
+      Rails.logger.warn "auth? #{params.inspect}, #{acct_cd.inspect} #{acct}"
+      acct_cd
+    end
+
+    def lookup params
       if email = params[:email]
         email = email.strip.downcase
-        from_email email
+        find_by_email email
       end
     end
 
-    def lookup account
+    def get_account account
       if @@session_class===account
         Card[account.account_id]
       else
@@ -61,21 +66,21 @@ class Account
       acid==BOTCARD_ID || acid == Card::WagnBotID
     end
 
-    def reset()                @@session = Card[ANONCARD_ID]; @@as_card = nil               end
-    def session()              @@session || Card[ANONCARD_ID]                               end
-    def authorized_email()     as_card.trunk.account.email                                  end
-    def session=(account)      @@session = lookup(account) || Card[ANONCARD_ID]             end
-    def as_card()              @@as_card || session                                         end
+    def reset()            @@session = Card[ANONCARD_ID]; @@as_card = nil               end
+    def session()          @@session || Card[ANONCARD_ID]                               end
+    def authorized_email() as_card.trunk.account.email                                  end
+    def session=(account)  @@session = get_account(account) || Card[ANONCARD_ID]       end
+    def as_card()          @@as_card || session                                         end
     # We only need to test for the tag presence for migrations, we are going to  make sure it
     # exists and is indestructable (add tests for that)
-    def authorized()           as_card.trunk                                                end
-    def as_bot(&block)         as Card::WagnBotID, &block                                   end
-    def among?(authzed)        authorized.among? authzed                                    end
-    def logged_in?()           session.id != ANONCARD_ID                                    end
+    def authorized()       as_card.trunk                                                end
+    def as_bot(&block)     as Card::WagnBotID, &block                                   end
+    def among?(authzed)    authorized.among? authzed                                    end
+    def logged_in?()       session.id != ANONCARD_ID                                    end
 
     def as given_account
       save_as = @@as_card
-      @@as_card = lookup(given_account) || Card[ANONCARD_ID]
+      @@as_card = get_account(given_account) || Card[ANONCARD_ID]
       #Rails.logger.info "set ac #{@@as_card.inspect}"
 
       if block_given?

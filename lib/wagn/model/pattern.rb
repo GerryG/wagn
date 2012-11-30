@@ -156,7 +156,6 @@ module Wagn::Model
 
       def opt_vals
         if @opt_vals.nil?
-          Rails.logger.warn "opt_vals #{@trunk_name.inspect}"
           @opt_vals = self.class.trunkless? ? [] :
             @trunk_name.parts.map do |part|
               card=Card.fetch(part, :skip_virtual=>true, :skip_modules=>true) and Wagn::Codename[card.id.to_i]

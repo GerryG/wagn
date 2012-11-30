@@ -47,7 +47,7 @@ class AccountCreationTest < ActionController::TestCase
     post_invite :card=>{ :key=>"ron_request"}, :action=>:accept
     c=Card.fetch('Ron Request')
     assert_equal :user, c.typecode
-    assert_equal "active", Account.from_email("ron@request.com").status
+    assert_equal "active", Account.find_by_email("ron@request.com").status
   end
 
   def test_should_create_account_from_account_request_when_account_hard_templated
@@ -56,7 +56,7 @@ class AccountCreationTest < ActionController::TestCase
     post_invite :card=>{ :key=>"ron_request"}, :action=>:accept
     c=Card.fetch('Ron Request')
     assert_equal :user, c.typecode
-    assert_equal "active", Account.from_email("ron@request.com").status
+    assert_equal "active", Account.find_by_email("ron@request.com").status
   end
 
 
@@ -81,8 +81,8 @@ class AccountCreationTest < ActionController::TestCase
     email = ActionMailer::Base.deliveries[-1]
     # emails should be 'from' inviting user
     assert_equal Account.session.account.email, email.from[0]
-    Rails.logger.warn "testing fscr #{Account.from_email('new@user.com').inspect}"
-    assert Account.from_email('new@user.com').active?
+    Rails.logger.warn "testing fscr #{Account.find_by_email('new@user.com').inspect}"
+    assert Account.find_by_email('new@user.com').active?
   end
 
   def test_should_create_account_when_account_cards_are_templated   ##FIXME -- I don't think this actually catches the bug I saw.

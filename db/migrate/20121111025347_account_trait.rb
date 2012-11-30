@@ -1,7 +1,7 @@
 class AccountTrait < ActiveRecord::Migration
   def up
     Account.as_bot do
-      User.all.each do |user|
+      User.where(:status=>'active').each do |user|
         #next if user.card_id == Card::WagnBotID || user.card_id == Card::AnonID
         card = Card.find user.card_id
         if account = card.fetch(:trait=>:account, :new=>{})

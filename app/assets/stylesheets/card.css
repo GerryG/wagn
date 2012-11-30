@@ -1,12 +1,11 @@
-.open-view,
-.changes-view,
-.options-view,
-.related-view,
-.remove-view,
-.new-view,
+/*
 .denial-view,
 .not_found-view,
-.edit-view {
+*/
+
+
+ 
+.card-frame {
   margin: 1px 0px;
   padding: 0px !important;
   -moz-border-radius: 8px;
@@ -32,30 +31,44 @@ html>body .open-view {
 /*----- header ---------*/
 
 .card-header {
-  background: #005800;
-  padding: 5px;
+  background: #8AB;
+  padding: 5px 12px;
   margin: 0px;
   -moz-border-radius: 6px 6px 0 0;
   border-radius: 6px 6px 0 0;
   text-align: left;
 }
+.card-header,
+.card-header a {
+  color: #333
+}
+
 .card-header h1 {
   display: inline;
 }
 h1.card-title { 
-  margin: 0px 2px;
-  font-weight: bold;
-  font-size: 13px;
-  padding: 2px 0px 2px 25px;
+  padding: 2px 0;
   white-space: nowrap;
+  margin-right: 5px;
 }
 .card-header .card-menu-link {
   float: right;
 }
-.cardMenu {
+.card-menu {
   display:none;
   position:absolute;
   z-index: 1;
+}
+.card-menu .ui-menu-icon {
+  float: left;
+  margin-right: 15px;
+}
+.card-menu .ui-menu-item {
+  text-align: right;
+  white-space: nowrap;
+}
+.card-header .toggler {
+  font-size: 1.5em;
 }
 
 
@@ -83,10 +96,6 @@ h1.card-title {
   font-style: italic;
   font-size: 10px;
 }
-.card-header,
-.card-header a {
-  color: #fff
-}
 
 .current {
   background: #bbb;
@@ -109,7 +118,7 @@ a.wanted-card {
 }
 a.external-link,
 .closed-content a.external-link {
-  color: #979;
+  color: #729;
   background: url(external_link.png) center right no-repeat;
   padding-right: 13px !important;
 }
@@ -163,6 +172,9 @@ fieldset > .editor {
   float: right;
   width: 70%;
   padding: 3px;
+}
+fieldset > .button-area {
+  padding: 0 3px;
 }
 fieldset > .editor > input {
   margin-left: 0;
@@ -277,10 +289,10 @@ del.diffmod,
   margin-top: 5px;
   color: #444;
 }
-.open-content,
-.revision {
+.card-body {
   display: block;
-  padding: 5px 15px 10px 15px;
+  padding: 5px 12px;
+  min-height: 25px;
 }
 .instruction {
   border-left: 0px;
@@ -319,6 +331,12 @@ body#wagn .card-slot.recent-changes h2 {
   margin: 0px 5px 0px 0px;
 }
 
+
+.titled-view .card-header {
+   background: inherit;
+   padding: 0;
+}
+
 /*------------- closed cards -------*/
 
 .closed-view {
@@ -334,16 +352,13 @@ body#wagn .card-slot.recent-changes h2 {
   margin: 1px 0 0 0;
 }
 .closed-view .card-header {
-  padding: 3px 22px 3px 3px;
+  padding: auto 12px;
   vertical-align: middle;
   display: inline-block;
   line-height: 15px;
   -moz-border-radius: 0px 6px 6px 0px;
   border-radius: 0px 6px 6px 0px;
   margin-right: 4px;
-}
-.closed-view div:hover.card-header {
-  padding-right: 0px;
 }
 .closed-content,
 .closed-content tr,

@@ -291,7 +291,7 @@ module Wagn
       attribute = params[:attribute]
 
       my_card = card.id == Account.authorized.id
-      attribute ||= card.to_user && (my_card || card.ok?(:update, :trait=>:account)) ?  'account' : 'settings'
+      attribute ||= card.account && (my_card || card.ok?(:update, :trait=>:account)) ?  'account' : 'settings'
       render "option_#{attribute}"
     end
 

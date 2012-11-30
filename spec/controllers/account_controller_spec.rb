@@ -29,7 +29,7 @@ describe AccountController do
       @account_card.new_card?.should be_false
       @user_card.type_id.should == Card::UserID
       @account_card.type_id.should == Card::BasicID
-      @new_account=Account.from_email('joe@new.com')
+      @new_account=Account.find_by_email('joe@new.com')
       #warn "... #{@account_card.inspect}, #{@user_card.inspect} #{@new_account.inspect}"
       @new_account.should be
       @new_account.account_id.should == @account_card.id

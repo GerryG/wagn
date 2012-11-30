@@ -30,7 +30,7 @@ class Wagn::Set::Type::AccountRequestTest < ActionController::TestCase
       :name=>"Word Third",
       :content=>"Let me in!"
     }
-    assert_instance_of User, @user = Account.from_email(@jaymail)
+    assert_instance_of User, @user = Account.find_by_email(@jaymail)
     assert_equal (@card = Card[@user.card_id]).type_id, Card::AccountRequestID
     Rails.logger.info "testing user email #{@card.inspect}, #{@user.inspect}"
     #assert_response 302   # should this redirect?  what is the spec?
@@ -47,7 +47,7 @@ class Wagn::Set::Type::AccountRequestTest < ActionController::TestCase
 
     assert (@card = Card["Word Third"]), "should be created"
     assert (@acard =  @card.fetch(:trait=>:account)), "with +*account card"
-    @user = Account.from_email(@jaymail)
+    @user = Account.find_by_email(@jaymail)
     assert @user, "User is created"
 
     assert_equal @card.typecode, :account_request
@@ -65,7 +65,7 @@ class Wagn::Set::Type::AccountRequestTest < ActionController::TestCase
     # FIXME: should test agains mocks here, instead of re-testing the model...
     post :delete, :id=>"~#{Card['Ron Request'].id}", :confirm_destroy=>true
     assert_equal nil, Card['Ron Request']
-    assert_equal 'blocked', Account.from_email('ron@request.com').status
+    assert_equal 'blocked', Account.find_by_email('ron@request.com').status
   end
 
 end

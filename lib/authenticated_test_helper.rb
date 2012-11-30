@@ -39,7 +39,7 @@ module AuthenticatedTestHelper
   end
 
   def assert_auth email, password
-    user = Account.authenticated(:email=>email, :password=>password)
+    user = Account.authenticate(:email=>email, :password=>password)
     assert user, "#{email} should authenticate"
     #assert User === user, "#{email} should locate a user"
   end
@@ -57,7 +57,7 @@ module AuthenticatedTestHelper
   end
 
   def assert_status(email, status, msg='')
-    Rails.logger.warn "assert stat em:#{email}, S:#{status} afe:#{Account.from_email(email).inspect}"
-    assert_equal status, Account.from_email(email).status, msg
+    Rails.logger.warn "assert stat em:#{email}, S:#{status} afe:#{Account.find_by_email(email).inspect}"
+    assert_equal status, Account.find_by_email(email).status, msg
   end
 end

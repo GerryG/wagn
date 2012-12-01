@@ -37,7 +37,7 @@ module Wagn::Model::Permissions
 
   def ok_with_fetch? operation, opts={}
     card = opts[:trait].nil? ? self : fetch(opts)
-    card.ok_without_fetch? operation
+    card && card.ok_without_fetch?(operation)
   end
 
   def ok? operation

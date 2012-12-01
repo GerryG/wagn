@@ -12,7 +12,7 @@ class AdminController < ApplicationController
         aparams = params[:account]
         aparams[:name] = @card.name
         acct = Account.new( aparams ).active
-        warn "acct setup #{acct.inspect}, #{@card.account}"
+        #warn "acct setup #{acct.inspect}, #{@card.account}"
         @account = @card.account = Account.new( aparams ).active
         set_default_request_recipient
 

@@ -501,9 +501,13 @@ class Card < ActiveRecord::Base
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   # ACCOUNT / SESSION
 
+  def no_account?
+    @account.nil?
+  end
+
   def account
     # no id? try using the cardname to find the user Account.get_account
-    if @account.nil? and uid = id.nil? ?
+    if no_account? and uid = id.nil? ?
           ( user_card = Account.get_account(name) and user_card.id ) : id
       @account = Account[uid]
     end
@@ -566,6 +570,7 @@ class Card < ActiveRecord::Base
   protected
 
   def clear_drafts # yuck!
+    #Card::Revision.where("card_id = ? AND id > #{current_revision_id}", id).delete
     connection.execute(%{delete from card_revisions where card_id=#{id} and id > #{current_revision_id} })
   end
 
@@ -628,7 +633,7 @@ class Card < ActiveRecord::Base
   # MISCELLANEOUS
 
   #def debug_type() type_id end
-  def debug_type() "#{typecode||'no code'}:#{type_id}" end
+  def debug_type() "#{typecode||'!code'}:#{type_id}" end
   #def debug_type() "#{typename}:#{type_id}" end # this can cause infinite recursion
 
   def to_s
@@ -637,11 +642,10 @@ class Card < ActiveRecord::Base
 
   def inspect
     "#<#{self.class.name}" + "##{id}" +
-    "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
-    # "###{object_id}" +
-     ":Rt:#{right_id}Lf:#{left_id}" +
-    (@account.nil? ? 'noU' : "Usr[#{@account}]") +
-    (errors.any? ? '*Errors*' : 'noE') +
+    "[#{debug_type}]" + "(#{self.name})" +
+    # "###{object_id}" + ":Rt:#{right_id}Lf:#{left_id}" +
+    (no_account? ? '' : "Usr[#{@account}]") +
+    #(errors.any? ? '*Errors*' : 'noE') +
     (errors.any? ? "<E*#{errors.full_messages*', '}*>" : '') +
     # "#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{virtual? &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }}" +
     # " Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}" +
@@ -740,14 +744,12 @@ class Card < ActiveRecord::Base
       end
 
       # validate uniqueness of name
-      condition_sql = "cards.key = ? and trash=?"
-      condition_params = [ cdname.key, false ]
-      unless card.new_record?
-        condition_sql << " AND cards.id <> ?"
-        condition_params << card.id
-      end
-      if c = Card.find(:first, :conditions=>[condition_sql, *condition_params])
-        card.errors.add :name, "must be unique-- A card named '#{c.name}' already exists"
+      # FIXME: use ARec methods
+      conditions = ['cards.key = ? AND trash = false', cdname.key] 
+      (conditions << card.id)[0] += ' AND id <> ?' unless card.new_record?
+        
+      if collision = Card.where(conditions).first
+        card.errors.add :name, "must be unique-- A card named '#{collision.name}' already exists"
       end
 
       # require confirmation for renaming multiple cards
@@ -809,6 +811,8 @@ class Card < ActiveRecord::Base
   validates_each :type_id do |card, a, type_id|
     # validate on update
     #warn "validate type #{card.inspect}, #{a}, #{type_id}"
+    #warn "updates #{card.inspect}, #{card.updates.map(&:inspect)*', '} UfT:#{type_id} T:#{card.no_account?} && #{type_id != AccountRequestID} && #{card.right_id != AccountID}"
+    card.type_id = UserID if !card.no_account? && type_id != AccountRequestID && card.right_id != AccountID
     if card.updates.for?(:type_id) and !card.new_card?
       if !card.validate_type_change
         card.errors.add :type, "of #{ card.name } can't be changed; errors changing from #{ card.type_name }"

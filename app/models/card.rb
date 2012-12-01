@@ -68,7 +68,7 @@ class Card < ActiveRecord::Base
 
     def const_missing const
       if const = const.to_s and const == 'Card'
-        self
+        self  # this solves a vexing load issue, otherwise it loops
       elsif const =~ /^([A-Z]\S*)ID$/ and code=$1.underscore.to_sym
         code = ID_CONST_ALIAS[code] || code
         if card_id = Wagn::Codename[code]
@@ -80,9 +80,8 @@ class Card < ActiveRecord::Base
         super
       end
     rescue NameError=>e
-      #Rails.logger.warn "Card not defined, return self #{caller*"\n"}" if const.to_sym == :Card
+      # this shouldn't happen now, we cut it off above now
       Rails.logger.warn "Card not defined, return self" if const.to_sym == :Card
-      return self if const.to_sym == :Card
       nil
     end
 
@@ -237,8 +236,6 @@ class Card < ActiveRecord::Base
   end
 
   def base_before_save
-    #self.content= self.content if new_card? && !updates.for?(:content)
-    #warn "bbsave #{inspect}, #{updates.inspect} [#{self.content}]"
     if self.respond_to?(:before_save) and self.before_save == false
       errors.add(:save, "could not prepare card for destruction") #fixme - screwy error handling!!
       return false
@@ -330,14 +327,18 @@ class Card < ActiveRecord::Base
   end
 
   def validate_destroy
-    if code=self.codename
-      errors.add :destroy, "#{name} is is a system card. (#{code})\n  Deleting this card would mess up our revision records."
-    end
-    if type_id== UserID && Revision.find_by_creator_id( self.id )
-      errors.add :destroy, "Edits have been made with #{name}'s user account.\n  Deleting this card would mess up our revision records."
-    end
-    if respond_to? :custom_validate_destroy
-      self.custom_validate_destroy
+    if !dependents.empty? && !confirm_destroy
+      errors.add(:confirmation_required, "because #{name} has #{dependents.size} dependents")
+    else
+      if code=self.codename || (tk=trunk) && tk.id == AllID && [ DefaultID ].member?(right_id)
+        errors.add :destroy, "#{name} is is a system card. (#{code||'all+default'})\n  Deleting this card would mess up our revision records."
+      end
+      if type_id== UserID && Revision.find_by_creator_id( self.id )
+        errors.add :destroy, "Edits have been made with #{name}'s user account.\n  Deleting this card would mess up our revision records."
+      end
+      if respond_to? :custom_validate_destroy
+        self.custom_validate_destroy
+      end
     end
     errors.empty?
   end
@@ -768,7 +769,7 @@ class Card < ActiveRecord::Base
 
   validates_each :content do |card, a, content|
     if card.new_card? && !card.updates.for?(:content)
-      content = card.content #this is not really a validation.  is the double card.content meaningful? let's find out 
+      content = card.content
     end
 
     if card.updates.for? :content

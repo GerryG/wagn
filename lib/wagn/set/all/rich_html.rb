@@ -296,9 +296,7 @@ module Wagn
     end
 
     define_view :option_account, :perms=> lambda { |r|
-        # Should :update be on the card with account or the account?  This design decision is implemented a couple of places
-        Account.as_card.id==r.card.id or r.card.ok?(:update, :trait=>:account)
-      } do |args|
+      r.card.id == Account.authorized.id || r.card.update_account_ok? } do |args|
 
       locals = {:slot=>self, :card=>card, :account=>card.account }
       wrap :options, args do

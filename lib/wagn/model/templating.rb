@@ -80,10 +80,8 @@ module Wagn::Model::Templating
 
   def hard_templatee_spec
     if is_hard_template?
-      if tk = trunk and tk.type_id == Card::SetID
-        # I'm not sure I understand why this needs to be differen now, but the other is broken ...
-        #tk.get_spec :spec=>tk.content
-        tk.get_spec :spec=>tk.raw_content
+      if !trash && tk = trunk and tk.type_id == Card::SetID
+        tk.get_spec :spec=>tk.content
       else
         true
       end

@@ -113,7 +113,7 @@ class CardActionTest < ActionController::IntegrationTest
     integration_login_as 'joe_admin'
     assert_difference ActionMailer::Base.deliveries, :size do
       post '/card/create_account/', :id=>'a', :account=>{:email=>'foo@bar.com'}
-      assert_response 200
+      assert_response :redirect  # this now redirects, and I think that is correct
     end
     email = ActionMailer::Base.deliveries[-1]
     Rails.logger.warn "email #{email} #{Account.authorized.account}"

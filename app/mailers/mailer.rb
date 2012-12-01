@@ -108,8 +108,7 @@ class Mailer < ActionMailer::Base
     else
       args[:from] = from
     end
-    #warn "mail args #{args.inspect}"
-    mail args
+    mail args unless Wagn::Conf[:migration]
   end
 
 

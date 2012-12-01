@@ -299,7 +299,7 @@ module Wagn
         # Should :update be on the card with account or the account?  This design decision is implemented a couple of places
         Account.as_card.id==r.card.id or r.card.ok?(:update, :trait=>:account)
       } do |args|
-    
+
       locals = {:slot=>self, :card=>card, :account=>card.account }
       wrap :options, args do
         %{ #{ _render_header }
@@ -312,7 +312,7 @@ module Wagn
               <table class="fieldset">
                 #{ option_header 'Account Details' }
                 #{ template.render :partial=>'account/edit',  :locals=>locals }
-                
+
                 #{ _render_option_roles }
                 #{ if options_need_save
                     %{<tr><td colspan="3">#{ submit_tag 'Save Changes' }</td></tr>}
@@ -360,7 +360,7 @@ module Wagn
                     </div>}
                    end
                 }
-              </div> 
+              </div>
             </div>
             #{ notice }
          }
@@ -372,15 +372,15 @@ module Wagn
         [Card::AnyoneID, Card::AuthID].member? x.id.to_i
       end
 
-      option_content = if traitc = card.fetch(:trait => :roles, :new=>{})
-        user_roles = traitc.item_cards(:limit=>0) or ( user_roles or
-            traitc = card.fetch(:trait=>:roles, :new=>{}) and traitc.ok?(:update) and
-        user_roles = traitc.item_cards(:limit=>0) )
+      traitc = card.fetch :trait => :roles, :new=>{}
+      user_roles = traitc.item_cards :limit=>0
+
+      option_content = if traitc.ok? :update
           user_role_ids = user_roles.map &:id
           hidden_field_tag(:save_roles, true) +
           (roles.map do |rolecard|
             #warn Rails.logger.info("option_roles: #{rolecard.inspect}")
-            if rolecard
+            if rolecard && !rolecard.trash
              %{<div style="white-space: nowrap">
                #{ check_box_tag "user_roles[%s]" % rolecard.id, 1, user_role_ids.member?(rolecard.id) ? true : false }
                #{ link_to_page rolecard.name }

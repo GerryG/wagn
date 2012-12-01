@@ -1,16 +1,3 @@
-class Card::PermissionDenied < Wagn::PermissionDenied
-  attr_reader :card
-  def initialize card
-    @card = card
-    super build_message
-  end
-
-  def build_message
-    "for card #{@card.name}: #{@card.errors[:permission_denied]}"
-  end
-end
-
-
 
 module Wagn::Model::Permissions
 
@@ -64,6 +51,10 @@ module Wagn::Model::Permissions
 
   def ok! operation, opts={}
     raise Card::PermissionDenied.new self unless ok? operation, opts
+  end
+  
+  def update_account_ok? #FIXME - temporary API
+    to_user and Session.as_id==id || fetch(:trait=>:account, :new=>{}).ok?( :update )
   end
 
   def who_can operation

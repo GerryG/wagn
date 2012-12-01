@@ -8,11 +8,14 @@ module Chunk
     end
 
     def refcardname()
-      cardname && self.cardname = cardname.to_absolute(card.cardname).to_name
+      raise inspect if self.cardname.to_s == 'true'
+      self.cardname && self.cardname = self.cardname.to_absolute(card.cardname).to_name
+      Rails.logger.warn "refcardname: #{card.inspect}, cn:#{cardname} #{inspect}"; self.cardname
     end
 
     def refcard()
       @refcard ||= refcardname && Card.fetch(refcardname)
+      Rails.logger.warn "refcard #{refcardname.inspect}, #{@refcard.inspect}"; @refcard
     end
 
     def link_text()

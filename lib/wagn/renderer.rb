@@ -429,18 +429,19 @@ module Wagn
     #FIXME -- should not be here.
     def update_references rendering_result = nil, refresh = false
       return unless card && card.id
-      Card::Reference.delete_all ['card_id = ?', card.id]
-      card.connection.execute("update cards set references_expired=NULL where id=#{card.id}")
+      Rails.logger.info "update refs #{inspect}"
+      Card::Reference.delete_all :card_id => card.id
+      Card.update card.id, :references_expired=>nil
       card.expire if refresh
       rendering_result ||= WikiContent.new(card, _render_refs, self)
       rendering_result.find_chunks(Chunk::Reference).each do |chunk|
-        reference_type =
-          case chunk
-            when Chunk::Link;       chunk.refcard ? LINK : WANTED_LINK
-            when Chunk::Transclude; chunk.refcard ? TRANSCLUSION : WANTED_TRANSCLUSION
-            else raise "Unknown chunk reference class #{chunk.class}"
-          end
+      Rails.logger.warn "processing chunk1 [#{chunk.class}][#{chunk.refcard.nil?}]i:#{chunk.inspect}"
+        reference_type = TYPE_MAP[chunk.class][chunk.refcard.nil?]
+      Rails.logger.warn "processing chunk: #{chunk.inspect}, rcname:#{chunk.refcardname} <> reftype:#{reference_type.inspect} Rcard:#{chunk.refcard.inspect}"
+      reference_type or
+            raise "Unknown chunk reference class #{chunk.class}"
 
+      Rails.logger.warn "new ref :card_id=>#{card.id}, :referenced_name=> #{(rc=chunk.refcardname()) && rc.key() || ''}, :referenced_card_id=> #{chunk.refcard ? chunk.refcard.id : nil}, :link_type=>#{reference_type}"
         Card::Reference.create!( :card_id=>card.id,
           :referenced_name=> (rc=chunk.refcardname()) && rc.key() || '',
           :referenced_card_id=> chunk.refcard ? chunk.refcard.id : nil,

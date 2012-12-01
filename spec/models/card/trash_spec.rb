@@ -204,7 +204,6 @@ describe Card, "indestructables" do
       [:all, :default, '*all+*default'].each do |key|
         card = Card[key] and card.destroy
         warn "card #{card.inspect}, #{card.errors.full_messages*', '}"
-        #dcard.errors.any?.should be_true
         Card[key].should be
       end
     end

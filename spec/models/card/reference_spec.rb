@@ -17,8 +17,11 @@ describe "Card::Reference" do
     it "on template creation" do
       Account.as_bot do
         Card.create! :name=>"SpecialForm", :type=>'Cardtype'
-        Card.create! :name=>"Form1", :type=>'SpecialForm', :content=>"foo"
+        c = Card.create! :name=>"Form1", :type=>'SpecialForm', :content=>"foo"
+        Rails.logger.warn "testing #{c.inspect}, #{c.references_expired}"
+        c.references_expired.should be_nil
         c = Card["Form1"]
+        Rails.logger.warn "testing a #{c.inspect}, #{c.references_expired}"
         c.references_expired.should be_nil
         Card.create! :name=>"SpecialForm+*type+*content", :content=>"{{+bar}}"
         Card["Form1"].references_expired.should be_true
@@ -60,9 +63,10 @@ describe "Card::Reference" do
 
   it "container transclusion" do
     Account.as_bot do
-      Card.create :name=>'bob+city'
-      Card.create :name=>'address+*right+*default',:content=>"{{_L+city}}"
-      Card.create :name=>'bob+address'
+      Card.create( :name=>'bob+city' ).should be
+      Card.create( :name=>'address+*right+*default',:content=>"{{_L+city}}" ).should be
+      Card.create( :name=>'bob+address' ).should be
+      Card['address+*right+*default'].content.should == "{{_L+city}}"
       Card.fetch('bob+address').transcludees.plot(:name).should == ["bob+city"]
       Card.fetch('bob+city').transcluders.plot(:name).should == ["bob+address"]
     end

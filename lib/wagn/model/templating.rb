@@ -70,6 +70,7 @@ module Wagn::Model::Templating
       end
 
       wql.run.each_slice(100) do |id_batch|
+        Rails.logger.warn "expire templatees #{inspect}, #{id_batch.inspect}"
         Card.where( :id => id_batch ).update_all :references_expired=>1
       end
     end

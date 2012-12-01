@@ -450,9 +450,12 @@ class Card < ActiveRecord::Base
   # CONTENT / REVISIONS
 
   def content
+    #Rails.logger.warn "content #{inspect}"
     if !new_card?
+    #Rails.logger.warn "content crev #{current_revision.content}"
       current_revision.content
     elsif tmpl = template
+    #Rails.logger.warn "content t #{tmpl.inspect}"
       tmpl.content
     else
       ''
@@ -647,7 +650,7 @@ class Card < ActiveRecord::Base
     (no_account? ? '' : "Usr[#{@account}]") +
     #(errors.any? ? '*Errors*' : 'noE') +
     (errors.any? ? "<E*#{errors.full_messages*', '}*>" : '') +
-    # "#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{virtual? &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }}" +
+    "{#{references_expired==1 ? 'Exp' : "noEx"}:#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{virtual? &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }}" +
     # " Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}" +
     '>'
   end
@@ -800,7 +803,9 @@ class Card < ActiveRecord::Base
   end
 
   validates_each :current_revision_id do |card, a, cur_rev_id|
-    if !card.new_card? && card.current_revision_id_changed? && cur_rev_id.to_i != card.current_revision_id_was.to_i
+    if !card.new_card? && !card.current_revision_id_was.blank? &&
+        card.current_revision_id_changed? && cur_rev_id.to_i != card.current_revision_id_was.to_i
+      Rails.logger.warn "revision wrong base  #{card.inspect} revision id to #{card.current_revision_id_was.inspect}, #{card.current_revision_id.inspect} #{caller*"\n"}"
       card.current_revision_id = card.current_revision_id_was
       card.errors.add :conflict, "changes not based on latest revision"
       card.error_view = :conflict

@@ -43,8 +43,7 @@ class User < ActiveRecord::Base
   def active ; self.status='active' ; self  end
   def pending; self.status='pending'; self  end
   def block  ; self.status='blocked'; self  end
-  def block!
-    Rails.logger.warn "block! #{inspect}" ;      block;  save    ; self  end
+  def block! ;      block;  save    ; self  end
   def save   ;      super end
 
   def blocked= arg

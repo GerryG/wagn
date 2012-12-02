@@ -37,7 +37,7 @@ module Wagn::Model::Permissions
 
   def ok_with_fetch? operation, opts={}
     card = opts[:trait].nil? ? self : fetch(opts)
-    card.ok_without_fetch? operation
+    card && card.ok_without_fetch?(operation)
   end
 
   def ok? operation
@@ -54,7 +54,7 @@ module Wagn::Model::Permissions
   end
   
   def update_account_ok? #FIXME - temporary API
-    to_user and Session.as_id==id || fetch(:trait=>:account, :new=>{}).ok?( :update )
+    to_user and Account.as_id==id || fetch(:trait=>:account, :new=>{}).ok?( :update )
   end
 
   def who_can operation

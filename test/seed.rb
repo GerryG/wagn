@@ -12,20 +12,27 @@ class SharedData
     #Card.current_id = Card::WagnBotID
     CodenameTable.load_bootcodes unless !Wagn::Codename[:wagn_bot].nil?
 
-    Account.as(Card::WagnBotID)
     Wagn::Cache.reset_global
+    Account.as(Card::WagnBotID)
 
-    joe_card = Card.create! :typecode=>'user', :name=>"Joe User", :content => "I'm number two"
-    joe_user = User.create! :login=>"joe_user",:email=>'joe@user.com', :status => 'active', :password=>'joe_pass', :password_confirmation=>'joe_pass', :card_id=>joe_card.id
 
-    ja_card = Card.create! :typecode=>'user', :name=>"Joe Admin", :content => "I'm number one"
-    joe_admin = User.create! :login=>"joe_admin",:email=>'joe@admin.com', :status => 'active', :password=>'joe_pass', :password_confirmation=>'joe_pass', :card_id=>ja_card.id
-    roles_card = ja_card.fetch(:trait=>:roles)
-    #warn "roles card for #{ja_card.name} is #{roles_card.inspect}"
+    User.create_with_card(
+      { :login=>"joe_user", :email=>'joe@user.com', :status=>'active', :password=>'joe_pass', :password_confirmation=>'joe_pass' },
+      { :name=>"Joe User", :content => "I'm number two" }
+    )    
+
+    User.create_with_card(
+      { :login=>"joe_admin", :email=>'joe@admin.com', :status=>'active', :password=>'joe_pass', :password_confirmation=>'joe_pass' },
+      { :name=>"Joe Admin", :content => "I'm number one" }
+    )
+
+    roles_card = Card['Joe Admin'].fetch(:trait=>:roles, :new=>{})
     roles_card << Card::AdminID
 
-    jc_card = Card.create! :typecode=>'user', :name=>"Joe Camel", :content => "Mr. Buttz"
-    joe_camel = User.create! :login=>"joe_camel",:email=>'joe@camel.com', :status => 'active', :password=>'joe_pass', :password_confirmation=>'joe_pass', :card_id=>jc_card.id
+    User.create_with_card(
+      { :login=>"joe_camel",:email=>'joe@camel.com', :status => 'active', :password=>'joe_pass', :password_confirmation=>'joe_pass' },
+      { :name=>"Joe Camel", :content => "Mr. Buttz" }
+    )
 
     #bt = Card.find_by_name 'Basic+*type+*default'
 
@@ -38,14 +45,19 @@ class SharedData
 
     # data for testing users and account requests
 
-    ron_request = Card.create! :typecode=>'account_request', :name=>"Ron Request"  #, :email=>"ron@request.com"
-
-    User.create(:email=>'ron@request.com', :password=>'ron_pass', :password_confirmation=>'ron_pass', :card_id=> ron_request.id)
-    no_count = Card.create! :typecode=>'user', :name=>"No Count", :content=>"I got no account"
+    User.create_with_card(
+      { :email=>'ron@request.com', :password=>'ron_pass', :password_confirmation=>'ron_pass', :status=>'pending' },
+      { :type_id=>Card::AccountRequestID, :name=>"Ron Request" }
+    )
+    
+    Card.create! :typecode=>'user', :name=>"No Count", :content=>"I got no account"
 
     # CREATE A CARD OF EACH TYPE
-    user_card = Card.create! :typecode=>'user', :name=>"Sample User"
-    user_user = User.create! :login=>"sample_user",:email=>'sample@user.com', :status => 'active', :password=>'sample_pass', :password_confirmation=>'sample_pass', :card_id=>user_card.id
+    
+    User.create_with_card(
+      { :login=>"sample_user", :email=>'sample@user.com', :status=>'active', :password=>'sample_pass', :password_confirmation=>'sample_pass' },
+      { :name=>"Sample User" }
+    )
 
     request_card = Card.create! :typecode=>'account_request', :name=>"Sample AccountRequest" #, :email=>"invitation@request.com"
 
@@ -55,13 +67,19 @@ class SharedData
     end
 
     # data for role_test.rb
-    u1 = Card.create! :typecode=>'user', :name=>"u1"
-    u2 = Card.create! :typecode=>'user', :name=>"u2"
-    u3 = Card.create! :typecode=>'user', :name=>"u3"
 
-    User.create! :login=>"u1",:email=>'u1@user.com', :status => 'active', :password=>'u1_pass', :password_confirmation=>'u1_pass', :card_id=>u1.id
-    User.create! :login=>"u2",:email=>'u2@user.com', :status => 'active', :password=>'u2_pass', :password_confirmation=>'u2_pass', :card_id=>u2.id
-    User.create! :login=>"u3",:email=>'u3@user.com', :status => 'active', :password=>'u3_pass', :password_confirmation=>'u3_pass', :card_id=>u3.id
+    User.create_with_card(
+      { :login=>"u1", :email=>'u1@user.com', :status=>'active', :password=>'u1_pass', :password_confirmation=>'u1_pass' },
+      { :name=>"u1" }
+    )
+    User.create_with_card(
+      { :login=>"u2", :email=>'u2@user.com', :status=>'active', :password=>'u2_pass', :password_confirmation=>'u2_pass' },
+      { :name=>"u2" }
+    )
+    User.create_with_card(
+      { :login=>"u3", :email=>'u3@user.com', :status=>'active', :password=>'u3_pass', :password_confirmation=>'u3_pass' },
+      { :name=>"u3" }
+    )
 
 
     r1 = Card.create!( :typecode=>'role', :name=>'r1' )
@@ -69,9 +87,9 @@ class SharedData
     r3 = Card.create!( :typecode=>'role', :name=>'r3' )
     r4 = Card.create!( :typecode=>'role', :name=>'r4' )
 
-    u1.fetch(:trait=>:roles) << r1 << r2 << r3
-    u2.fetch(:trait=>:roles) << r1 << r2 << r4
-    u3_star = u3.fetch(:trait=>:roles) << r1 << r4
+    Card['u1'].fetch(:trait=>:roles, :new=>{}) << r1 << r2 << r3
+    Card['u2'].fetch(:trait=>:roles, :new=>{}) << r1 << r2 << r4
+    u3_star = Card['u3'].fetch(:trait=>:roles, :new=>{}) << r1 << r4
 
     u3_star << Card::AdminID
 
@@ -94,12 +112,12 @@ class SharedData
 
     # for wql & permissions
     %w{ A+C A+D A+E C+A D+A F+A A+B+C }.each do |name| Card.create!(:name=>name)  end
-    c=Card.create! :typecode=>'cardtype', :name=>"Cardtype A", :codename=>"cardtype_a"
-    c=Card.create! :typecode=>'cardtype', :name=>"Cardtype B", :codename=>"cardtype_b"
-    c=Card.create! :typecode=>'cardtype', :name=>"Cardtype C", :codename=>"cardtype_c"
-    c=Card.create! :typecode=>'cardtype', :name=>"Cardtype D", :codename=>"cardtype_d"
-    c=Card.create! :typecode=>'cardtype', :name=>"Cardtype E", :codename=>"cardtype_e"
-    c=Card.create! :typecode=>'cardtype', :name=>"Cardtype F", :codename=>"cardtype_f"
+    Card.create! :typecode=>'cardtype', :name=>"Cardtype A", :codename=>"cardtype_a"
+    Card.create! :typecode=>'cardtype', :name=>"Cardtype B", :codename=>"cardtype_b"
+    Card.create! :typecode=>'cardtype', :name=>"Cardtype C", :codename=>"cardtype_c"
+    Card.create! :typecode=>'cardtype', :name=>"Cardtype D", :codename=>"cardtype_d"
+    Card.create! :typecode=>'cardtype', :name=>"Cardtype E", :codename=>"cardtype_e"
+    Card.create! :typecode=>'cardtype', :name=>"Cardtype F", :codename=>"cardtype_f"
 
     Card.create! :name=>'basicname', :content=>'basiccontent'
     Card.create! :typecode=>'cardtype_a', :name=>"type-a-card", :content=>"type_a_content"
@@ -138,12 +156,15 @@ class SharedData
       # fwiw Timecop is apparently limited by ruby Time object, which goes only to 2037 and back to 1900 or so.
       #  whereas DateTime can represent all dates.
 
-      john_card = Card.create! :name=>"John", :type=> "User"
-      User.create! :login=>"john",:email=>'john@user.com', :status => 'active', :password=>'john_pass', :password_confirmation=>'john_pass', :card_id=>john_card.id
+      User.create_with_card(
+        { :login=>"john",:email=>'john@user.com', :status => 'active', :password=>'john_pass', :password_confirmation=>'john_pass' },
+        { :name=>"John" }
+      )
 
-      sara_card = Card.create! :name=>"Sara", :type=> "User"
-      User.create! :login=>"sara",:email=>'sara@user.com', :status => 'active', :password=>'sara_pass', :password_confirmation=>'sara_pass', :card_id=>sara_card.id
-
+      User.create_with_card(
+        { :login=>"sara",:email=>'sara@user.com', :status => 'active', :password=>'sara_pass', :password_confirmation=>'sara_pass' },
+        { :name=>"Sara" }
+      )
 
       Card.create! :name => "Sara Watching+*watchers",  :content => "[[Sara]]"
       Card.create! :name => "All Eyes On Me+*watchers", :content => "[[Sara]]\n[[John]]"
@@ -176,7 +197,8 @@ class SharedData
     Card.create :name=>'TwwoHeading', :content => "<h1>One Heading</h1>\r\n<p>and some text</p>\r\n<h2>And a Subheading</h2>\r\n<p>and more text</p>"
     Card.create :name=>'ThreeHeading', :content =>"<h1>A Heading</h1>\r\n<p>and text</p>\r\n<h2>And Subhead</h2>\r\n<p>text</p>\r\n<h1>And another top Heading</h1>"
 
-    c=Card[:basic].fetch(:trait=>[:right, :table_of_contents], :new=>{})
+    #c=Card[:basic].fetch(:trait=>[:right, :table_of_contents], :new=>{})
+    c=Card.fetch_or_new('Basic+*type+*table_of_contents')
     c.content='2'
     c.save
 

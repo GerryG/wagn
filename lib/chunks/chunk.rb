@@ -33,7 +33,8 @@ module Chunk
     end
 
     def inspect
-      "#<#{self.class} Tx:#{@text}:C:#{@content}:#{@unmask_mode}:Card:#{@card.inspect}>"
+      ct = ( i = @content.index("\n") and @content[0,i-1] or @content[0,40] )
+      "#<#{self.class} Tx:#{''}:C:#{ct}:#{@unmask_mode}:Card:#{@card}>"
     end
 
     # Find all the chunks of the given type in content

@@ -433,7 +433,7 @@ module Wagn
       raise "???" if caller.length > 500
       Card::Reference.delete_all :card_id => card.id
       card.references_expired=nil
-      card.expire if refresh
+      card.expire if frozen?
       rendering_result ||= WikiContent.new(card, _render_refs, self)
       rendering_result.find_chunks(Chunk::Reference).each do |chunk|
       Rails.logger.warn "processing chunk1 [#{chunk.class}][#{chunk.refcard.nil?}]i:#{chunk.inspect}"

@@ -18,10 +18,10 @@ describe "Card::Reference" do
       Account.as_bot do
         Card.create! :name=>"SpecialForm", :type=>'Cardtype'
         c = Card.create! :name=>"Form1", :type=>'SpecialForm', :content=>"foo"
-        Rails.logger.warn "testing #{c.inspect}, #{c.references_expired}"
+        warn "testing #{c.inspect}, #{c.references_expired}"
         c.references_expired.should be_nil
         c = Card["Form1"]
-        Rails.logger.warn "testing a #{c.inspect}, #{c.references_expired}"
+        warn "testing a #{c.inspect}, #{c.references_expired}"
         c.references_expired.should be_nil
         Card.create! :name=>"SpecialForm+*type+*content", :content=>"{{+bar}}"
         Card["Form1"].references_expired.should be_true

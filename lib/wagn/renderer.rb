@@ -429,9 +429,10 @@ module Wagn
     #FIXME -- should not be here.
     def update_references rendering_result = nil, refresh = false
       return unless card && card.id
-      Rails.logger.info "update refs #{inspect}"
+      Rails.logger.info "update refs #{card.inspect}"
+      raise "???" if caller.length > 500
       Card::Reference.delete_all :card_id => card.id
-      Card.update card.id, :references_expired=>nil
+      card.references_expired=nil
       card.expire if refresh
       rendering_result ||= WikiContent.new(card, _render_refs, self)
       rendering_result.find_chunks(Chunk::Reference).each do |chunk|

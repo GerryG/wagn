@@ -848,7 +848,7 @@ class Card < ActiveRecord::Base
       card.errors.add :key, "cannot be blank"
     elsif key != card.cardname.key
       card.errors.add :key, "wrong key '#{key}' for name #{card.name}"
-    else Rails.logger.warn "valid key #{key} #{card.inspect}"
+    #else Rails.logger.warn "valid key #{key} #{card.inspect}"
     end
   end
 

@@ -261,7 +261,7 @@ module Wagn
     define_view :related do |args|
       sources = [card.type_name,nil]
       # FIXME codename *account
-      sources.unshift '*account' if [Card::WagnBotID, Card::AnonID].member?(card.id) || card.type_id==Card::UserID
+      #sources.unshift '*account' if [Card::WagnBotID, Card::AnonID].member?(card.id) || card.type_id==Card::UserID
       items = sources.map do |source|
         c = Card.fetch(source ? source.to_name.trait_name(:related) : Card::RelatedID)
         c && c.item_names

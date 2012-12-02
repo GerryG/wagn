@@ -2,11 +2,6 @@
 require 'digest/sha1'
 
 class User < ActiveRecord::Base
-  #FIXME: THIS WHOLE MODEL SHOULD BE CALLED ACCOUNT
-  # The codename and constant Account, :account, etc. is used for +*account
-  # This model is used by Account as a provider and will
-  # be externalized next as a Warden provider
-  # maybe WagnAccount ?
 
   # Virtual attribute for the unencrypted password
   attr_accessor :password, :name

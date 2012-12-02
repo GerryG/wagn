@@ -108,20 +108,21 @@ describe "Card::Reference" do
     end
   end
 
-  it "should not update references when not requested" do
-    Account.as_bot do
-      watermelon = newcard('watermelon', 'mmmm')
-      watermelon_seeds = newcard('watermelon+seeds', 'black')
-      lew = newcard('Lew', "likes [[watermelon]] and [[watermelon+seeds|seeds]]")
+  W = Wagn::ReferenceTypes::WANTED_LINK
+  L = Wagn::ReferenceTypes::LINK
 
-      watermelon = Card['watermelon']
-      watermelon.update_referencers = false
-      watermelon.name="grapefruit"
-      watermelon.save!
-      lew.reload.content.should == "likes [[watermelon]] and [[watermelon+seeds|seeds]]"
-      w = Wagn::ReferenceTypes::WANTED_LINK
-      assert_equal [w,w], lew.out_references.plot(:link_type), "links should be Wanted"
-    end
+  it "should not update references when not requested" do
+    watermelon = newcard('watermelon', 'mmmm')
+    watermelon_seeds = newcard('watermelon+seeds', 'black')
+    lew = newcard('Lew', "likes [[watermelon]] and [[watermelon+seeds|seeds]]")
+
+    assert_equal [L,L], lew.out_references.plot(:link_type), "links should be Wanted"
+    watermelon = Card['watermelon']
+    watermelon.update_referencers = false
+    watermelon.name="grapefruit"
+    watermelon.save!
+    lew.reload.content.should == "likes [[watermelon]] and [[watermelon+seeds|seeds]]"
+    assert_equal [W,W], lew.out_references.plot(:link_type), "links should be Wanted"
   end
 
   it "update referencing content on rename junction card" do

@@ -41,8 +41,6 @@ class CardController < ApplicationController
   def delete
     @card.destroy
 
-    return show(:delete) if @card.errors[:confirmation_required].any?
-
     discard_locations_for(@card)
     success 'REDIRECT: *previous'
   end

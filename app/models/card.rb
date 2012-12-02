@@ -327,18 +327,14 @@ class Card < ActiveRecord::Base
   end
 
   def validate_destroy
-    if !dependents.empty? && !confirm_destroy
-      errors.add(:confirmation_required, "because #{name} has #{dependents.size} dependents")
-    else
-      if code=self.codename || (tk=trunk) && tk.id == AllID && [ DefaultID ].member?(right_id)
-        errors.add :destroy, "#{name} is is a system card. (#{code||'all+default'})\n  Deleting this card would mess up our revision records."
-      end
-      if type_id== UserID && Revision.find_by_creator_id( self.id )
-        errors.add :destroy, "Edits have been made with #{name}'s user account.\n  Deleting this card would mess up our revision records."
-      end
-      if respond_to? :custom_validate_destroy
-        self.custom_validate_destroy
-      end
+    if code=self.codename || (tk=trunk) && tk.id == AllID && [ DefaultID ].member?(right_id)
+      errors.add :destroy, "#{name} is is a system card. (#{code||'all+default'})\n  Deleting this card would mess up our revision records."
+    end
+    if type_id== UserID && Revision.find_by_creator_id( self.id )
+      errors.add :destroy, "Edits have been made with #{name}'s user account.\n  Deleting this card would mess up our revision records."
+    end
+    if respond_to? :custom_validate_destroy
+      self.custom_validate_destroy
     end
     errors.empty?
   end

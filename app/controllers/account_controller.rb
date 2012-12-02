@@ -136,7 +136,7 @@ class AccountController < ApplicationController
 
       auth_args = { :email=>params[:login], :password=>params[:password] }
       Rails.logger.warn "signin #{auth_args.inspect}"
-      unless failed_login acct_card=Account.authenticate( auth_args )
+      unless failed_login! acct_card=Account.authenticate( auth_args )
 
         self.session_account = acct_card.id
 
@@ -190,7 +190,7 @@ class AccountController < ApplicationController
     ); Rails.logger.warn "target( #{target_id} ) #{card.inspect} is #{r}"; r
   end
 
-  def failed_login(account)
+  def failed_login! account
     if account.nil?
       message = "Email not recognized." 
     elsif account.errors.any?

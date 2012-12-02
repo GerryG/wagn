@@ -408,7 +408,7 @@ module Wagn
                 </div>
 
                 #{ my_card = card && card.id == Account.authorized.id
-                   if Card.toggle(card.rule(:accountable)) && (my_card || card.ok?(:create, :trait=>:account, :new=>{}))
+                   if Card.toggle(card.rule :accountable) && (my_card || card.ok?(:create, :trait=>:account, :new=>{}))
 
                     %{<div class="new-account-link">
                     #{ link_to %{Add a sign-in account for "#{card.name}"},
@@ -435,6 +435,7 @@ module Wagn
       option_content = if traitc.ok? :update
           user_role_ids = user_roles.map &:id
           hidden_field_tag(:save_roles, true) +
+
           (roles.map do |rolecard|
             #warn Rails.logger.info("option_roles: #{rolecard.inspect}")
             if rolecard && !rolecard.trash
@@ -448,8 +449,9 @@ module Wagn
           (user_roles.map do |rolecard|
             %{ <div>#{ link_to_page rolecard.name }</div>}
           end * "\n").html_safe
+        else
+          'No roles assigned'  # #ENGLISH
         end
-      end
 
       %{#{ raw option_header( 'User Roles' ) }#{
          option(option_content, :name=>"roles",
@@ -561,10 +563,11 @@ module Wagn
 
     define_view :not_found do |args| #ug.  bad name.
       sign_in_or_up_links = if Account.logged_in?
-        %{<div>
-          #{link_to "Sign In", :controller=>'account', :action=>'signin'} or
-          #{link_to 'Sign Up', :controller=>'account', :action=>'signup'} to create it.
-         </div>}
+          %{<div>
+            #{link_to "Sign In", :controller=>'account', :action=>'signin'} or
+            #{link_to 'Sign Up', :controller=>'account', :action=>'signup'} to create it.
+           </div>}
+        end
 
       %{ <h1 class="page-header">Missing Card</h1> } +
       wrap( :not_found, args.merge(:frame=>true) ) do # ENGLISH
@@ -636,7 +639,6 @@ module Wagn
         end
       end
     end
-
   end
 end
 

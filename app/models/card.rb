@@ -299,7 +299,6 @@ class Card < ActiveRecord::Base
       deps.each do |dep|
         dep.destroy
       end
-      expire
       true
     end
   end
@@ -434,8 +433,8 @@ class Card < ActiveRecord::Base
   def all_default_rule; end
 
   def type_name
-    #raise "??? #{inspect}" if caller.length > 500
-    Card.fetch(type_id == -1 ? DefaultTypeID : type_id, :skip_virtual=>true, :skip_modules=>true ).name
+    raise "??? #{inspect}" if caller.length > 500
+    Card.fetch( type_id, :skip_virtual=>true, :skip_modules=>true ).name
   end
 
   def type= type_name

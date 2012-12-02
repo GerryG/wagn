@@ -94,13 +94,11 @@ describe Card do
 
   describe "#item_names" do
     it "returns item for each line of basic content" do
-      c=Card.new( :name=>"foo", :content => "X\nY" ).item_names.should == ["X","Y"]
-      warn "card foo is #{c.inspect}"
+      Card.new( :name=>"foo", :content => "X\nY" ).item_names.should == ["X","Y"]
     end
 
     it "returns list of card names for search" do
       c = Card.new( :name=>"foo", :type=>"Search", :content => %[{"name":"Z"}])
-      warn "card is #{c.inspect}"
       c.item_names.should == ["Z"]
     end
 

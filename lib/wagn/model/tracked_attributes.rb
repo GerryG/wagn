@@ -105,15 +105,16 @@ module Wagn::Model::TrackedAttributes
   end
 
   def set_content(new_content)
-    #warn "set_content #{inspect}, #{self.content}, #{self.content_without_tracking}, #{new_content}"
+    Rails.logger.warn "set_content #{inspect}, #{self.content}, w/o:#{self.content_without_tracking}, N:#{new_content}"
     return false unless self.id
-    new_content ||= ''
+    new_content ||= (tmpl = template).nil? ? '' : tmpl.content
     new_content = WikiContent.clean_html!(new_content) if clean_html?
     clear_drafts if current_revision_id
     Rails.logger.warn "set_content #{inspect} CurC:#{content_without_tracking}, N:#{new_content}, #{Account.session}"
     new_rev = Card::Revision.create :card_id=>self.id, :content=>new_content, :creator_id =>Account.authorized.id
     self.current_revision_id = new_rev.id
     reset_patterns_if_rule unless new_card?
+    Rails.logger.warn "finish cont #{new_content}, #{inspect}"
     @name_or_content_changed = true
   end
 
@@ -123,19 +124,18 @@ module Wagn::Model::TrackedAttributes
   end
 
   def set_initial_content
-    #Rails.logger.debug "Card(#{name})#set_initial_content start"
+    #warn "Card(#{inspect})#set_initial_content start #{content_without_tracking}"
     # set_content bails out if we call it on a new record because it needs the
     # card id to create the revision.  call it again now that we have the id.
 
-    set_content updates[:content]
+    Rails.logger.warn "si cont #{content} #{updates.map(&:inspect)*', '} #{template.inspect}"
+    set_content updates.for?(:content) ? updates[:content] : template.send_if(:content)
+    #set_content updates[:content] if updates.for?(:content)
     updates.clear :content
+
     # normally the save would happen after set_content. in this case, update manually:
-    #Rails.logger.debug "set_initial_content #{current_revision_id} #{name}"
-    connection.update(
-      "update cards set current_revision_id=#{current_revision_id} where id=#{id}",
-      "Card Update"
-    )
-    #Rails.logger.debug "Card(#{name})#set_initial_content end"
+    Rails.logger.warn "set_initial_content #{content}, #{current_revision_id} #{inspect}"
+    Card.update(id, :current_revision_id => current_revision_id)
   end
 
   def cascade_name_changes
@@ -185,7 +185,7 @@ module Wagn::Model::TrackedAttributes
 
   def self.included(base)
     super
-    base.after_create :set_initial_content
+    #base.after_create :set_initial_content call from update..._on_create
     base.after_save :cascade_name_changes
   end
 

@@ -18,6 +18,8 @@ module Wagn
   protected
 
   def update_references_on_create
+    set_initial_content unless current_revision_id
+
     Card::Reference.update_on_create self
 
     # FIXME: bogus blank default content is set on hard_templated cards...

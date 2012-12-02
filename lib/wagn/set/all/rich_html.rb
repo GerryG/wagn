@@ -316,41 +316,37 @@ module Wagn
       end)
     end
 
-    define_view :edit_type, :perms=>:update do |args|
-      wrap :edit_type, args.merge(:frame=>true) do
-        _render_header +
-        wrap_content( :edit_type, :body=>true, :class=>'card-editor' ) do
-          card_form( :update, 'card-edit-type-form' ) do |f|
-            #'main-success'=>'REDIRECT: _self', # adding this back in would make main cards redirect on cardtype changes
-            %{
-              #{ hidden_field_tag :view, :edit }
-              #{if card.type_id == Card::CardtypeID and !Card.search(:type_id=>card.card.id).empty? #ENGLISH
-                %{<div>Sorry, you can't make this card anything other than a Cardtype so long as there are <strong>#{ card.name }</strong> cards.</div>}
-              else
-                _render_type_editor :variety=>:edit #FIXME dislike this api -ef
-              end}
-              <fieldset>
-                <div class="button-area">
-                  #{ submit_tag 'Submit', :disable_with=>'Submitting' }
-                  #{ button_tag 'Cancel', :href=>path(:edit), :type=>'button', :class=>'edit-type-cancel-button slotter' }
-                </div>
-              </fieldset>
-            }
-          end
-        end
+    define_view :related do |args|
+      sources = [card.type_name,nil]
+      # FIXME codename *account
+      #sources.unshift '*account' if [Card::WagnBotID, Card::AnonID].member?(card.id) || card.type_id==Card::UserID
+      items = sources.map do |source|
+        c = Card.fetch(source ? source.to_name.trait_name(:related) : Card::RelatedID)
+        c && c.item_names
+      end.flatten.compact
+
+      current = params[:attribute] || items.first.to_name.key
+
+      wrap :related, args do
+        %{#{ _render_header }
+          <div class="submenu"> #{
+            items.map do |item|
+              key = item.to_name.key
+              text = item.gsub('*','').gsub('subtab','').strip
+              link_to text, path(:related, :attrib=>key), :remote=>true,
+                :class=>"slotter #{key==current ? 'current-subtab' : ''}"
+            end * "\n"}
+           </div> #{
+           notice }
+
+          <div class="open-content related"> #{
+            raw subrenderer(Card.fetch_or_new "#{card.name}+#{current}").render_content }
+          </div>}
       end
     end
 
-    define_view :edit_in_form, :tags=>:unknown_ok do |args|
-      eform = form_for_multi
-      content = content_field eform, :nested=>true
-      attribs = %{ class="card-editor RIGHT-#{ card.cardname.tag_name.safe_key }" }
-      link_target, help_settings = if card.new_card?
-        content += raw( "\n #{ eform.hidden_field :type_id }" )
-        [ card.cardname.tag, [:add_help, { :fallback => :edit_help } ] ]
-      else
-        attribs += %{ card-id="#{card.id}" card-name="#{h card.name}" }
-        [ card.name, :edit_help ]
+    define_view :options, :perms=>:none do |args|
+      attribute = params[:attribute]
 
       end
       label = link_to_page fancy_title, link_target

@@ -165,12 +165,9 @@ module Wagn::Model
       end
 
       def to_s
-        if self.class.key_id == 0
-          @trunk_name
-        else
-          kn = self.class.key_name
-          self.class.trunkless? ? kn : "#{@trunk_name}+#{kn}"
-        end
+        kn = self.class.key_name
+        #warn "pat to_s  #{self.class} #{@trunk_name}+#{kn}" if @trunk_name == 'address'
+        self.class.trunkless? ? kn : "#{@trunk_name}+#{kn}"
       end
 
       def inspect

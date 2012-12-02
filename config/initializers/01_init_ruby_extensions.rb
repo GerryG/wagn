@@ -86,4 +86,8 @@ class Object
     }
     klone
   end
+
+  def send_if method, *args
+    self.nil? ? nil : ( send method, *args )
+  end
 end

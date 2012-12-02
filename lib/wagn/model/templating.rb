@@ -70,6 +70,7 @@ module Wagn::Model::Templating
       end
 
       wql.run.each_slice(100) do |id_batch|
+        Rails.logger.warn "expire templatees #{inspect}, #{id_batch.inspect}"
         Card.where( :id => id_batch ).update_all :references_expired=>1
       end
     end
@@ -80,12 +81,10 @@ module Wagn::Model::Templating
   private
 
   def hard_templatee_spec
-    if is_hard_template?
-      if tk = trunk and tk.type_id == Card::SetID
-        tk.get_spec
-      else
-        true
-      end
+    if is_hard_template? and tk=trunk and tk.type_id == Card::SetID
+      tk.get_spec
+    else
+      true
     end
   end
 

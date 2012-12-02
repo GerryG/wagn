@@ -35,9 +35,9 @@ describe Mailer do
         @email.should deliver_to(@user.email)
       end
 
-      it "is from Wag bot email" do
-        @email.should deliver_from("Sara <sara@user.com>")
-        #@email.should deliver_from("Wagn Bot <no-reply@wagn.org>")
+      it "is from Wag bot email" do  # I think logged in user is right here, so anon ...
+        Account.session = Card[Account.ANONCARD_ID]
+        @email.should deliver_from("Wagn Bot <no-reply@wagn.org>")
       end
 
       it "has subject" do

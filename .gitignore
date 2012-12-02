@@ -18,3 +18,8 @@ script/performance/*.session
 tmp/*
 /*.project
 *.sqlite3
+sv/
+*.out
+*.diff
+*.list
+config/database.yml.*

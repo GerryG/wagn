@@ -64,12 +64,13 @@ module Wagn::Model::Templating
   # ps.  I think this code should be wiki references.
   def expire_templatee_references
     if wql = hard_templatee_spec
-      wql = {:name => name} if wql == true
 
-      condition = Account.as_bot { Wql::CardSpec.build(wql.merge(:return => :condition)).to_sql }
-      card_ids_to_update = connection.select_rows("select id from cards t where #{condition}").map(&:first)
-      card_ids_to_update.each_slice(100) do |id_batch|
-        connection.execute "update cards set references_expired=1 where id in (#{id_batch.join(',')})" #FIXME:not ARec
+      wql = Account.as_bot do
+        Wql.new (wql == true ? {:name => name} :  wql).merge(:return => :id)
+      end
+
+      wql.run.each_slice(100) do |id_batch|
+        Card.where( :id => id_batch ).update_all :references_expired=>1
       end
     end
   end
@@ -81,9 +82,7 @@ module Wagn::Model::Templating
   def hard_templatee_spec
     if is_hard_template?
       if tk = trunk and tk.type_id == Card::SetID
-        # I'm not sure I understand why this needs to be differen now, but the other is broken ...
-        #tk.get_spec :spec=>tk.content
-        tk.get_spec :spec=>tk.raw_content
+        tk.get_spec
       else
         true
       end

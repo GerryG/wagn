@@ -37,6 +37,7 @@ describe Mailer do
 
       it "is from Wag bot email" do
         @email.should deliver_from("Sara <sara@user.com>")
+        #@email.should deliver_from("Wagn Bot <no-reply@wagn.org>")
       end
 
       it "has subject" do

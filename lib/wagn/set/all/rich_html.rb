@@ -120,7 +120,7 @@ module Wagn
             end
             }
           </li>
-          #{ if Session.logged_in? && !card.new_card?
+          #{ if Account.logged_in? && !card.new_card?
               "<li>#{ render_watch }</li>"
              end }
         </ul>
@@ -351,13 +351,13 @@ module Wagn
       else
         attribs += %{ card-id="#{card.id}" card-name="#{h card.name}" }
         [ card.name, :edit_help ]
+
       end
       label = link_to_page fancy_title, link_target
       fieldset label, content, :help=>help_settings, :attribs=>attribs
     end
 
     define_view :option_account, :perms=> lambda { |r|
-        # Should :update be on the card with account or the account?  This design decision is implemented a couple of places
         Account.as_card.id==r.card.id or r.card.ok?(:update, :trait=>:account)
       } do |args|
 
@@ -565,8 +565,7 @@ module Wagn
     end
 
     define_view :not_found do |args| #ug.  bad name.
-
-      sign_in_or_up_links = !Account.logged_in? ? '' :
+      sign_in_or_up_links = if Account.logged_in?
         %{<div>
           #{link_to "Sign In", :controller=>'account', :action=>'signin'} or
           #{link_to 'Sign Up', :controller=>'account', :action=>'signup'} to create it.
@@ -580,7 +579,6 @@ module Wagn
           </div>}
       end
     end
-
 
     define_view :denial do |args|
       task = args[:denied_task] || params[:action]

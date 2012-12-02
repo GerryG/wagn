@@ -89,7 +89,7 @@ end
 
 When /^(.*) deletes? "([^\"]*)"$/ do |username, cardname|
   logged_in_as(username) do
-    visit "/card/delete/#{cardname.to_name.url_key}?confirm_destroy=true"
+    visit "/card/delete/#{cardname.to_name.url_key}"
   end
 end
 
@@ -141,6 +141,10 @@ When /^In (.*) I click "(.*)"$/ do |section, link|
   within scope_of(section) do
     click_link link
   end
+end
+
+When /^I hover over the main menu$/ do
+  page.execute_script "$('#main > .card-slot .card-header > .card-menu-link').trigger('mouseenter')"
 end
 
 Then /the card (.*) should contain "([^\"]*)"$/ do |cardname, content|

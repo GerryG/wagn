@@ -1,5 +1,4 @@
 # -*- encoding : utf-8 -*-
-
 class Card < ActiveRecord::Base
   require 'card/revision'
   require 'card/reference'
@@ -15,13 +14,14 @@ class Card < ActiveRecord::Base
   Reference
 
   has_many :revisions, :order => :id #, :foreign_key=>'card_id'
+  belongs_to :card, :class_name => 'Card', :foreign_key => :creator_id
+  belongs_to :card, :class_name => 'Card', :foreign_key => :updater_id
 
   attr_accessor :comment, :comment_author, :selected_rev_id, :account,
-    :confirm_rename, :confirm_destroy, :update_referencers, :allow_type_change, # seems like wrong mechanisms for this
+    :update_referencers, :allow_type_change, # seems like wrong mechanisms for this
     :cards, :loaded_left, :nested_edit, # should be possible to merge these concepts
-    :error_view, :error_status, #yuck
-    :attachment_id #should build flexible handling for set-specific attributes
-
+    :error_view, :error_status #yuck
+      
   attr_writer :update_read_rule_list
   attr_reader :type_args, :broken_type
 
@@ -144,9 +144,12 @@ class Card < ActiveRecord::Base
       end
 
     case type_id
-    when :noop      ;
-    when false, nil ; @broken_type = args[:type] || args[:typecode]
-    else            ; return type_id
+    when :noop 
+    when false, nil
+      @broken_type = args[:type] || args[:typecode]
+      errors.add :type, "#{broken_type} is not a known type."
+    else
+      return type_id
     end
 
     if name && t=template
@@ -281,7 +284,7 @@ class Card < ActiveRecord::Base
     #could optimize to use fetch if we add :include_trashed_cards or something.
     #likely low ROI, but would be nice to have interface to retrieve cards from trash...
     self.id = trashed_card.id
-    @from_trash = self.confirm_rename = @trash_changed = true
+    @from_trash = @trash_changed = true
     @new_record = false
   end
 
@@ -294,7 +297,6 @@ class Card < ActiveRecord::Base
       @trash_changed = true
       self.update_attributes :trash => true
       deps.each do |dep|
-        dep.confirm_destroy = true
         dep.destroy
       end
       expire
@@ -321,8 +323,6 @@ class Card < ActiveRecord::Base
   end
 
   def destroy!
-    # FIXME: do we want to overide confirmation by setting confirm_destroy=true here?
-    self.confirm_destroy = true
     destroy or raise Wagn::Oops, "Destroy failed: #{errors.full_messages.join(',')}"
   end
 
@@ -550,7 +550,7 @@ class Card < ActiveRecord::Base
     false
   end
 
-  def author
+  def creator
     Card[ creator_id ]
   end
 
@@ -574,7 +574,7 @@ class Card < ActiveRecord::Base
 
   def clear_drafts # yuck!
     #Card::Revision.where("card_id = ? AND id > #{current_revision_id}", id).delete
-    connection.execute(%{delete from card_revisions where card_id=#{id} and id > #{current_revision_id} })
+    connection.execute %{delete from card_revisions where card_id=#{id} and id > #{current_revision_id} }
   end
 
   public
@@ -755,25 +755,6 @@ class Card < ActiveRecord::Base
         card.errors.add :name, "must be unique-- A card named '#{collision.name}' already exists"
       end
 
-      # require confirmation for renaming multiple cards
-      # FIXME - none of this should happen in the model.
-      if !card.confirm_rename
-        pass = true
-        if !card.dependents.empty?
-          pass = false
-          card.errors.add :confirmation_required, "#{card.name} has #{card.dependents.size} dependents"
-        end
-
-        if card.update_referencers.nil? and !card.extended_referencers.empty?
-          pass = false
-          card.errors.add :confirmation_required, "#{card.name} has #{card.extended_referencers.size} referencers"
-        end
-
-        if !pass
-          card.error_view = :edit
-          card.error_status = 200 #I like 401 better, but would need special processing
-        end
-      end
     end
   end
 
@@ -809,28 +790,23 @@ class Card < ActiveRecord::Base
       card.current_revision_id = card.current_revision_id_was
       card.errors.add :conflict, "changes not based on latest revision"
       card.error_view = :conflict
-      card.error_status = 409
     end
   end
 
   validates_each :type_id do |card, a, type_id|
     # validate on update
-    #warn "validate type #{card.inspect}, #{a}, #{type_id}"
-    #warn "updates #{card.inspect}, #{card.updates.map(&:inspect)*', '} UfT:#{type_id} T:#{card.no_account?} && #{type_id != AccountRequestID} && #{card.right_id != AccountID}"
     card.type_id = UserID if !card.no_account? && type_id != AccountRequestID && card.right_id != AccountID
     if card.updates.for?(:type_id) and !card.new_card?
       if !card.validate_type_change
         card.errors.add :type, "of #{ card.name } can't be changed; errors changing from #{ card.type_name }"
       end
-#      if c = Card.new(:name=>'*validation dummy', :type_id=>type_id, :content=>'') and !c.valid?
       if c = card.dup and c.type_id_without_tracking = type_id and c.id = nil and !c.valid?
-        Rails.logger.warn "card errors #{c.inspect} ::  #{ c.errors.full_messages * ', ' }"
         card.errors.add :type, "of #{ card.name } can't be changed; errors creating new #{ type_id }: #{ c.errors.full_messages * ', ' }"
       end
     end
 
     # validate on update and create
-    if card.updates.for?(:type_id) or card.new_record?
+    if card.updates.for?(:type_id) or card.new_card?
       # invalid type recorded on create
       if card.broken_type
         card.errors.add :type, "won't work.  There's no cardtype named '#{card.broken_type}'"

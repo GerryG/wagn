@@ -41,7 +41,7 @@ wagn.initTinyMCE = (el_id) ->
 
 wagn.chooseFile = (e, data) ->
   file = data.files[0]
-  $(this).fileupload '_normalizeFile', 0, file # so file objects have same fields in all browsers
+#  $(this).fileupload '_normalizeFile', 0, file # so file objects have same fields in all browsers
   $(this).closest('form').data 'file-data', data # stores data on form for use at submission time
 
   if name_field = $(this).slot().find( '.card-name-field' )
@@ -77,6 +77,25 @@ $(window).ready ->
     # this makes it so the first option ("search") is pre-selected.
     # sadly, it also causes odd navbox behavior, resetting the search term
   }
+
+
+  $('.card-menu-link').live 'mouseenter', ->
+    # if card menu already exists
+    #   show it
+    # else
+    #   get the template menu
+    #   make a copy right after menu link (or associate if necessary)
+    #   do simple substitutions?
+    cm = $(this).slot().find '.card-menu'
+    cm.menu position: { my:'right top', at:'left top' }, 
+      icons:{ submenu:'ui-icon-carat-1-w' }
+    cm.show()
+    #   do a request to flesh out remaining menu parts
+    
+  $('.card-menu').live 'mouseleave', ->
+    $(this).hide()
+  
+
 
   #pointer pack
   $('.pointer-item-add').live 'click', (event)->

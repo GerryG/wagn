@@ -91,7 +91,6 @@ describe "Card::Reference" do
 
       watermelon = Card['watermelon']
       watermelon.update_referencers = true
-      watermelon.confirm_rename = true
       watermelon.name="grapefruit"
       watermelon.save!
       lew.reload.content.should == "likes [[grapefruit]] and [[grapefruit+seeds|seeds]]"
@@ -117,7 +116,6 @@ describe "Card::Reference" do
 
       watermelon = Card['watermelon']
       watermelon.update_referencers = false
-      watermelon.confirm_rename = true
       watermelon.name="grapefruit"
       watermelon.save!
       lew.reload.content.should == "likes [[watermelon]] and [[watermelon+seeds|seeds]]"
@@ -129,7 +127,7 @@ describe "Card::Reference" do
   it "update referencing content on rename junction card" do
     Account.as_bot do
       @ab = Card["A+B"] #linked to from X, transcluded by Y
-      @ab.update_attributes! :name=>'Peanut+Butter', :confirm_rename => true, :update_referencers => true
+      @ab.update_attributes! :name=>'Peanut+Butter', :update_referencers => true
       @x = Card['X']
       @x.content.should == "[[A]] [[Peanut+Butter]] [[T]]"
     end
@@ -138,7 +136,6 @@ describe "Card::Reference" do
   it "update referencing content on rename junction card" do
     Account.as_bot do
       @ab = Card["A+B"] #linked to from X, transcluded by Y
-      @ab.confirm_rename = true
       @ab.update_attributes! :name=>'Peanut+Butter', :update_referencers=>false
       @x = Card['X']
       @x.content.should == "[[A]] [[A+B]] [[T]]"

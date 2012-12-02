@@ -25,16 +25,15 @@ end
 describe SmartName, "changing from plus card to simple" do
   before do
     Account.as 'joe_user'
-    c = Card.create! :name=>'four+five'
-    c.name = 'nine'
-    c.confirm_rename = true
-    c.save
+    @c = Card.create! :name=>'four+five'
+    @c.name = 'nine'
+    @c.save
   end
 
   it "should erase left and right ids (tag/trunk in db)" do
-    c = Card['nine']
-    c.left_id.should be_nil
-    c.right_id.should be_nil
+    @c = Card['nine']
+    @c.left_id.should be_nil
+    @c.right_id.should be_nil
   end
 
 end

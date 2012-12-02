@@ -85,7 +85,6 @@ module Wagn::Model::Fetch
       #warn "fetch returning #{card.inspect}"
       card.include_set_modules unless opts[:skip_modules]
       card
-#      end
     end
 
     def fetch_or_new name, opts={}
@@ -118,7 +117,7 @@ module Wagn::Model::Fetch
     end
 
     # set_names reverse map (cached)
-    def members(key)
+    def members key
       (v=Card.cache.read "$#{key}").nil? ? [] : v.keys
     end
 

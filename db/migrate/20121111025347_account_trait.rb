@@ -6,7 +6,6 @@ class AccountTrait < ActiveRecord::Migration
 
       if related_rule = Card[:account].fetch(:trait=>[:right, :content])
         Rails.logger.warn "delete related rule #{related_rule.inspect}"
-        related_rule.confirm_destroy=true
         related_rule.destroy
       end
 

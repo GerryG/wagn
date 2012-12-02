@@ -251,7 +251,6 @@ describe CardController do
       Account.session= Card['joe_user'].fetch :trait => :account
       f = Card.create! :type=>"Cardtype", :name=>"Apple"
       xhr :post, :update, :id => "~#{f.id}", :card => {
-        :confirm_rename => true,
         :name => "Newt",
         :update_referencers => "false",
       }

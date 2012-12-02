@@ -11,6 +11,7 @@ module Wagn
   end
 
   def extended_referencers
+    #fixme .. we really just need a number here.
     (dependents + [self]).plot(:referencers).flatten.uniq
   end
 
@@ -19,7 +20,7 @@ module Wagn
   def update_references_on_create
     set_initial_content unless current_revision_id
 
-    Card::Reference.update_on_create(self)
+    Card::Reference.update_on_create self
 
     # FIXME: bogus blank default content is set on hard_templated cards...
     Account.as_bot do

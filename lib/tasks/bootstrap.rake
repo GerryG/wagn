@@ -1,4 +1,3 @@
-
 WAGN_BOOTSTRAP_TABLES = %w{ cards card_revisions card_references users }
 
 namespace :wagn do
@@ -33,13 +32,7 @@ namespace :wagn do
     task :clean => :environment do
       Wagn::Cache.reset_global
 
-      # trash ignored cards
-      Account.as_bot do
-        Card.search( {:referred_to_by=>'*ignore'} ).each do |card|
-          card.confirm_destroy = true
-          card.destroy!
-        end
-      end
+
 
       # Correct time and user stamps
       botid = Card::WagnBotID
@@ -51,6 +44,14 @@ namespace :wagn do
         ActiveRecord::Base.connection.update("update #{table} set created_at=now() #{extra_sql[table.to_sym] || ''};")
       end
 
+      # trash ignored cards
+      Account.as_bot do
+        Card.search( {:referred_to_by=>'*ignore'} ).each do |card|
+          card.destroy!
+        end
+      end
+      
+      
       # delete unwanted rows ( will need to revise if we ever add db-level data integrity checks )
       ActiveRecord::Base.connection.delete( "delete from cards where trash is true" )
       ActiveRecord::Base.connection.delete( "delete from card_revisions where not exists " +
@@ -64,13 +65,9 @@ namespace :wagn do
     end
 
     desc "dump db to bootstrap fixtures"
-    #note: users, roles, and role_users have been manually edited
     task :dump => :environment do
       Wagn::Cache.reset_global
-#      begin
       YAML::ENGINE.yamler = 'syck'
-#      rescue
-#      end
       # use old engine while we're supporting ruby 1.8.7 because it can't support Psych,
       # which dumps with slashes that syck can't understand
 

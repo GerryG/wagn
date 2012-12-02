@@ -48,7 +48,7 @@ module Wagn
     attr_accessor :form, :main_content, :error_status
 
     def render view = :view, args={}
-      prefix = args[:allowed] ? '_' : ''
+      prefix = args.delete(:allowed) ? '_' : ''
       method = "#{prefix}render_#{canonicalize_view view}"
       if respond_to? method
         send method, args
@@ -62,12 +62,16 @@ module Wagn
       render view, args
     end
 
-    #should also be a #optional_render that checks perms
-    def _optional_render view, args, default_hidden=false
+    def optional_render view, args, default_hidden=false
       test = default_hidden ? :show : :hide
       override = args[test] && args[test].member?(view.to_s)
       return nil if default_hidden ? !override : override
-      send "_render_#{ view }", args
+      render view, args
+    end
+
+    def _optional_render view, args, default_hidden=false
+      args[:allowed] = true
+      optional_render view, args, default_hidden
     end
 
     def rendering_error exception, cardname
@@ -78,11 +82,13 @@ module Wagn
       Renderer.current_slot ||= self unless(opts[:not_current])
       @card = card
       opts.each { |key, value| instance_variable_set "@#{key}", value }
-
-      @context_names = []
       @format ||= :html
       @char_count = @depth = 0
       @root = self
+
+      @context_names ||= if context_name_list = params[:name_context]
+        context_name_list.split(',').map &:to_name
+      else [] end
 
       if card && card.collection? && params[:item] && !params[:item].blank?
         @item_view = params[:item]
@@ -94,7 +100,11 @@ module Wagn
     def controller()   @controller ||= StubCardController.new                     end
     def session()      CardController===controller ? controller.session : {}      end
     def ajax_call?()   @@ajax_call                                                end
-    def showname()     @showname   ||= card.name                                  end
+      
+    def showname
+      @showname ||=
+        card.cardname.to_show card.cardname, :ignore=>@context_names, :params=>params
+    end
 
     def main?
       if ajax_call?
@@ -150,6 +160,7 @@ module Wagn
       content = card.content if content.blank?
 
       wiki_content = WikiContent.new(card, content, self)
+      #Rails.logger.info "processing content for #{card.name}"
       update_references( wiki_content, true ) if card.references_expired
 
       wiki_content.render! do |opts|
@@ -267,14 +278,8 @@ module Wagn
     end
 
     def process_inclusion tcard, opts
-      opts[:showname] = if opts[:tname]
-        opts[:tname].to_name.to_show card.cardname, :ignore=>@context_names, :params=>params
-      else
-        tcard.name
-      end
-
       sub_opts = { :item_view =>opts[:item] }
-      [:type, :size, :showname ].each { |key| sub_opts[key] = opts[key] }
+      [ :type, :size ].each { |key| sub_opts[key] = opts[key] }
       sub = subrenderer tcard, sub_opts
 
       oldrenderer, Renderer.current_slot = Renderer.current_slot, sub
@@ -398,7 +403,7 @@ module Wagn
 
     def add_name_context name=nil
       name ||= card.name
-      @context_names += name.to_name.parts
+      @context_names += name.to_name.part_names
       @context_names.uniq!
     end
 
@@ -432,6 +437,7 @@ module Wagn
       card.connection.execute("update cards set references_expired=NULL where id=#{card.id}")
       card.expire if refresh
       rendering_result ||= WikiContent.new(card, _render_refs, self)
+      
       rendering_result.find_chunks(Chunk::Reference).each do |chunk|
         reference_type =
           case chunk

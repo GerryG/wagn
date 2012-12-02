@@ -5,8 +5,6 @@ module Wagn
     format :html
 
     define_view :raw, :name=>'head' do |args|
-      #rcard = card  # should probably be more explicit that this is really the *main* card.
-
       title = root.card && root.card.name
       title = nil if title.blank?
       title = params[:action] if title=='*placeholder'
@@ -32,7 +30,7 @@ module Wagn
       end
 
       # CSS
-
+#      bits << stylesheet_link_tag('http://code.jquery.com/ui/1.9.1/themes/base/jquery-ui.css')
       bits << stylesheet_link_tag('application-all')
       bits << stylesheet_link_tag('application-print', :media=>'print')
       if css_card = Card[:css]
@@ -49,11 +47,14 @@ module Wagn
         #{ Wagn::Conf[:recaptcha_on] ? %{wagn.recaptchaKey = "#{Wagn::Conf[:recaptcha_public_key]}";} : '' }
         #{ (c=Card[:double_click] and !Card.toggle(c.content)) ? 'wagn.noDoubleClick = true' : '' }
         #{ local_css_path ? %{ wagn.local_css_path = '#{local_css_path}'; } : '' }
-        window.tinyMCEPreInit = {base:"#{wagn_path 'assets/tinymce'}",query:"3.5.6",suffix:""};
+        window.tinyMCEPreInit = {base:"#{wagn_path 'assets/tinymce'}",query:"3.5.8",suffix:""};
         wagn.tinyMCEConfig = { #{ Card.setting :tiny_mce } };
       </script>
       )
       # tinyMCE doesn't load on non-root wagns w/o preinit line above
+      
+#      bits << javascript_include_tag('http://code.jquery.com/jquery-1.8.2.js')
+#      bits << javascript_include_tag('http://code.jquery.com/ui/1.9.1/jquery-ui.js')
       bits << javascript_include_tag('application')
 
       if ga_key=Card.setting("*google analytics key")

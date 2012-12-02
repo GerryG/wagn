@@ -88,7 +88,6 @@ class User < ActiveRecord::Base
     User.transaction do
       card = card.refresh
       account = card.fetch :trait=>:account, :new=>{}
-      card.confirm_rename=true  # otherwise it thinks this is rename with dependents because of the account card
       if card.save
         valid? and account.save
         self.account_id = account.id

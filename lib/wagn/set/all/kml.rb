@@ -6,7 +6,7 @@ module Wagn
 
     format :kml
     define_view :show do |args|
-      render(args[:view] || params[:view] || :search)
+      render( args[:view] || :search)
     end
 
     define_view :search do |args|

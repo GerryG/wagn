@@ -53,7 +53,7 @@ class AccountRequestTest < ActionController::TestCase
     login_as 'joe_admin'
     # FIXME: should test agains mocks here, instead of re-testing the model...
     Rails.logger.warn "test point #{Account.as_card.inspect}"
-    post :delete, :id=>"~#{Card.fetch('Ron Request').id}", :confirm_destroy=>true
+    post :delete, :id=>"~#{Card.fetch('Ron Request').id}"
     assert_equal nil, Card.fetch('Ron Request')
     assert_equal 'blocked', User.find_by_email('ron@request.com').status
   end

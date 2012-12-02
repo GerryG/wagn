@@ -22,8 +22,12 @@ class CardController < ApplicationController
   end
 
   def read
-    save_location # should be an event!
-    show
+    if @card.errors.any?
+      errors
+    else
+      save_location # should be an event!
+      show
+    end
   end
 
   def update
@@ -35,13 +39,8 @@ class CardController < ApplicationController
   end
 
   def delete
-    @card.confirm_destroy = params[:confirm_destroy]
     @card.destroy
-
-    return show(:delete) if @card.errors[:confirmation_required].any?
-
-    discard_locations_for(@card)
-
+    discard_locations_for @card
     success 'REDIRECT: *previous'
   end
 
@@ -228,13 +227,11 @@ class CardController < ApplicationController
       else                 ;  Card.fetch_or_new target.to_name.to_absolute(@card.cardname)
       end
 
-    Rails.logger.info "redirect = #{redirect}, target = #{target}, new_params = #{new_params}"
     case
     when  redirect        ; wagn_redirect ( Card===target ? url_for_page(target.cardname, new_params) : target )
     when  String===target ; render :text => target
     else
       @card = target
-      Rails.logger.info "view = #{new_params[:view]}"
       show new_params[:view]
     end
   end

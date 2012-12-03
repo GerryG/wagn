@@ -22,9 +22,8 @@ class CardController < ApplicationController
   end
 
   def read
-    if @card.errors.any?
-      errors
-    else
+    #@card.errors.any?
+    unless errors!
       save_location # should be an event!
       show
     end

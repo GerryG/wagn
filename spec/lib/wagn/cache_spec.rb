@@ -5,7 +5,9 @@ describe Wagn::Cache do
   describe "with nil store" do
     before do
       mock(Wagn::Cache).generate_cache_id.times(2).returns("cache_id")
-      @cache = Wagn::Cache.new :prefix=>"prefix"
+
+      @store = ActiveSupport::Cache::MemoryStore.new
+      @cache = Wagn::Cache.new :prefix=>"prefix", :store=>@store
     end
 
     describe "#basic operations" do

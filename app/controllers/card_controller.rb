@@ -22,7 +22,6 @@ class CardController < ApplicationController
   end
 
   def read
-    #@card.errors.any?
     unless errors!
       save_location # should be an event!
       show
@@ -40,7 +39,7 @@ class CardController < ApplicationController
   def delete
     @card.destroy
 
-    discard_locations_for(@card)
+    discard_locations_for @card
     success 'REDIRECT: *previous'
   end
 

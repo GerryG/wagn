@@ -75,17 +75,18 @@ module Wagn
 
     end
 
-    attr_reader :prefix, :store, :klass, :local
+    attr_accessor :prefix, :local, :store
 
     def initialize(opts={})
-      #warn "new cache #{opts.inspect}"
       @klass = opts[:class]
+      Rails.logger.warn "nil class for cache #{caller*"\n"}" if @klass.nil?
       @store = opts[:store]
       @local = {}
+
       self.system_prefix = opts[:prefix] || self.class.system_prefix(opts[:class])
-      Rails.logger.warn "nil class for cache #{caller*"\n"}" if klass.nil?
-      cache_by_class[klass] = self
-      prepopulate klass if prepopulating[klass]
+
+      cache_by_class[@klass] = self
+      prepopulate @klass if prepopulating[@klass]
     end
 
     def prepopulate klass
@@ -96,14 +97,18 @@ module Wagn
     end
 
     def system_prefix=(system_prefix)
-      @system_prefix = system_prefix
-      if @store.nil?
-        @prefix = system_prefix + self.class.generate_cache_id + "/"
-      else
-        @system_prefix += '/' unless @system_prefix[-1] == '/'
-        prefix = "#{@system_prefix}cache_id"
-        @cache_id = @store.read( prefix ) || @store.write( prefix, self.class.generate_cache_id )
-      end
+      @system_prefix = ( system_prefix[-1] == '/' ? system_prefix : (system_prefix + '/') )
+      @prefix = if @store.nil?
+          Rails.logger.warn "see if we can remove this case? #{caller*"\n"}"
+          @system_prefix + self.class.generate_cache_id + "/"
+
+        else
+          @cache_id = @store.read( "#{@system_prefix}cache_id" ) ||
+                     write_global( "#{@system_prefix}cache_id", self.class.generate_cache_id )
+          #warn "write cache id #{x1}, #{x2}, #{@cache_id}, #{@system_prefix}"
+
+          @system_prefix + @cache_id + "/"
+        end
     end
 
     def read key
@@ -112,7 +117,7 @@ module Wagn
         @local[key]
       else
         obj = @store.read @prefix + key
-      #warn "rd #{obj.class}, #{obj}, #{key} #{@store.nil?}, #{@prefix}"
+        #warn "rd #{obj.class}, #{obj}, #{@prefix + key} #{@store.nil?}, #{@prefix}"
         obj.reset_mods if obj.respond_to?(:reset_mods)
         obj
       end
@@ -130,6 +135,11 @@ module Wagn
       @local[key] = value
     end
 
+    def write_global key, value
+      @store or raise "no store"
+      @store.write key, value
+      value
+    end
 
     def delete key
       obj = @local.delete key

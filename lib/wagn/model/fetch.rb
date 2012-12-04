@@ -59,7 +59,7 @@ module Wagn::Model::Fetch
       if Integer===mark
         raise "fetch of missing card_id #{mark}" if card.nil? || card.trash
       else
-        return card.fetch_new(opts) if card && opts[:skip_virtual] && card.new_card?
+        return card.fetch_new opts if card && opts[:skip_virtual] && card.new_card?
 
         # NEW card -- (either virtual or missing)
         if card.nil? or ( !opts[:skip_virtual] && card.type_id==-1 )

@@ -75,14 +75,13 @@ module Wagn
 
     end
 
-    attr_reader :prefix, :store, :klass
-    attr_accessor :local
+    attr_reader :prefix, :store, :klass, :local
 
     def initialize(opts={})
       #warn "new cache #{opts.inspect}"
       @klass = opts[:class]
       @store = opts[:store]
-      @local = Hash.new
+      @local = {}
       self.system_prefix = opts[:prefix] || self.class.system_prefix(opts[:class])
       Rails.logger.warn "nil class for cache #{caller*"\n"}" if klass.nil?
       cache_by_class[klass] = self
@@ -102,10 +101,8 @@ module Wagn
         @prefix = system_prefix + self.class.generate_cache_id + "/"
       else
         @system_prefix += '/' unless @system_prefix[-1] == '/'
-        @cache_id = @store.fetch(@system_prefix + "cache_id") do
-          self.class.generate_cache_id
-        end
-        @prefix = @system_prefix + @cache_id + "/"
+        prefix = "#{@system_prefix}cache_id"
+        @cache_id = @store.read( prefix ) || @store.write( prefix, self.class.generate_cache_id )
       end
     end
 

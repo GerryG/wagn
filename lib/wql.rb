@@ -436,16 +436,19 @@ class Wql
 
 
   class RefSpec < Spec
+    include Card::ReferenceTypes
+
     def initialize(spec)
       @spec = spec
+      # FIXME: Use RefernceTypes here
       @refspecs = {
         :refer_to       => ['card_id','referenced_card_id',''],
-        :link_to        => ['card_id','referenced_card_id',"link_type='#{Card::Reference::LINK}' AND"],
-        :include        => ['card_id','referenced_card_id',"link_type='#{Card::Reference::TRANSCLUSION}' AND"],
-        :link_to_missing=> ['card_id','referenced_card_id',"link_type='#{Card::Reference::WANTED_LINK}'"],
+        :link_to        => ['card_id','referenced_card_id',"link_type='#{LINK}' AND"],
+        :include        => ['card_id','referenced_card_id',"link_type='#{TRANSCLUDE}' AND"],
+        :link_to_missing=> ['card_id','referenced_card_id',"present = 0 AND link_type='#{LINK}'"],
         :referred_to_by => ['referenced_card_id','card_id',''],
-        :linked_to_by   => ['referenced_card_id','card_id',"link_type='#{Card::Reference::LINK}' AND"],
-        :included_by    => ['referenced_card_id','card_id',"link_type='#{Card::Reference::TRANSCLUSION}' AND"]
+        :linked_to_by   => ['referenced_card_id','card_id',"link_type='#{LINK}' AND"],
+        :included_by    => ['referenced_card_id','card_id',"link_type='#{TRANSCLUDE}' AND"]
       }
     end
 

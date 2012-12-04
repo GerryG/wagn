@@ -1,7 +1,7 @@
 
 module Wagn
  module Model::References
-  include  Wagn::ReferenceTypes
+  include Card::ReferenceTypes
 
   def name_referencers(rname = key)
     Card.find_by_sql(
@@ -48,8 +48,10 @@ module Wagn
       has_many :in_references,:class_name=>'Card::Reference', :foreign_key=>'referenced_card_id'
       has_many :out_references,:class_name=>'Card::Reference', :foreign_key=>'card_id', :dependent=>:destroy
 
-      has_many :in_transclusions, :class_name=>'Card::Reference', :foreign_key=>'referenced_card_id',:conditions=>["link_type in (?,?)",TRANSCLUSION, WANTED_TRANSCLUSION]
-      has_many :out_transclusions,:class_name=>'Card::Reference', :foreign_key=>'card_id',           :conditions=>["link_type in (?,?)",TRANSCLUSION, WANTED_TRANSCLUSION]
+      has_many :in_transclusions, :class_name=>'Card::Reference', :foreign_key=>'referenced_card_id',
+               :conditions=>{ :link_type => TRANSCLUDE }
+      has_many :out_transclusions,:class_name=>'Card::Reference', :foreign_key=>'card_id',
+               :conditions=>{ :link_type => TRANSCLUDE }
 
       has_many :referencers, :through=>:in_references
       has_many :transcluders, :through=>:in_transclusions, :source=>:referencer

@@ -1,6 +1,6 @@
 module Wagn
   class Renderer
-    include ReferenceTypes
+    include Card::ReferenceTypes
     include LocationHelper
 
     DEPRECATED_VIEWS = { :view=>:open, :card=>:open, :line=>:closed, :bare=>:core, :naked=>:core }
@@ -410,7 +410,7 @@ module Wagn
 
      ### FIXME -- this should not be here!   probably in Card::Reference model?
     def replace_references old_name, new_name
-      #warn "replacing references...card name: #{card.name}, old name: #{old_name}, new_name: #{new_name}"
+      #Rails.logger.warn "replacing references...card name: #{card.name}, old name: #{old_name}, new_name: #{new_name}"
       wiki_content = WikiContent.new(card, card.content, self)
 
       wiki_content.find_chunks(Chunk::Link).each do |chunk|
@@ -418,7 +418,6 @@ module Wagn
           link_bound = chunk.cardname == chunk.link_text
           chunk.cardname = chunk.cardname.replace_part(old_name, new_name)
           chunk.link_text=chunk.cardname.to_s if link_bound
-          #Rails.logger.info "repl ref: #{chunk.cardname.to_s}, #{link_bound}, #{chunk.link_text}"
         end
       end
 
@@ -432,26 +431,23 @@ module Wagn
 
     #FIXME -- should not be here.
     def update_references rendering_result = nil, refresh = false
+      #Rails.logger.warn "update references...card name: #{card.name}, rr: #{rendering_result}, refresh: #{refresh}"
       return unless card && card.id
       Rails.logger.info "update refs #{card.inspect}"
       raise "???" if caller.length > 500
+
       Card::Reference.delete_all :card_id => card.id
       card.references_expired=nil
       card.expire if frozen?
+
       rendering_result ||= WikiContent.new(card, _render_refs, self)
       
       rendering_result.find_chunks(Chunk::Reference).each do |chunk|
-      Rails.logger.warn "processing chunk1 [#{chunk.class}][#{chunk.refcard.nil?}]i:#{chunk.inspect}"
-        reference_type = TYPE_MAP[chunk.class][chunk.refcard.nil?]
-      Rails.logger.warn "processing chunk: #{chunk.inspect}, rcname:#{chunk.refcardname} <> reftype:#{reference_type.inspect} Rcard:#{chunk.refcard.inspect}"
-      reference_type or
-            raise "Unknown chunk reference class #{chunk.class}"
-
-      Rails.logger.warn "new ref :card_id=>#{card.id}, :referenced_name=> #{(rc=chunk.refcardname()) && rc.key() || ''}, :referenced_card_id=> #{chunk.refcard ? chunk.refcard.id : nil}, :link_type=>#{reference_type}"
         Card::Reference.create!( :card_id=>card.id,
           :referenced_name=> (rc=chunk.refcardname()) && rc.key() || '',
           :referenced_card_id=> chunk.refcard ? chunk.refcard.id : nil,
-          :link_type=>reference_type
+          :link_type => Chunk::Link===chunk ? LINK : TRANSCLUDE,
+          :present => chunk.refcard.nil? ? 0 : 1
          )
       end
     end

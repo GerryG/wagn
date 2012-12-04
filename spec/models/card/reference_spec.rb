@@ -108,15 +108,17 @@ describe "Card::Reference" do
     end
   end
 
-  W = Wagn::ReferenceTypes::WANTED_LINK
-  L = Wagn::ReferenceTypes::LINK
+  L = Card::ReferenceTypes::LINK.first
+  W = Card::ReferenceTypes::LINK.last
 
   it "should not update references when not requested" do
     watermelon = newcard('watermelon', 'mmmm')
     watermelon_seeds = newcard('watermelon+seeds', 'black')
     lew = newcard('Lew', "likes [[watermelon]] and [[watermelon+seeds|seeds]]")
 
-    assert_equal [L,L], lew.out_references.plot(:link_type), "links should be Wanted"
+    assert_equal [L,L], lew.out_references.plot(:link_type), "links should not be Wanted before"
+    Rails.logger.warn "tesging #{(pseeds = Card['watermelon+seeds']).inspect}, #{pseeds.dependents.inspect}"
+    Rails.logger.warn "tesging #{(melon = Card['watermelon']).inspect}, deps: #{melon.dependents.inspect}"
     watermelon = Card['watermelon']
     watermelon.update_referencers = false
     watermelon.name="grapefruit"

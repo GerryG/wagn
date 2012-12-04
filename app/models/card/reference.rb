@@ -1,45 +1,59 @@
 # -*- encoding : utf-8 -*-
 
-class Card::Reference < ActiveRecord::Base
-  include Wagn::ReferenceTypes
-  belongs_to :referencer, :class_name=>'Card', :foreign_key=>'card_id'
-  belongs_to :referencee, :class_name=>'Card', :foreign_key=>"referenced_card_id"
+class Card
+ 
+  module ReferenceTypes
 
-  validates_inclusion_of :link_type, :in => REF_TYPES
+    # New stuff
+    LINK       = 'L'
+    TRANSCLUDE = 'T'
 
-  def self.cards_that_reference name
-    where( :link_type => REF_TYPES,        :referenced_name=>name ).collect &:referencer
+    TYPES      = [ LINK, TRANSCLUDE ]
+
+    # Needed for migration
+    LINK_TYPES       = [ 'L', 'W' ]
+    TRANSCLUDE_TYPES = [ 'T', 'M' ]
+
+    MISSING    = [ LINK_TYPES.last,  TRANSCLUDE.last  ]
+    PRESENT    = [ LINK_TYPES.first, TRANSCLUDE.first ]
+
   end
 
-  def self.cards_that_link_to name
-    where( :link_type => LINK_TYPES,       :referenced_name=>name ).collect &:referencer
-  end
 
-  def self.cards_that_transclude name
-    where( :link_type => TRANSCLUDE_TYPES, :referenced_name=>name ).collect &:referencer
-  end
+  class Reference < ActiveRecord::Base
+    belongs_to :referencer, :class_name=>'Card', :foreign_key=>'card_id'
+    belongs_to :referencee, :class_name=>'Card', :foreign_key=>"referenced_card_id"
 
-  class << self
-    include Wagn::ReferenceTypes
+    validates_inclusion_of :link_type, :in => ReferenceTypes::TYPES
 
-    def update_on_create card
-      where( :link_type=>LINK_TYPES.last,         :referenced_name => card.key ).
-        update_all :link_type => LINK_TYPES.first,       :referenced_card_id => card.id
+    class << self
+      include ReferenceTypes
 
-      where( :link_type => TRANSCLUDE_TYPES.last, :referenced_name => card.key ).
-        update_all :link_type => TRANSCLUDE_TYPES.first, :referenced_card_id => card.id
+      def cards_that_reference name
+        where( :referenced_name=>name                           ).collect &:referencer
+      end
+
+      def cards_that_link_to name
+        where( :referenced_name=>name, :link_type => LINK       ).collect &:referencer
+      end
+
+      def cards_that_transclude name
+        where( :referenced_name=>name, :link_type => TRANSCLUDE ).collect &:referencer
+      end
+
+      def update_on_create card
+        where( :referenced_name => card.key ).
+          update_all :present => 1, :referenced_card_id => card.id
+      end
+
+      def update_on_destroy card, name=nil
+        name ||= card.key
+        delete_all :card_id => card.id
+
+        where( "referenced_card_id = ? or referenced_name = ?", card.id, name ).
+          update_all :present=>0, :referenced_card_id => nil
+      end
     end
 
-    def update_on_destroy card, name=nil
-      name ||= card.key
-      delete_all :card_id => card.id
-
-      where( :link_type => LINK_TYPES.first,        :referenced_card_id=>card.id, :referenced_name => name ).
-        update_all :link_type=>LINK_TYPES.last,       :referenced_card_id => nil
-
-      where( :link_type => TRANSCLUDE_TYPES.first, :referenced_card_id=>card.id, :referenced_name => name ).
-        update_all :link_type=>TRANSCLUDE_TYPES.last, :referenced_card_id => nil
-    end
   end
-
 end

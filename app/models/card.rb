@@ -381,12 +381,11 @@ class Card < ActiveRecord::Base
 
   def dependents
     if new_card?; [] 
-    wql_key = simple? ? :part : :left
 
     else
       @dependents ||=
           Account.as_bot do
-            Card.search( wql_key=> name ).inject [] do |a,c|
+            Card.search( { (simple? ? :part : :left) => name } ).inject [] do |a,c|
               id == c.id ? a : (a << c) + (c.dependents)
             end
           end

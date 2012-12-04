@@ -408,7 +408,6 @@ module Wagn
                 </div>
 
                 #{ if Card.toggle(card.rule :accountable) && card.update_account_ok?
-
                     %{<div class="new-account-link">
                     #{ link_to %{Add a sign-in account for "#{card.name}"},
                         path(:options, :attrib=>:new_account),

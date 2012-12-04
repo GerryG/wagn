@@ -1,8 +1,8 @@
 module Wagn::Model::Templating
 
-  def template?()       cardname.trait_name? :content, :default              end
-  def is_hard_template?()  cardname.trait_name? :content                        end
-  def type_template?()  template? && cardname.trunk_name.trait_name?(:type)  end
+  def template?()         cardname.trait_name? :content, :default              end
+  def is_hard_template?() cardname.trait_name? :content                        end
+  def type_template?()    template? && cardname.trunk_name.trait_name?(:type)  end
 
   def template
     # currently applicable templating card.

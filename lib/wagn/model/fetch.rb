@@ -20,7 +20,7 @@ module Wagn::Model::Fetch
     #   Options:
     #     :skip_vitual                Real cards only
     #     :skip_modules               Don't load Set modules
-    #     :loaded_trunk => card       Loads the card's trunk
+    #     :loaded_left => card       Loads the card's trunk
     #     :new => {  card opts }      Return a new card when not found
     #     :trait => :code (or [:c1, :c2] maybe?)  Fetches base card + tag(s)
     #
@@ -34,15 +34,14 @@ module Wagn::Model::Fetch
       end
 
 
-      key = Integer===mark ? "~#{mark}" : mark.to_name.key
+      key = Integer===mark ? mark : mark.to_name.key
 
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       # lookup card
 
       #warn "fetch #{key}, #{mark}"
       #Cache lookup
-      val = Card.cache.read key
-      card = (val && Integer===mark) ? Card.cache.read(val) : val
+      card = Card.cache.read key
 
       # DB lookup
       if card.nil?
@@ -60,7 +59,7 @@ module Wagn::Model::Fetch
       if Integer===mark
         raise "fetch of missing card_id #{mark}" if card.nil? || card.trash
       else
-        return card.fetch_new(opts) if card && opts[:skip_virtual] && card.new_card?
+        return card.fetch_new opts if card && opts[:skip_virtual] && card.new_card?
 
         # NEW card -- (either virtual or missing)
         if card.nil? or ( !opts[:skip_virtual] && card.type_id==-1 )
@@ -75,9 +74,6 @@ module Wagn::Model::Fetch
 
       if needs_caching
         Card.cache.write card.key, card
-        if cid=card.id and cid != 0
-          Card.cache.write "~#{cid}", card.key
-        end
       end
 
       return card.fetch_new(opts) if card.new_card? and ( opts[:skip_virtual] || !card.virtual? )

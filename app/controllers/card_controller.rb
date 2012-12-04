@@ -76,7 +76,6 @@ Done"
   end
 
   def read
-    #@card.errors.any?
     unless errors!
       save_location # should be an event!
       show
@@ -110,7 +109,7 @@ Done"
   def delete
     @card.destroy
 
-    discard_locations_for(@card)
+    discard_locations_for @card
     success 'REDIRECT: *previous'
   end
 

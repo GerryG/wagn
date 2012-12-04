@@ -181,9 +181,7 @@ class AccountController < ApplicationController
   protected
 
   def target target_id
-    r=(
     card = Card[target_id] and Card.path_setting( Card.setting card.name )
-    ); Rails.logger.warn "target( #{target_id} ) #{card.inspect} is #{r}"; r
   end
 
   def failed_login! account

@@ -20,7 +20,7 @@ module Wagn::Model::Fetch
     #   Options:
     #     :skip_vitual                Real cards only
     #     :skip_modules               Don't load Set modules
-    #     :loaded_trunk => card       Loads the card's trunk
+    #     :loaded_left => card       Loads the card's trunk
     #     :new => {  card opts }      Return a new card when not found
     #     :trait => :code (or [:c1, :c2] maybe?)  Fetches base card + tag(s)
     #

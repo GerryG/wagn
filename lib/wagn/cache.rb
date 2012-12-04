@@ -75,7 +75,7 @@ module Wagn
 
     end
 
-    attr_accessor :prefix, :local, :store
+    attr_reader :prefix, :local, :store
 
     def initialize(opts={})
       @klass = opts[:class]

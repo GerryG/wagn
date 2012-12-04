@@ -8,6 +8,7 @@ require 'smart_name'
 SmartName.codes= Wagn::Codename
 SmartName.params= Wagn::Conf
 SmartName.lookup= Card
+SmartName.session= proc { Account.as_card.name }
 
 class Card < ActiveRecord::Base
   Revision
@@ -298,7 +299,6 @@ class Card < ActiveRecord::Base
       deps.each do |dep|
         dep.destroy
       end
-      expire
       true
     end
   end
@@ -326,18 +326,14 @@ class Card < ActiveRecord::Base
   end
 
   def validate_destroy
-    if !dependents.empty? && !confirm_destroy
-      errors.add(:confirmation_required, "because #{name} has #{dependents.size} dependents")
-    else
-      if code=self.codename || (tk=trunk) && tk.id == AllID && [ DefaultID ].member?(right_id)
-        errors.add :destroy, "#{name} is is a system card. (#{code||'all+default'})\n  Deleting this card would mess up our revision records."
-      end
-      if type_id== UserID && Revision.find_by_creator_id( self.id )
-        errors.add :destroy, "Edits have been made with #{name}'s user account.\n  Deleting this card would mess up our revision records."
-      end
-      if respond_to? :custom_validate_destroy
-        self.custom_validate_destroy
-      end
+    if code=self.codename || (tk=trunk) && tk.id == AllID && [ DefaultID ].member?(right_id)
+      errors.add :destroy, "#{name} is is a system card. (#{code||'all+default'})\n  Deleting this card would mess up our revision records."
+    end
+    if type_id== UserID && Revision.find_by_creator_id( self.id )
+      errors.add :destroy, "Edits have been made with #{name}'s user account.\n  Deleting this card would mess up our revision records."
+    end
+    if respond_to? :custom_validate_destroy
+      self.custom_validate_destroy
     end
     errors.empty?
   end
@@ -437,8 +433,8 @@ class Card < ActiveRecord::Base
   def all_default_rule; end
 
   def type_name
-    #raise "??? #{inspect}" if caller.length > 500
-    Card.fetch(type_id == -1 ? DefaultTypeID : type_id, :skip_virtual=>true, :skip_modules=>true ).name
+    raise "??? #{inspect}" if caller.length > 500
+    Card.fetch( type_id, :skip_virtual=>true, :skip_modules=>true ).name
   end
 
   def type= type_name

@@ -1,44 +1,59 @@
 # -*- encoding : utf-8 -*-
 
-class Card::Reference < ActiveRecord::Base
-  include Wagn::ReferenceTypes
-  belongs_to :referencer, :class_name=>'Card', :foreign_key=>'card_id'
-  belongs_to :referencee, :class_name=>'Card', :foreign_key=>"referenced_card_id"
+class Card
+ 
+  module ReferenceTypes
 
-  validates_inclusion_of :link_type, :in => [  LINK, WANTED_LINK, TRANSCLUSION, WANTED_TRANSCLUSION ]
+    # New stuff
+    LINK       = 'L'
+    TRANSCLUDE = 'T'
 
-  def self.find_cards_by_reference_name_and_type_list(card_name, *type_list)
-    sql_list = "'" + type_list.join("','") + "'"
-    self.find( :all, :conditions=>[%{
-      link_type in (#{sql_list}) and referenced_name=?
-    },card_name]).collect {|ref| ref.referencer }
+    TYPES      = [ LINK, TRANSCLUDE ]
+
+    # Needed for migration
+    LINK_TYPES       = [ 'L', 'W' ]
+    TRANSCLUDE_TYPES = [ 'T', 'M' ]
+
+    MISSING    = [ LINK_TYPES.last,  TRANSCLUDE.last  ]
+    PRESENT    = [ LINK_TYPES.first, TRANSCLUDE.first ]
+
   end
 
-  def self.cards_that_reference(card_name)
-    self.find_cards_by_reference_name_and_type_list( card_name, LINK, WANTED_LINK, TRANSCLUSION, WANTED_TRANSCLUSION )
-  end
 
-  def self.cards_that_link_to(card_name)
-    self.find_cards_by_reference_name_and_type_list(card_name, LINK, WANTED_LINK)
-  end
+  class Reference < ActiveRecord::Base
+    belongs_to :referencer, :class_name=>'Card', :foreign_key=>'card_id'
+    belongs_to :referencee, :class_name=>'Card', :foreign_key=>"referenced_card_id"
 
-  def self.cards_that_transclude(card_name)
-    self.find_cards_by_reference_name_and_type_list(card_name, TRANSCLUSION, WANTED_TRANSCLUSION)
-  end
+    validates_inclusion_of :link_type, :in => ReferenceTypes::TYPES
 
-  class << self
-    include Wagn::ReferenceTypes
-    def update_on_create( card )
-      update_all("link_type = '#{LINK}', referenced_card_id=#{card.id}",  ['referenced_name = ? and link_type=?', card.key, WANTED_LINK])
-      update_all("link_type = '#{TRANSCLUSION}', referenced_card_id=#{card.id}",  ['referenced_name = ? and link_type=?', card.key, WANTED_TRANSCLUSION])
+    class << self
+      include ReferenceTypes
+
+      def cards_that_reference name
+        where( :referenced_name=>name                           ).collect &:referencer
+      end
+
+      def cards_that_link_to name
+        where( :referenced_name=>name, :link_type => LINK       ).collect &:referencer
+      end
+
+      def cards_that_transclude name
+        where( :referenced_name=>name, :link_type => TRANSCLUDE ).collect &:referencer
+      end
+
+      def update_on_create card
+        where( :referenced_name => card.key ).
+          update_all :present => 1, :referenced_card_id => card.id
+      end
+
+      def update_on_destroy card, name=nil
+        name ||= card.key
+        delete_all :card_id => card.id
+
+        where( "referenced_card_id = ? or referenced_name = ?", card.id, name ).
+          update_all :present=>0, :referenced_card_id => nil
+      end
     end
 
-    def update_on_destroy( card, name=nil )
-      name ||= card.key
-      delete_all ['card_id = ?', card.id]
-      update_all("link_type = '#{WANTED_LINK}',referenced_card_id=NULL",  ['(referenced_name = ? or referenced_card_id = ?) and link_type=?', name, card.id, LINK])
-      update_all("link_type = '#{WANTED_TRANSCLUSION}',referenced_card_id=NULL",  ['(referenced_name = ? or referenced_card_id = ?) and link_type=?', name, card.id, TRANSCLUSION])
-    end
   end
-
 end

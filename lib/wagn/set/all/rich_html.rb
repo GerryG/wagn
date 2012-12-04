@@ -48,12 +48,6 @@ module Wagn
       t
     end
 
-    define_view :title do |args|
-       t = content_tag :h1, fancy_title, :class=>'card-title', :name_context=>"#{ @context_names.map(&:to_name).map(&:key)*',' }"
-       add_name_context
-       t
-    end
-
     define_view :open do |args|
       wrap :open, args.merge(:frame=>true) do
         %{
@@ -116,17 +110,25 @@ module Wagn
           <li>#{ link_to_action 'admin', :options, :class=>'slotter' }
             #{
             if !admin_items.empty?
-              %{<ul>#{ admin_items.map do |i| "<li>#{i}</li>" end.join } </ul>}
+              %{<ul>#{ admin_items.map { |i| "<li>#{i}</li>" } * '' } </ul>}
             end
             }
           </li>
-          #{ if Account.logged_in? && !card.new_card?
+          #{
+            if Account.logged_in? && !card.new_card?
               "<li>#{ render_watch }</li>"
              end }
         </ul>
       }
       #fixme - many of these (including watch) need permission checks for activation
     end
+
+    define_view :type do |args|
+      klasses = ['cardtype']
+      klasses << 'default-type' if card.type_id==Card::DefaultTypeID ? " default-type" : ''
+      link_to_page card.type_name, nil, :class=>klasses
+    end
+
 
     define_view :closed do |args|
       wrap :closed, args do
@@ -139,13 +141,6 @@ module Wagn
         }
       end
     end
-
-    define_view :type do |args|
-      klasses = ['cardtype']
-      klasses << 'default-type' if card.type_id==Card::DefaultTypeID ? " default-type" : ''
-      link_to_page card.type_name, nil, :class=>klasses
-    end
-
 
     define_view( :comment_box, :denial=>:blank, :perms=>lambda { |r| r.card.ok? :comment } ) do |args|
       %{<div class="comment-box nodblclick"> #{
@@ -316,39 +311,43 @@ module Wagn
       end)
     end
 
-    define_view :related do |args|
-      sources = [card.type_name,nil]
-      # FIXME codename *account
-      #sources.unshift '*account' if [Card::WagnBotID, Card::AnonID].member?(card.id) || card.type_id==Card::UserID
-      items = sources.map do |source|
-        c = Card.fetch(source ? source.to_name.trait_name(:related) : Card::RelatedID)
-        c && c.item_names
-      end.flatten.compact
-
-      current = params[:attribute] || items.first.to_name.key
-
-      wrap :related, args do
-        %{#{ _render_header }
-          <div class="submenu"> #{
-            items.map do |item|
-              key = item.to_name.key
-              text = item.gsub('*','').gsub('subtab','').strip
-              link_to text, path(:related, :attrib=>key), :remote=>true,
-                :class=>"slotter #{key==current ? 'current-subtab' : ''}"
-            end * "\n"}
-           </div> #{
-           notice }
-
-          <div class="open-content related"> #{
-            raw subrenderer(Card.fetch_or_new "#{card.name}+#{current}").render_content }
-          </div>}
+    define_view :edit_type, :perms=>:update do |args|
+      wrap :edit_type, args.merge(:frame=>true) do
+        _render_header +
+        wrap_content( :edit_type, :body=>true, :class=>'card-editor' ) do
+          card_form( :update, 'card-edit-type-form' ) do |f|
+            #'main-success'=>'REDIRECT: _self', # adding this back in would make main cards redirect on cardtype changes
+            %{ 
+              #{ hidden_field_tag :view, :edit }
+              #{if card.type_id == Card::CardtypeID and !Card.search(:type_id=>card.card.id).empty? #ENGLISH
+                %{<div>Sorry, you can't make this card anything other than a Cardtype so long as there are <strong>#{ card.name }</strong> cards.</div>}
+              else
+                _render_type_editor :variety=>:edit #FIXME dislike this api -ef
+              end}
+              <fieldset>
+                <div class="button-area">              
+                  #{ submit_tag 'Submit', :disable_with=>'Submitting' }
+                  #{ button_tag 'Cancel', :href=>path(:edit), :type=>'button', :class=>'edit-type-cancel-button slotter' }
+                </div>
+              </fieldset>
+            }
+          end
+        end
       end
     end
 
-    define_view :options, :perms=>:none do |args|
-      attribute = params[:attribute]
-
+    define_view :edit_in_form, :tags=>:unknown_ok do |args|
+      eform = form_for_multi
+      content = content_field eform, :nested=>true
+      attribs = %{ class="card-editor RIGHT-#{ card.cardname.tag_name.safe_key }" }
+      link_target, help_settings = if card.new_card?
+        content += raw( "\n #{ eform.hidden_field :type_id }" )
+        [ card.cardname.tag, [:add_help, { :fallback => :edit_help } ] ]
+      else
+        attribs += %{ card-id="#{card.id}" card-name="#{h card.name}" }
+        [ card.name, :edit_help ]
       end
+
       label = link_to_page fancy_title, link_target
       fieldset label, content, :help=>help_settings, :attribs=>attribs
     end
@@ -408,9 +407,7 @@ module Wagn
                   #{ raw subrenderer( Card.fetch current_set).render_content }
                 </div>
 
-                #{ my_card = card && card.id == Account.authorized.id
-                   if Card.toggle(card.rule(:accountable)) && (my_card || card.ok?(:create, :trait=>:account, :new=>{}))
-
+                #{ if Card.toggle(card.rule :accountable) && card.update_account_ok?
                     %{<div class="new-account-link">
                     #{ link_to %{Add a sign-in account for "#{card.name}"},
                         path(:options, :attrib=>:new_account),
@@ -436,6 +433,7 @@ module Wagn
       option_content = if traitc.ok? :update
           user_role_ids = user_roles.map &:id
           hidden_field_tag(:save_roles, true) +
+
           (roles.map do |rolecard|
             #warn Rails.logger.info("option_roles: #{rolecard.inspect}")
             if rolecard && !rolecard.trash
@@ -449,8 +447,9 @@ module Wagn
           (user_roles.map do |rolecard|
             %{ <div>#{ link_to_page rolecard.name }</div>}
           end * "\n").html_safe
+        else
+          'No roles assigned'  # #ENGLISH
         end
-      end
 
       %{#{ raw option_header( 'User Roles' ) }#{
          option(option_content, :name=>"roles",
@@ -562,10 +561,11 @@ module Wagn
 
     define_view :not_found do |args| #ug.  bad name.
       sign_in_or_up_links = if Account.logged_in?
-        %{<div>
-          #{link_to "Sign In", :controller=>'account', :action=>'signin'} or
-          #{link_to 'Sign Up', :controller=>'account', :action=>'signup'} to create it.
-         </div>}
+          %{<div>
+            #{link_to "Sign In", :controller=>'account', :action=>'signin'} or
+            #{link_to 'Sign Up', :controller=>'account', :action=>'signup'} to create it.
+           </div>}
+        end
 
       %{ <h1 class="page-header">Missing Card</h1> } +
       wrap( :not_found, args.merge(:frame=>true) ) do # ENGLISH
@@ -637,7 +637,6 @@ module Wagn
         end
       end
     end
-
   end
 end
 

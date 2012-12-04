@@ -76,9 +76,8 @@ Done"
   end
 
   def read
-    if @card.errors.any?
-      errors
-    else
+    #@card.errors.any?
+    unless errors!
       save_location # should be an event!
       show
     end
@@ -110,8 +109,6 @@ Done"
 
   def delete
     @card.destroy
-
-    return show(:delete) if @card.errors[:confirmation_required].any?
 
     discard_locations_for(@card)
     success 'REDIRECT: *previous'

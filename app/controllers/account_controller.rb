@@ -25,44 +25,40 @@ class AccountController < ApplicationController
     acct_params = params[:account] || {}
     acct_params[:name] = @card.name
     @account = Account.new(acct_params).pending
-    #warn "acct? #{params.inspect}, #{acct_params.inspect}, #{@account}"
+    Rails.logger.warn "acct? #{params.inspect}, #{acct_params.inspect}, #{@account}"
 
-    #warn "signup #{request.put?} #{params.inspect}, #{@account.inspect}, #{@card.inspect}"
+    Rails.logger.warn "signup #{request.put?} #{params.inspect}, #{@account.inspect}, #{@card.inspect}"
     if request.post?
       @card.account= @account
-    #warn "signup post #{params.inspect}, #{@card.account.inspect}, #{@card.inspect}"
+    Rails.logger.warn "signup post #{params.inspect}, #{@card.account.inspect}, #{@card.inspect}"
 
       redirect_id = SIGNUP_ID 
       if @card.ok?(:create, :trait=>:account) 
         @account.active
         @card.save
 
-        Rails.logger.warn "errors? #{@card.inspect} .errors.full_messages*", "}" if @card.errors.any?
-        if errors!
-          return true
-        else
-          #Rails.logger.warn "invite: #{@card.inspect} #{@account.inspect}"
-          @card.send_account_info( { :password=>@account.password, :to => @account.email,
-                :message => Card.setting('*signup+*message') || "Thanks for signing up to #{Card.setting('*title')}!",
-                :subject => Card.setting('*signup+*subject') || "Account info for #{Card.setting('*title')}!" } )
-        end
+        return if errors!
+
+        #Rails.logger.warn "invite: #{@card.inspect} #{@account.inspect}"
+        @card.send_account_info( { :password=>@account.password, :to => @account.email,
+              :message => Card.setting('*signup+*message') || "Thanks for signing up to #{Card.setting('*title')}!",
+              :subject => Card.setting('*signup+*subject') || "Account info for #{Card.setting('*title')}!" } )
 
       else
 
         @account.pending
         Account.as_bot { @card.save }
 
-        if errors!
-          #warn "errors #{@account.errors.full_messages*", "}"
-          return true
-        else
-          Account.as_bot do
-            Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'
-          end
+        return if errors!
 
-          redirect_id = REQUEST_ID
+        Account.as_bot do
+          Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'
         end
+
+        redirect_id = REQUEST_ID
       end
+      warn "errors #{@account.errors.full_messages*", "}"
+      Rails.logger.warn "errors? #{@card.inspect}"
 
       redirect_to target( redirect_id )
 
@@ -136,7 +132,7 @@ class AccountController < ApplicationController
 
       auth_args = { :email=>params[:login], :password=>params[:password] }
       Rails.logger.warn "signin #{auth_args.inspect}"
-      unless failed_login acct_card=Account.authenticate( auth_args )
+      unless failed_login! acct_card=Account.authenticate( auth_args )
 
         self.session_account = acct_card.id
 
@@ -190,7 +186,7 @@ class AccountController < ApplicationController
     ); Rails.logger.warn "target( #{target_id} ) #{card.inspect} is #{r}"; r
   end
 
-  def failed_login(account)
+  def failed_login! account
     if account.nil?
       message = "Email not recognized." 
     elsif account.errors.any?

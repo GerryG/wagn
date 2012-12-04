@@ -86,10 +86,6 @@ module Wagn
     # Is the one change to '' correct?  Should the rest be same and originals in rich_html?
 
 
-    define_view :edit_virtual, :perms=>:none do |args|
-      ''
-    end
-
     define_view :closed_missing, :perms=>:none do |args|
       %{<span class="faint"> #{ showname } </span>}
     end

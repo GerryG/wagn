@@ -53,7 +53,7 @@ class Card < ActiveRecord::Base
             args['type_id']       == cc.type_args[:type_id]   and
             args['loaded_left']   == cc.loaded_left
 
-          args['type_id'] = cc.type_id
+        args['type_id'] = cc.type_id
           return cc.send( :initialize, args )
         end
       end
@@ -381,11 +381,12 @@ class Card < ActiveRecord::Base
 
   def dependents
     if new_card?; [] 
+    wql_key = simple? ? :part : :left
 
     else
       @dependents ||=
           Account.as_bot do
-            Card.search( :part=> id ).inject [] do |a,c|
+            Card.search( wql_key=> name ).inject [] do |a,c|
               id == c.id ? a : (a << c) + (c.dependents)
             end
           end

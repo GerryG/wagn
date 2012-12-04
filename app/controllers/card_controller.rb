@@ -17,13 +17,13 @@ class CardController < ApplicationController
     if @card.save
       success
     else
-      errors
+      errors!
     end
   end
 
   def read
     if @card.errors.any?
-      errors
+      errors!
     else
       save_location # should be an event!
       show
@@ -34,12 +34,13 @@ class CardController < ApplicationController
     case
     when @card.new_card?                          ;  create
     when @card.update_attributes( params[:card] ) ;  success
-    else                                             errors
+    else                                             errors!
     end
   end
 
   def delete
     @card.destroy
+
     discard_locations_for @card
     success 'REDIRECT: *previous'
   end
@@ -63,7 +64,7 @@ class CardController < ApplicationController
     if @card.save_draft params[:card][:content]
       render :nothing=>true
     else
-      errors
+      errors!
     end
   end
 
@@ -81,7 +82,7 @@ class CardController < ApplicationController
     if @card.save
       show
     else
-      errors
+      errors!
     end
   end
 
@@ -131,7 +132,7 @@ class CardController < ApplicationController
       account.errors.each do |field, err|
         @card.errors.add field, err
       end
-      errors
+      errors!
     else
       success
     end

@@ -75,18 +75,18 @@ module Wagn
 
     end
 
-    attr_reader :prefix, :store, :klass
-    attr_accessor :local
+    attr_reader :prefix, :local, :store
 
     def initialize(opts={})
-      #warn "new cache #{opts.inspect}"
       @klass = opts[:class]
+      Rails.logger.warn "nil class for cache #{caller*"\n"}" if @klass.nil?
       @store = opts[:store]
-      @local = Hash.new
+      @local = {}
+
       self.system_prefix = opts[:prefix] || self.class.system_prefix(opts[:class])
-      Rails.logger.warn "nil class for cache #{caller*"\n"}" if klass.nil?
-      cache_by_class[klass] = self
-      prepopulate klass if prepopulating[klass]
+
+      cache_by_class[@klass] = self
+      prepopulate @klass if prepopulating[@klass]
     end
 
     def prepopulate klass
@@ -97,48 +97,54 @@ module Wagn
     end
 
     def system_prefix=(system_prefix)
-      @system_prefix = system_prefix
-      if @store.nil?
-        @prefix = system_prefix + self.class.generate_cache_id + "/"
-      else
-        @system_prefix += '/' unless @system_prefix[-1] == '/'
-        @cache_id = @store.fetch(@system_prefix + "cache_id") do
-          self.class.generate_cache_id
+      @system_prefix = ( system_prefix[-1] == '/' ? system_prefix : (system_prefix + '/') )
+      @prefix = if @store.nil?
+          Rails.logger.warn "see if we can remove this case? #{caller*"\n"}"
+          @system_prefix + self.class.generate_cache_id + "/"
+
+        else
+          @cache_id = @store.read( "#{@system_prefix}cache_id" ) ||
+                     write_global( "#{@system_prefix}cache_id", self.class.generate_cache_id )
+          #warn "write cache id #{x1}, #{x2}, #{@cache_id}, #{@system_prefix}"
+
+          @system_prefix + @cache_id + "/"
         end
-        @prefix = @system_prefix + @cache_id + "/"
-      end
     end
 
     def read key
       return @local[key] unless @store
-      fetch_local(key) do
-        @store.read(@prefix + key)
+      if @local.has_key?(key)
+        @local[key]
+      else
+        obj = @store.read @prefix + key
+        #warn "rd #{obj.class}, #{obj}, #{@prefix + key} #{@store.nil?}, #{@prefix}"
+        obj.reset_mods if obj.respond_to?(:reset_mods)
+        obj
       end
+    end
+
+    def read_local key
+      @local[key]
     end
 
     def write key, value
-      self.write_local(key, value)
-      #@store.write(@prefix + key, Marshal.dump(value))  if @store
-      @store.write(@prefix + key, value) if @store
+      @store.write @prefix + key, value if @store
+
+      @local[value.id.to_i] = value if Card===value and !value.id.nil?
+
+      @local[key] = value
+    end
+
+    def write_global key, value
+      @store or raise "no store"
+      @store.write key, value
       value
     end
 
-    def write_local(key, value) @local[key] = value end
-    def read_local(key)         @local[key]         end
-
-    def fetch key, &block
-      fetch_local(key) do
-        if @store
-          @store.fetch(@prefix + key, &block)
-        else
-          block.call
-        end
-      end
-    end
-
     def delete key
-      @local.delete key
-      @store.delete(@prefix + key)  if @store
+      obj = @local.delete key
+      @local.delete obj.id if Card===obj and !obj.id.nil?
+      @store.delete @prefix + key  if @store
     end
 
     def dump
@@ -165,17 +171,6 @@ module Wagn
       @prefix = @system_prefix + @cache_id + "/"
     end
 
-    private
-    def fetch_local key
-      if @local.has_key?(key)
-        @local[key]
-      else
-        val = yield
-        val.reset_mods if val.respond_to?(:reset_mods)
-        #why does this happen here?
-        @local[key] = val
-      end
-    end
-end
+  end
 end
 

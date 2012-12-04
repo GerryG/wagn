@@ -1,7 +1,7 @@
 module Wagn::Model::Templating
 
   def template?()       cardname.trait_name? :content, :default              end
-  def hard_template?()
+  def is_hard_template?()
     #warn "ht? #{name}, #{cardname.trait_name? :content}"
     cardname.trait_name? :content                        end
   def type_template?()  template? && cardname.trunk_name.trait_name?(:type)  end
@@ -32,7 +32,7 @@ module Wagn::Model::Templating
   end
 
   def hard_template
-    template if template && template.hard_template?
+    template if template && template.is_hard_template?
   end
 
   def virtual?
@@ -81,7 +81,7 @@ module Wagn::Model::Templating
   private
 
   def hard_templatee_spec
-    if hard_template? and c=Card.fetch(cardname.trunk_name)
+    if is_hard_template? and c=Card.fetch(cardname.trunk_name)
       c.type_id == Card::SetID ? c.get_spec : true
     end
   end

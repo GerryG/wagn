@@ -32,15 +32,16 @@ module Wagn
     content = respond_to?('references_expired') ? raw_content : ''
     rendering_result ||= ObjectContent.new(content, {:card=>self} )
     rendering_result.find_chunks(Chunk::Reference).each do |chunk|
-      reference_type =
-        case chunk
-          when Chunk::Link;       chunk.reference_card ? LINK : WANTED_LINK
-          when Chunk::Transclude; chunk.reference_card ? TRANSCLUSION : WANTED_TRANSCLUSION
-          else raise "Unknown chunk reference class #{chunk.class}"
-        end
+      # validate class?  find_chunks should be working, right?
+      #raise "Unknown chunk reference class #{chunk.class}"
 
-      Card::Reference.create!( :card_id=>id, :referenced_name=> chunk.reference_name,
-        :referenced_card_id=> chunk.reference_id, :link_type=>reference_type )
+      Card::Reference.create!(
+        :card_id            =>id,
+        :referenced_name    => chunk.reference_name,
+        :referenced_card_id => chunk.reference_id,
+        :present            => chunk.reference_card.nil? ? 0 : 1,
+        :link_type          => Chunk::Link===chunk ? LINK : TRANSCLUDE
+      )
     end
   end
 

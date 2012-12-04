@@ -119,7 +119,7 @@ class AccountController < ApplicationController
       @card.errors.add field, err unless @card.errors[field].any?
       # needed to prevent duplicates because User adds them in the other direction in user.rb
     end
-    errors
+    errors!
   end
 
   def password_authentication(login, password)

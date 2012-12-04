@@ -33,8 +33,8 @@ class AdminController < ApplicationController
 
   def show_cache
     key = params[:id].to_name.key
-    @cache_card = Card.fetch(key)
-    @db_card = Card.find_by_key(key)
+    @cache_card = Card.fetch key
+    @db_card = Card.find_by_key key
   end
 
   def clear_cache

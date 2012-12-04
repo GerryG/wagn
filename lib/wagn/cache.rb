@@ -111,34 +111,33 @@ module Wagn
 
     def read key
       return @local[key] unless @store
-      fetch_local(key) do
-        @store.read(@prefix + key)
+      if @local.has_key?(key)
+        @local[key]
+      else
+        obj = @store.read @prefix + key
+      #warn "rd #{obj.class}, #{obj}, #{key} #{@store.nil?}, #{@prefix}"
+        obj.reset_mods if obj.respond_to?(:reset_mods)
+        obj
       end
+    end
+
+    def read_local key
+      @local[key]
     end
 
     def write key, value
-      self.write_local(key, value)
-      #@store.write(@prefix + key, Marshal.dump(value))  if @store
-      @store.write(@prefix + key, value) if @store
-      value
+      @store.write @prefix + key, value if @store
+
+      @local[value.id.to_i] = value if Card===value and !value.id.nil?
+
+      @local[key] = value
     end
 
-    def write_local(key, value) @local[key] = value end
-    def read_local(key)         @local[key]         end
-
-    def fetch key, &block
-      fetch_local(key) do
-        if @store
-          @store.fetch(@prefix + key, &block)
-        else
-          block.call
-        end
-      end
-    end
 
     def delete key
-      @local.delete key
-      @store.delete(@prefix + key)  if @store
+      obj = @local.delete key
+      @local.delete obj.id if Card===obj and !obj.id.nil?
+      @store.delete @prefix + key  if @store
     end
 
     def dump
@@ -165,17 +164,6 @@ module Wagn
       @prefix = @system_prefix + @cache_id + "/"
     end
 
-    private
-    def fetch_local key
-      if @local.has_key?(key)
-        @local[key]
-      else
-        val = yield
-        val.reset_mods if val.respond_to?(:reset_mods)
-        #why does this happen here?
-        @local[key] = val
-      end
-    end
-end
+  end
 end
 

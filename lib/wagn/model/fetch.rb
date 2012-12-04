@@ -34,15 +34,14 @@ module Wagn::Model::Fetch
       end
 
 
-      key = Integer===mark ? "~#{mark}" : mark.to_name.key
+      key = Integer===mark ? mark : mark.to_name.key
 
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       # lookup card
 
       #warn "fetch #{key}, #{mark}"
       #Cache lookup
-      val = Card.cache.read key
-      card = (val && Integer===mark) ? Card.cache.read(val) : val
+      card = Card.cache.read key
 
       # DB lookup
       if card.nil?
@@ -75,9 +74,6 @@ module Wagn::Model::Fetch
 
       if needs_caching
         Card.cache.write card.key, card
-        if cid=card.id and cid != 0
-          Card.cache.write "~#{cid}", card.key
-        end
       end
 
       return card.fetch_new(opts) if card.new_card? and ( opts[:skip_virtual] || !card.virtual? )

@@ -65,7 +65,7 @@ module Wagn::Model::Fetch
         #  return nil # we can get a fetch for a trashed card, this is fixed allready in forward branch
         #end
       else
-        return Card.fetch_new(opts.merge(:name=>cardname)) if card && opts[:skip_virtual] && card.new_card?
+        return card.fetch_new(opts) if card && opts[:skip_virtual] && card.new_card?
 
         # NEW card -- (either virtual or missing)
         if card.nil? or ( !opts[:skip_virtual] && card.type_id==-1 )

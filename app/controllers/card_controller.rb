@@ -169,9 +169,12 @@ class CardController < ApplicationController
   end
 
   def index_preload
-    Account.no_logins? ?
-      redirect_to( Card.path_setting '/admin/setup' ) :
-      params[:id] = (Card.setting(:home) || 'Home').to_name.url_key
+    if Account.first_login?
+      home_name = Card.setting(:home) || 'Home'
+      params[:id] = home_name.to_name.url_key
+    else
+      redirect_to Card.path_setting '/admin/setup'
+    end
   end
 
 

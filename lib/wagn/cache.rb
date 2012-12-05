@@ -111,8 +111,16 @@ module Wagn
 
     def read key
       return @local[key] unless @store
-      fetch_local(key) do
-        @store.read(@prefix + key)
+      if @local.has_key?(key)
+        @local[key]
+      elsif Integer===key
+        #Rails.logger.warn "by id miss: #{key} #{caller[0..12]*"\n"}"
+        nil
+      else
+        obj = @store.read @prefix + key
+        #warn "rd #{obj.class}, #{obj}, #{@prefix + key} #{@store.nil?}, #{@prefix}"
+        obj.reset_mods if obj.respond_to?(:reset_mods)
+        obj
       end
     end
 

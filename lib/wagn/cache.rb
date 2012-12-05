@@ -119,7 +119,7 @@ module Wagn
     end
 
     def system_prefix=(system_prefix)
-      @system_prefix = ( system_prefix[-1] == '/' ? system_prefix : (system_prefix + '/') )
+      @system_prefix = ( system_prefix[-1,1] == '/' ? system_prefix : (system_prefix + '/') )
       @prefix = if @store.nil?
           Rails.logger.warn "see if we can remove this case? #{caller[0..12]*", "}"
           @system_prefix + self.class.generate_cache_id + "/"

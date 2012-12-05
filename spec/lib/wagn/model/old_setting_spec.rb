@@ -68,7 +68,6 @@ describe Card do
     it "returns pointer-specific setting names for pointer card (*type)" do
       # was this test wrong before?  What made Fruit a pointer without this?
       Account.as_bot do
-        Rails.logger.info "testing point 0"
         c1=Card.create! :name=>'Fruit+*type+*default', :type=>'Pointer'
         #warn (Rails.logger.info "testing point 1 #{c1.inspect}")
         Card.create! :name=>'Pointer+*type'

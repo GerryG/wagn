@@ -27,6 +27,7 @@ module Wagn
     end
 
     def write_global key, obj
+      stat :write_global
       #@store or raise "no store"
       @store.send_if :write, "#{ @prefix }#{ key }", obj
       obj
@@ -98,9 +99,11 @@ module Wagn
 
     def initialize(opts={})
       @klass = opts[:class]
-      Rails.logger.warn "nil class for cache #{caller*"\n"}" if @klass.nil?
+      #Rails.logger.warn "nil class for cache #{caller*"\n"}" if @klass.nil?
       @store = opts[:store]
       @local = {}
+      @stats = {}
+      @stat_count = 0
 
       self.system_prefix = opts[:prefix] || self.class.system_prefix(opts[:class])
 
@@ -118,7 +121,7 @@ module Wagn
     def system_prefix=(system_prefix)
       @system_prefix = ( system_prefix[-1] == '/' ? system_prefix : (system_prefix + '/') )
       @prefix = if @store.nil?
-          Rails.logger.warn "see if we can remove this case? #{caller*"\n"}"
+          Rails.logger.warn "see if we can remove this case? #{caller[0..12]*", "}"
           @system_prefix + self.class.generate_cache_id + "/"
 
         else
@@ -130,30 +133,49 @@ module Wagn
         end
     end
 
+    INTERVAL = 1000
+
+    def stat key
+      @stats[key] ||= 0
+      @stats[key] += 1
+      Rails.logger.warn "stats: #{@stats.inspect}" if (@stat_count += 1) % INTERVAL == 0
+    end
+
     def read key
-      return @local[key] if @store.nil? || @local.has_key?(key)
+      stat :read
+      if @store.nil? || @local.has_key?(key)
+        l = @local[key]
+        stat l.nil? ? :local_miss : :local_hit
+        return l
+      end
+      stat :id_miss if Integer===key
       return if Integer===key
 
       obj = @store.read @prefix + key
+      stat :reset_mods if obj.respond_to? :reset_mods
       obj.reset_mods if obj.respond_to? :reset_mods
-      Rails.logger.warn "c read: #{key}, #{obj.inspect}, #{Card===obj and obj.sets_loaded? and i=obj.id.to_i and "r:#{@local[i].inspect}"}, pk:#{@prefix + key} st:#{@store.nil?}, p:#{@prefix}"
+      stat obj.nil? ? :global_miss : :global_hit
+      #Rails.logger.warn "c read: #{key}, #{obj.inspect}, #{Card===obj and obj.sets_loaded? and i=obj.id.to_i and "r:#{@local[i].inspect}"}, pk:#{@prefix + key} st:#{@store.nil?}, p:#{@prefix}"
 
       #raise "not loaded? #{obj.inspect}" if Card===obj and  !obj.sets_loaded?
-      Card===obj and  i=obj.id.to_i and @local[i] = obj 
+      Card===obj and  i=obj.id.to_i and @local[i] = obj and
+        stat :id_store
       obj
     end
 
     def read_local key
+      stat :read_local
       @local[key]
     end
 
     def write key, obj
+      stat :write
       if Card===obj
-        Rails.logger.warn "c write #{obj.inspect}"
+        #Rails.logger.warn "c write #{obj.inspect}"
         #obj.init_sets unless obj.sets_loaded?
         id = obj.id.to_i and @local[ id ] = obj 
       end
-      Rails.logger.warn "c write st:#{!@store.nil?} l:#{@local.class}, gk:#{@prefix + key}, v:#{obj.inspect}"
+      #Rails.logger.warn "c write st:#{!@store.nil?} l:#{@local.class}, gk:#{@prefix + key}, v:#{obj.inspect}"
 
       write_global key, obj
       @local[key] = obj
@@ -161,7 +183,7 @@ module Wagn
 
     def delete key
       obj = @local.delete key
-      Rails.logger.warn "c delete #{obj.inspect}, k:#{key}"
+      #Rails.logger.warn "c delete #{obj.inspect}, k:#{key}"
       @local.delete obj.id if Card===obj
       @store.delete @prefix + key  if @store
     end

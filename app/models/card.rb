@@ -116,7 +116,6 @@ class Card < ActiveRecord::Base
       :typecode => args.delete('typecode'),
       :type_id  => args[       'type_id' ]
     }
-    Rails.logger.warn "Card#new #{args.inspect}, TA:#{@type_args.inspect}"
 
     skip_modules = args.delete 'skip_modules'
 
@@ -128,7 +127,7 @@ class Card < ActiveRecord::Base
   end
 
   def init_sets skip_modules=false
-    Rails.logger.warn "init_sets[#{skip_modules}, #{inspect}, #{@type_args.inspect}"
+    #Rails.logger.warn "init_sets[#{skip_modules}, #{inspect}, #{@type_args.inspect}"
 
     if type_id.nil? && @type_args.nil?
       raise "no type or type args"

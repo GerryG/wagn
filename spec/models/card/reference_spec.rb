@@ -102,8 +102,6 @@ describe "Card::Reference" do
     lew = newcard('Lew', "likes [[watermelon]] and [[watermelon+seeds|seeds]]")
 
     assert_equal [1,1], lew.out_references.plot(:present), "links should not be Wanted before"
-    Rails.logger.warn "tesging #{(pseeds = Card['watermelon+seeds']).inspect}, #{pseeds.dependents.inspect}"
-    Rails.logger.warn "tesging #{(melon = Card['watermelon']).inspect}, deps: #{melon.dependents.inspect}"
     watermelon = Card['watermelon']
     watermelon.update_referencers = false
     watermelon.name="grapefruit"

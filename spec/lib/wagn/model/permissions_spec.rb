@@ -214,12 +214,10 @@ describe "Permission", ActiveSupport::TestCase do
 
     @c1 = Card['c1']
     assert_not_locked_from( @u1, @c1 )
-    Rails.logger.info "testing point 1 #{@u2.inspect}, #{@c1.inspect}"
     assert_locked_from( @u2, @c1 )
     assert_locked_from( @u3, @c1 )
 
     @c2 = Card['c2']
-    Rails.logger.info "testing point 2 #{@u1.inspect}, #{@c2.inspect}"
     assert_locked_from( @u1, @c2 )
     assert_not_locked_from( @u2, @c2 )
     assert_locked_from( @u3, @c2 )

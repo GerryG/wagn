@@ -13,6 +13,25 @@ module Wagn
 
 
   class Cache
+
+    FIRST_KEY = 'first_login'
+
+    def first_login
+      @first_login.nil? and @first_login = @store.send_if( :read, @prefix + FIRST_KEY )
+      @first_login
+    end
+
+    def first_login= status=false
+      write_global FIRST_KEY, @first_login = status
+      @first_login
+    end
+
+    def write_global key, obj
+      #@store or raise "no store"
+      @store.send_if :write, "#{ @prefix }#{ key }", obj
+      obj
+    end
+
     @@prepopulating     = (Rails.env == 'cucumber') ? { Card => true } : {}
     @@using_rails_cache = Rails.env =~ /^cucumber|test$/
     @@prefix_root       = Wagn::Application.config.database_configuration[Rails.env]['database']
@@ -112,41 +131,38 @@ module Wagn
     end
 
     def read key
-      return @local[key] unless @store
-      if @local.has_key?(key)
-        @local[key]
-      elsif Integer===key
-        #Rails.logger.warn "by id miss: #{key} #{caller[0..12]*"\n"}"
-        nil
-      else
-        obj = @store.read @prefix + key
-        #warn "rd #{obj.class}, #{obj}, #{@prefix + key} #{@store.nil?}, #{@prefix}"
-        obj.reset_mods if obj.respond_to?(:reset_mods)
-        obj
-      end
+      return @local[key] if @store.nil? || @local.has_key?(key)
+      return if Integer===key
+
+      obj = @store.read @prefix + key
+      obj.reset_mods if obj.respond_to? :reset_mods
+      Rails.logger.warn "c read: #{key}, #{obj.inspect}, #{Card===obj and obj.sets_loaded? and i=obj.id.to_i and "r:#{@local[i].inspect}"}, pk:#{@prefix + key} st:#{@store.nil?}, p:#{@prefix}"
+
+      #raise "not loaded? #{obj.inspect}" if Card===obj and  !obj.sets_loaded?
+      Card===obj and  i=obj.id.to_i and @local[i] = obj 
+      obj
     end
 
     def read_local key
       @local[key]
     end
 
-    def write key, value
-      @store.write @prefix + key, value if @store
+    def write key, obj
+      if Card===obj
+        Rails.logger.warn "c write #{obj.inspect}"
+        #obj.init_sets unless obj.sets_loaded?
+        id = obj.id.to_i and @local[ id ] = obj 
+      end
+      Rails.logger.warn "c write st:#{!@store.nil?} l:#{@local.class}, gk:#{@prefix + key}, v:#{obj.inspect}"
 
-      @local[value.id.to_i] = value if Card===value and !value.id.nil?
-
-      @local[key] = value
-    end
-
-    def write_global key, value
-      @store or raise "no store"
-      @store.write key, value
-      value
+      write_global key, obj
+      @local[key] = obj
     end
 
     def delete key
       obj = @local.delete key
-      @local.delete obj.id if Card===obj and !obj.id.nil?
+      Rails.logger.warn "c delete #{obj.inspect}, k:#{key}"
+      @local.delete obj.id if Card===obj
       @store.delete @prefix + key  if @store
     end
 
@@ -168,7 +184,7 @@ module Wagn
         if hard
           @store.clear
         else
-          @store.write @system_prefix + "cache_id", @cache_id
+          write_global :cache_id, @cache_id
         end
       end
       @prefix = @system_prefix + @cache_id + "/"

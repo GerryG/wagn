@@ -43,7 +43,11 @@ module Wagn::Model
     alias_method_chain :patterns, :new
 
     def real_set_names
-      set_names.find_all &Card.method(:exists?)
+      set_names.find_all { |cn|
+        Rails.logger.warn "rsn cd#{cn.inspect} -> #{e=Card.method(:exists?).call(cn)}"
+        e
+      }
+      #set_names.find_all &Card.method(:exists?)
     end
     
     def safe_keys
@@ -198,8 +202,9 @@ module Wagn::Model
       def self.label(name)              %{All "#{name}" cards}     end
       def self.prototype_args(base)     {:type=>base}              end
       def self.pattern_applies?(card)
-        return false if card.type_id.nil?
-        raise "bogus type id" if card.type_id < 1
+        return false if card.type_id.nil? || card.type_id < 1 && card.new_card?
+        #card.init_sets if card.type_id < 1
+        raise "bogus type id #{card.inspect}" if card.type_id < 1
         true       end
       def self.trunk_name(card)         card.type_name              end
     end
@@ -237,8 +242,8 @@ module Wagn::Model
           }
         end
         def trunk_name card
-          left = card.loaded_left || card.left
-          #left = card.loaded_left || (tkid=card.left_id ? Card[tkid] : card.left)
+          left = card.loaded_trunk || card.left
+          Rails.logger.warn "trunk_name #{card.inspect}, #{left.inspect}"
           type_name = (left && left.type_name) || Card[ Card::DefaultTypeID ].name
           "#{type_name}+#{card.cardname.tag}"
         end

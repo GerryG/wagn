@@ -103,8 +103,7 @@ module Wagn
     def ajax_call?()   @@ajax_call                                                end
 
     def showname
-      @showname ||=
-        card.cardname.to_show card.cardname, :ignore=>@context_names, :params=>params
+      @showname ||= card.cardname.to_show *@context_names
     end
 
     def main?
@@ -374,12 +373,14 @@ module Wagn
         else
           known_card = !!Card.fetch(href, :skip_modules=>true) if known_card.nil?
           if card
-            text = text.to_name.to_show card.name, :ignore=>@context_names
+            text = text.to_name.to_absolute_name(card.name).to_show *@context_names
           end
 
           #href+= "?type=#{type.url_key}" if type && card && card.new_card?  WANT THIS; NEED TEST
           cardname = href.to_name
-          href = full_uri(known_card ? cardname.url_key : CGI.escape(cardname.s))
+          href = known_card ? cardname.url_key : ERB::Util.url_encode( cardname.to_s )
+          #href = known_card ? cardname.url_key : CGI.escape( cardname.to_s.gsub ' ', '%20%' )
+          href = full_uri href.to_s
           known_card ? 'known-card' : 'wanted-card'
         end
       %{<a class="#{klass}" href="#{href}">#{text.to_s}</a>}

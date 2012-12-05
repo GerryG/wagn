@@ -96,7 +96,12 @@ class Account
       !!(rd=cache.read('no_logins')) ? rd : cache.write( 'no_logins',
                (Card.search({:right=>Card::AccountID, :left=>{:type=>Card::UserID }}).count == 0 ))
     end
- 
+
+    def first_login?()
+       Card.cache.first_login.nil? ||
+         ( Card.cache.first_login= User.count > 3 )
+    end
+
     def always_ok?
       return true if admin? #cannot disable
       as_id = authorized.id

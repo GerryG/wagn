@@ -116,7 +116,7 @@ module Wagn
       if @local.has_key?(key)
         @local[key]
       elsif Integer===key
-        #Rails.logger.warn "by id miss: #{key} #{caller[0..12]*"\n"}"
+        Rails.logger.warn "by id miss: #{key} #{caller[0..12]*"\n"}"
         nil
       else
         obj = @store.read @prefix + key

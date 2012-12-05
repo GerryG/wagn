@@ -1,6 +1,6 @@
 module Wagn
   class Renderer
-    include ReferenceTypes
+    include Card::ReferenceTypes
     include LocationHelper
 
     DEPRECATED_VIEWS = { :view=>:open, :card=>:open, :line=>:closed, :bare=>:core, :naked=>:core }
@@ -405,7 +405,7 @@ module Wagn
 
      ### FIXME -- this should not be here!   probably in Card::Reference model?
     def replace_references old_name, new_name
-      #warn "replacing references...card name: #{card.name}, old name: #{old_name}, new_name: #{new_name}"
+      #Rails.logger.warn "replacing references...card name: #{card.name}, old name: #{old_name}, new_name: #{new_name}"
       wiki_content = WikiContent.new(card, card.content, self)
 
       wiki_content.find_chunks(Chunk::Link).each do |chunk|
@@ -413,7 +413,6 @@ module Wagn
           link_bound = chunk.cardname == chunk.link_text
           chunk.cardname = chunk.cardname.replace_part(old_name, new_name)
           chunk.link_text=chunk.cardname.to_s if link_bound
-          #Rails.logger.info "repl ref: #{chunk.cardname.to_s}, #{link_bound}, #{chunk.link_text}"
         end
       end
 
@@ -427,6 +426,7 @@ module Wagn
 
     #FIXME -- should not be here.
     def update_references rendering_result = nil, refresh = false
+      #Rails.logger.warn "update references...card name: #{card.name}, rr: #{rendering_result}, refresh: #{refresh}"
       return unless card && card.id
       Card::Reference.delete_all ['card_id = ?', card.id]
       card.connection.execute("update cards set references_expired=NULL where id=#{card.id}")
@@ -434,17 +434,12 @@ module Wagn
       rendering_result ||= WikiContent.new(card, _render_refs, self)
       
       rendering_result.find_chunks(Chunk::Reference).each do |chunk|
-        reference_type =
-          case chunk
-            when Chunk::Link;       chunk.refcard ? LINK : WANTED_LINK
-            when Chunk::Transclude; chunk.refcard ? TRANSCLUSION : WANTED_TRANSCLUSION
-            else raise "Unknown chunk reference class #{chunk.class}"
-          end
 
         Card::Reference.create!( :card_id=>card.id,
           :referenced_name=> (rc=chunk.refcardname()) && rc.key() || '',
           :referenced_card_id=> chunk.refcard ? chunk.refcard.id : nil,
-          :link_type=>reference_type
+          :link_type=> Chunk::Link===chunk ? LINK : TRANSCLUDE,
+          :present => chunk.refcard.nil? ? 0 : 1
          )
       end
     end

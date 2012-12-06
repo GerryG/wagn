@@ -64,21 +64,28 @@ describe Wagn::Cache do
 
   it "#reset" do
     mock(Wagn::Cache).generate_cache_id.returns("cache_id1")
-    @store = ActiveSupport::Cache::MemoryStore.new
-    @cache = Wagn::Cache.new :store=>@store, :prefix=>"prefix"
-    @cache.prefix.should == "prefix/cache_id1/"
-    @cache.write("foo","bar")
-    @cache.read("foo").should == "bar"
+    #@store = ActiveSupport::Cache::MemoryStore.new
+    #@cache = Wagn::Cache.new :store=>@store, :prefix=>"prefix"
+    @cache = Wagn::Cache[Card]
+    @prefix = "#{@cache.system_prefix}/cache_id1/"
+    warn "prefix cid:#{@cache.cache_id_key}, p:#{@prefix.inspect}"
+
+    @cache.prefix.should == @prefix
+
+    @card = Card['A']
+    @cache.write("foo",@card)
+    @cache.read("foo").name.should == "A"
 
     # reset
-    mock(Wagn::Cache).generate_cache_id.returns("cache_id2")
-    @cache.reset
-    @cache.prefix.should == "prefix/cache_id2/"
-    @cache.store.read("prefix/cache_id").should == "cache_id2"
+    mock(Wagn::Cache).generate_cache_id.returns("cache_id1")
+    @cache.reset true
+    @cache.prefix.should == @prefix
+    warn "testing prefix C:#{@cache}, #{@cache.store}, sp:#{@cache.cache_id_key.inspect}, #{@cache.cache_id}, #{@cache.store.read(@cache.cache_id_key).inspect}"
+    @cache.store.read(@cache.cache_id_key).should == "cache_id1"
     @cache.read("foo").should be_nil
 
-    cache2 = Wagn::Cache.new :store=>@store, :prefix=>"prefix"
-    cache2.prefix.should == "prefix/cache_id2/"
+    cache2 = Wagn::Cache.new
+    cache2.prefix.should == @prefix
   end
 
   describe "with file store" do

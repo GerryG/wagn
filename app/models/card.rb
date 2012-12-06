@@ -45,12 +45,12 @@ class Card < ActiveRecord::Base
       args.delete('content') if args['attach'] # should not be handled here!
 
       if name = args['name'] and !name.blank?
-        if  Card.cache                                        and
-            cc = Card.cache.read_local(name.to_name.key)  and
-            cc.type_args                                      and
-            args['type']          == cc.type_args[:type]      and
-            args['typecode']      == cc.type_args[:typecode]  and
-            args['type_id']       == cc.type_args[:type_id]   and
+        if  Card.cache                                       and
+            cc = Card.cache.read_local(name.to_name.key)     and
+            cc.type_args                                     and
+            args['type']          == cc.type_args[:type]     and
+            args['typecode']      == cc.type_args[:typecode] and
+            args['type_id']       == cc.type_args[:type_id]  and
             args['loaded_trunk']  == cc.loaded_trunk
 
           args['type_id'] = cc.type_id

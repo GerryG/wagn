@@ -27,9 +27,10 @@ module Wagn
     end
 
     def write_global key, obj
-      stat :write_global
+      start = Time.now
       #@store or raise "no store"
       @store.send_if :write, "#{ @prefix }#{ key }", obj
+      stat :write_global, start - Time.now
       obj
     end
 
@@ -103,6 +104,7 @@ module Wagn
       @store = opts[:store]
       @local = {}
       @stats = {}
+      @times = {}
       @stat_count = 0
 
       self.system_prefix = opts[:prefix] || self.class.system_prefix(opts[:class])
@@ -133,53 +135,59 @@ module Wagn
         end
     end
 
-    INTERVAL = 10000
+    INTERVAL = 4000
 
-    def stat key
+    def stat key, t
       @stats[key] ||= 0
+      @times[key] ||= 0
       @stats[key] += 1
-      Rails.logger.warn "stats[#{@stat_count}, #{@local.keys.length}] #{@stats.inspect}" if (@stat_count += 1) % INTERVAL == 0
+      @times[key] += t
+      Rails.logger.warn "stats[#{@stat_count}, #{@local.keys*', '}]\n#{@stats.map {|k| "#{@stats[k]} : #{@times[k]}"}*"\n"}" if (@stat_count += 1) % INTERVAL == 0
+      #Rails.logger.warn "stats[#{@stat_count}, #{@local.keys*', '}]\n#{@stats.map {|k| "#{@stats[k]} : #{@times[k]/@stats[k]}"}*"\n"}" if (@stat_count += 1) % INTERVAL == 0
     end
 
     def read key
-      stat :read
+      start = Time.now
       if @store.nil? || @local.has_key?(key)
         l = @local[key]
-        stat l.nil? ? :local_miss : :local_hit
+        e = Integer===key ? (l.nil? ? :id_nil : :id_hit ) : (l.nil? ? :key_nil : :key_hit )
+        stat(e, start - Time.now)
         return l
       end
-      stat :id_miss if Integer===key
+      stat( :id_miss, start - Time.now ) if Integer===key
       return if Integer===key
 
       obj = @store.read @prefix + key
-      stat :reset_mods if obj.respond_to? :reset_mods
       obj.reset_mods if obj.respond_to? :reset_mods
-      stat obj.nil? ? :global_miss : :global_hit
+      stat( (obj.nil? ? :global_miss : :global_hit), start - Time.now )
       #Rails.logger.warn "c read: #{key}, #{obj.inspect}, #{Card===obj and obj.sets_loaded? and i=obj.id.to_i and "r:#{@local[i].inspect}"}, pk:#{@prefix + key} st:#{@store.nil?}, p:#{@prefix}"
 
       #raise "not loaded? #{obj.inspect}" if Card===obj and  !obj.sets_loaded?
+      astart = Time.now
       Card===obj and  i=obj.id.to_i and @local[i] = obj and
-        stat :id_read_store
+        stat( :id_read_store, astart - Time.now )
       obj
     end
 
     def read_local key
-      stat :read_local
+      start = Time.now
       @local[key]
+      stat( :read_local, start - Time.now )
     end
 
     def write key, obj
-      stat :write
+      start = Time.now
       if Card===obj
         #Rails.logger.warn "c write #{obj.inspect}"
         #obj.init_sets unless obj.sets_loaded?
         id = obj.id.to_i
         id != 0 and @local[ id ] = obj
-        stat id == 0 ? :local_0 : :local_st
+        stat( id == 0 ? :wlocal_0 : :wlocal_st, start - Time.now )
       end
       #Rails.logger.warn "c write st:#{!@store.nil?} l:#{@local.class}, gk:#{@prefix + key}, v:#{obj.inspect}"
 
       write_global key, obj
+      stat :write, start - Time.now
       @local[key] = obj
     end
 
@@ -198,6 +206,10 @@ module Wagn
     end
 
     def reset_local
+      @reset_last ||= Time.now
+      stat :reset_local, @reset_last - Time.now
+      stat :key_count, @local.keys.length
+      @reset_last = Time.now
       @local = {}
     end
 

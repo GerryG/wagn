@@ -159,13 +159,13 @@ class Card < ActiveRecord::Base
     include_set_modules unless skip_modules
   end
 
-  def sets_loaded?
-    raise "deep" if caller.length > 300
+  #def sets_loaded?
+    #raise "deep" if caller.length > 300
     @sets_loaded
-  end
+  #end
 
   def include_set_modules
-    unless sets_loaded?
+    unless @sets_loaded
       set_modules.each do |m|
         #warn "ism #{m}"
         singleton_class.send :include, m
@@ -427,7 +427,7 @@ class Card < ActiveRecord::Base
 
   def type_name
     #init_sets if type_id.nil? or type_id < 1
-    raise "deep #{inspect}" if caller.length > 250
+    #raise "deep #{inspect}" if caller.length > 250
     raise "type id? #{inspect}" if type_id.nil? or type_id < 1
     return if type_id.nil?
     card = Card.fetch type_id, :skip_modules=>true, :skip_virtual=>true
@@ -574,7 +574,7 @@ class Card < ActiveRecord::Base
     "###{object_id}" + "lf:#{tag_id}rt:#{tag_id}" +
     "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
     "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}" +
-    "#{@virual.nil? ? '' : "virtual#{@virtual}"}#{sets_loaded?&&'I'||"!loaded[#{@type_args.inspect}]" }}" +
+    "#{@virual.nil? ? '' : "virtual#{@virtual}"}#{@sets_loaded&&'I'||"!loaded[#{@type_args.inspect}]" }}" +
     #" Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}" +
     '>'
   end

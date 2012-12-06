@@ -133,12 +133,12 @@ module Wagn
         end
     end
 
-    INTERVAL = 1000
+    INTERVAL = 10000
 
     def stat key
       @stats[key] ||= 0
       @stats[key] += 1
-      Rails.logger.warn "stats: #{@stats.inspect}" if (@stat_count += 1) % INTERVAL == 0
+      Rails.logger.warn "stats[#{@stat_count}, #{@local.keys.length}] #{@stats.inspect}" if (@stat_count += 1) % INTERVAL == 0
     end
 
     def read key
@@ -159,7 +159,7 @@ module Wagn
 
       #raise "not loaded? #{obj.inspect}" if Card===obj and  !obj.sets_loaded?
       Card===obj and  i=obj.id.to_i and @local[i] = obj and
-        stat :id_store
+        stat :id_read_store
       obj
     end
 
@@ -173,7 +173,9 @@ module Wagn
       if Card===obj
         #Rails.logger.warn "c write #{obj.inspect}"
         #obj.init_sets unless obj.sets_loaded?
-        id = obj.id.to_i and @local[ id ] = obj 
+        id = obj.id.to_i
+        id != 0 and @local[ id ] = obj
+        stat id == 0 ? :local_0 : :local_st
       end
       #Rails.logger.warn "c write st:#{!@store.nil?} l:#{@local.class}, gk:#{@prefix + key}, v:#{obj.inspect}"
 

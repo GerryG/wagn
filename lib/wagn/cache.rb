@@ -37,8 +37,9 @@ module Wagn
     class << self
       def [] klass
         if @@cache_by_class[klass].nil?
-          new :class=>klass
+          self.new klass
         end
+        raise("????") if @@cache_by_class[klass].nil?
         @@cache_by_class[klass]
       end
 
@@ -97,7 +98,7 @@ module Wagn
 
     def initialize(klass=Card)
       opts, klass = Hash==klass ? [klass, (klass[:class] || Card)] : [{}, klass]
-      #warn "init cache #{self} opts: #{opts.inspect}, k:#{klass}, K:#{@klass}"
+      Rails.logger.warn "init cache #{self} opts: #{opts.inspect}, k:#{klass}, K:#{@klass}"
       @klass ||= klass
       #Rails.logger.warn "nil class for cache #{caller*"\n"}" if @klass.nil?
       @local = {}

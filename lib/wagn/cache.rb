@@ -58,8 +58,7 @@ module Wagn
       end
 
       def generate_cache_id
-        id=((Time.now.to_f * 100).to_i).to_s + ('a'..'z').to_a[rand(26)] + ('a'..'z').to_a[rand(26)]
-        warn "gen cid #{id}"; id
+        ((Time.now.to_f * 100).to_i).to_s + ('a'..'z').to_a[rand(26)] + ('a'..'z').to_a[rand(26)]
       end
 
       def reset_global
@@ -70,26 +69,21 @@ module Wagn
         Wagn::Codename.reset_cache
       end
 
-      def reset
-        @@prepopulating = @@using_rails_cache = nil
-      end
 
       def prepopulating
         @@prepopulating = Rails.env == 'cucumber' if @@prepopulating.nil?
-        warn "prepop #{@@prepopulating}, #{Rails.env == 'cucumber'}"
         @@prepopulating
       end
 
       def using_rails_cache
         @@using_rails_cache = !(Rails.env =~ /^cucumber|test$/) if @@using_rails_cache.nil?
-        warn "urc #{@@using_rails_cache}, #{!Rails.env =~ /^cucumber|test$/}"
         @@using_rails_cache
       end
 
       private
 
       def reset_local
-        warn "reset local (class) #{@@cache_by_class.map{|k,v|k.to_s+' '+v.to_s}*", "}"
+        warn "reset local Classes: #{@@cache_by_class.map{|k,v|k.to_s+' '+v.to_s}*", "}"
         @@cache_by_class.each{ |cc, cache|
           if Wagn::Cache===cache
             cache.reset_local
@@ -101,13 +95,16 @@ module Wagn
 
     attr_reader :local
 
-    def initialize(opts={})
-      @klass ||= opts[:class]
+    def initialize(klass=Card)
+      opts, klass = Hash==klass ? [klass, (klass[:class] || Card)] : [{}, klass]
+      #warn "init cache #{self} opts: #{opts.inspect}, k:#{klass}, K:#{@klass}"
+      @klass ||= klass
       #Rails.logger.warn "nil class for cache #{caller*"\n"}" if @klass.nil?
       @local = {}
       @stats = {}
       @times = {}
       @stat_count = 0
+      @@prepopulating = @@using_rails_cache = nil
 
       self.cache_id  # cause it to write the prefix related vars
 
@@ -133,15 +130,12 @@ module Wagn
     end
 
     def cache_id
-      raise "cache_id #{@cache_id}" if caller.length > 200
-      warn "cache_id r k:#{cache_id_key}, cid:#{@cache_id}"
+      #warn "cache_id r k:#{cache_id_key}, cid:#{@cache_id}"
       if @cache_id.nil?
         @cache_id = self.class.generate_cache_id
         store.write cache_id_key, @cache_id
-      warn "cache_id w k:#{cache_id_key}, cid:#{@cache_id}"
       end
       raise("no id? #{ system_prefix + '/cache_id' }") if @cache_id.nil?
-      warn "cache_id e k:#{cache_id_key}, cid:#{@cache_id}"
       @cache_id
     end
 
@@ -190,7 +184,7 @@ Local: #{ dump }"
       stat :id_miss, start if Integer===key
       return if Integer===key
 
-      warn "read global: #{prefix} K:#{key} #{prefix+key}"
+      #warn "read global: #{prefix} K:#{key} #{prefix+key}"
       obj = store.read prefix + key
       obj.reset_mods if obj.respond_to? :reset_mods
       stat (obj.nil? ? :global_miss : :global_hit), start
@@ -229,6 +223,7 @@ Local: #{ dump }"
       start = Time.now
       store.write "#{ prefix }#{ key }", obj
       stat :write_global, start
+      #warn "write g #{key}, #{obj}"
       obj
     end
 
@@ -247,23 +242,18 @@ Local: #{ dump }"
     end
 
     def reset_local
-      warn "reset local i #{caller[0..6]*', '}"
       @reset_last ||= Time.now
       stat :reset_local, @reset_last
       @reset_last = Time.now
-      #@local = {}
+      @local = {}
     end
 
     def reset hard=false
-      warn "reset #{hard} #{@cache_id}"
+      #warn "reset #{hard} #{@cache_id}"
       reset_local
-      warn "reset 1 #{@cache_id}"
       @cache_id = nil
-      warn "reset 2 #{@cache_id}"
       initialize
-      warn "reset 3 #{@cache_id}"
       if hard
-        warn "reset 4 #{@cache_id}"
         store.clear
       end
     end

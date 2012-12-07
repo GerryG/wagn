@@ -43,11 +43,7 @@ module Wagn::Model
     alias_method_chain :patterns, :new
 
     def real_set_names
-      set_names.find_all { |cn|
-        Rails.logger.warn "rsn cd#{cn.inspect} -> #{e=Card.method(:exists?).call(cn)}"
-        e
-      }
-      #set_names.find_all &Card.method(:exists?)
+      set_names.find_all &Card.method(:exists?)
     end
 
     def safe_keys

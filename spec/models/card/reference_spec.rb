@@ -117,14 +117,12 @@ describe "Card::Reference" do
     lew = newcard('Lew', "likes [[watermelon]] and [[watermelon+seeds|seeds]]")
 
     assert_equal [1,1], lew.out_references.plot(:present), "links should not be Wanted before"
-    Rails.logger.warn "tesging #{(pseeds = Card['watermelon+seeds']).inspect}, #{pseeds.dependents.inspect}"
-    Rails.logger.warn "tesging #{(melon = Card['watermelon']).inspect}, deps: #{melon.dependents.inspect}"
     watermelon = Card['watermelon']
     watermelon.update_referencers = false
     watermelon.name="grapefruit"
     watermelon.save!
     lew.reload.content.should == "likes [[watermelon]] and [[watermelon+seeds|seeds]]"
-    assert_equal [ LINK, LINK ], lew.out_references.plot(:link_type), "links should be a LINK"
+    assert_equal [ LINK, LINK ], lew.out_references.plot(:ref_type), "links should be a LINK"
     assert_equal [ 0, 0 ], lew.out_references.plot(:present), "links should not be present"
   end
 
@@ -225,9 +223,9 @@ describe "Card::Reference" do
     references = new_card.card_references(true)
     references.size.should == 2
     references[0].referenced_name.should == 'WantedCard'
-    references[0].link_type.should == Card::Reference::WANTED_PAGE
+    references[0].ref_type.should == Card::Reference::WANTED_PAGE
     references[1].referenced_name.should == 'WantedCard2'
-    references[1].link_type.should == Card::Reference::WANTED_PAGE
+    references[1].ref_type.should == Card::Reference::WANTED_PAGE
 
     wanted_card = Card.create(:name=>'WantedCard')
     wanted_card.revise('And here it is!', Time.now, Card['quentin'].account), get_renderer)
@@ -237,9 +235,9 @@ describe "Card::Reference" do
     references = new_card.card_references(true)
     references.size.should == 2
     references[0].referenced_name.should == 'WantedCard'
-    references[0].link_type.should == Card::Reference::LINKED_PAGE
+    references[0].ref_type.should == Card::Reference::LINKED_PAGE
     references[1].referenced_name.should == 'WantedCard2'
-    references[1].link_type.should == Card::Reference::WANTED_PAGE
+    references[1].ref_type.should == Card::Reference::WANTED_PAGE
   end
 =end
   private

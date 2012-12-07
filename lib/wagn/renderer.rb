@@ -1,5 +1,6 @@
 module Wagn
   class Renderer
+    Card::Reference
     include Card::ReferenceTypes
     include LocationHelper
 
@@ -411,9 +412,9 @@ module Wagn
 
       wiki_content.find_chunks(Chunk::Link).each do |chunk|
         if chunk.cardname
-          link_bound = chunk.cardname == chunk.link_text
+          link_bound = chunk.cardname == chunk.ref_text
           chunk.cardname = chunk.cardname.replace_part(old_name, new_name)
-          chunk.link_text=chunk.cardname.to_s if link_bound
+          chunk.ref_text=chunk.cardname.to_s if link_bound
         end
       end
 
@@ -443,7 +444,7 @@ module Wagn
         Card::Reference.create!( :card_id=>card.id,
           :referenced_name=> (rc=chunk.refcardname()) && rc.key() || '',
           :referenced_card_id=> chunk.refcard ? chunk.refcard.id : nil,
-          :link_type=> Chunk::Link===chunk ? LINK : TRANSCLUDE,
+          :ref_type=> Chunk::Link===chunk ? LINK : TRANSCLUDE,
           :present => chunk.refcard.nil? ? 0 : 1
          )
       end

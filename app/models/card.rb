@@ -46,13 +46,13 @@ class Card < ActiveRecord::Base
       args.delete('content') if args['attach'] # should not be handled here!
 
       if name = args['name'] and !name.blank?
-        if  Card.cache                                        and
-            cc = Card.cache.read_local(name.to_name.key)  and
-            cc.type_args                                      and
-            args['type']          == cc.type_args[:type]      and
-            args['typecode']      == cc.type_args[:typecode]  and
-            args['type_id']       == cc.type_args[:type_id]   and
-            args['loaded_left']   == cc.loaded_left
+        if  Card.cache                                       and
+            cc = Card.cache.read_local(name.to_name.key)     and
+            cc.type_args                                     and
+            args['type']          == cc.type_args[:type]     and
+            args['typecode']      == cc.type_args[:typecode] and
+            args['type_id']       == cc.type_args[:type_id]  and
+            args['loaded_trunk']  == cc.loaded_trunk
 
         args['type_id'] = cc.type_id
           return cc.send( :initialize, args )
@@ -84,6 +84,7 @@ class Card < ActiveRecord::Base
     rescue NameError=>e
       # this shouldn't happen now, we cut it off above now
       Rails.logger.warn "Card not defined, return self" if const.to_sym == :Card
+      warn "ne: const_miss #{e.inspect}, #{const}"
       nil
     end
 
@@ -122,7 +123,6 @@ class Card < ActiveRecord::Base
       :typecode => args.delete('typecode'),
       :type_id  => args[       'type_id' ]
     }
-    Rails.logger.warn "Card#new #{args.inspect}, TA:#{@type_args.inspect}"
 
     skip_modules = args.delete 'skip_modules'
 
@@ -134,7 +134,7 @@ class Card < ActiveRecord::Base
   end
 
   def init_sets skip_modules=false
-    Rails.logger.warn "init_sets[#{skip_modules}, #{inspect}, #{@type_args.inspect}"
+    #Rails.logger.warn "init_sets[#{skip_modules}, #{inspect}, #{@type_args.inspect}"
 
     if type_id.nil? && @type_args.nil?
       raise "no type or type args"
@@ -166,13 +166,8 @@ class Card < ActiveRecord::Base
     include_set_modules unless skip_modules
   end
 
-  def sets_loaded?
-    raise "deep" if caller.length > 300
-    @sets_loaded
-  end
-
   def include_set_modules
-    unless sets_loaded?
+    unless @sets_loaded
       set_modules.each do |m|
         #warn "ism #{m}"
         singleton_class.send :include, m
@@ -447,7 +442,7 @@ class Card < ActiveRecord::Base
 
   def type_name
     #init_sets if type_id.nil? or type_id < 1
-    raise "deep #{inspect}" if caller.length > 250
+    #raise "deep #{inspect}" if caller.length > 250
     raise "type id? #{inspect}" if type_id.nil? or type_id < 1
     return if type_id.nil?
     card = Card.fetch type_id, :skip_modules=>true, :skip_virtual=>true
@@ -664,8 +659,8 @@ class Card < ActiveRecord::Base
     (errors.any? ? "<E*#{errors.full_messages*', '}*>" : '') +
     "{#{references_expired==1 ? 'Exp' : "noEx"}:" +
     "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}" +
-    "#{@virual.nil? ? '' : "virtual#{@virtual}"}#{sets_loaded?&&'I'||"!loaded[#{@type_args.inspect}]" }}" +
-    # " Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}" +
+    "#{@virual.nil? ? '' : "virtual#{@virtual}"}#{@sets_loaded&&'I'||"!loaded[#{@type_args.inspect}]" }}" +
+    #" Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}" +
     '>'
   end
 

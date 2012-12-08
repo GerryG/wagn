@@ -577,8 +577,8 @@ class Card < ActiveRecord::Base
     "#<#{self.class.name}" + "##{id}" +
     "###{object_id}" + "lf:#{tag_id}rt:#{tag_id}" +
     "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
-    "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}" +
-    "#{@virual.nil? ? '' : "virtual#{@virtual}"}#{@sets_loaded&&'I'||"!loaded[#{@type_args.inspect}]" }}" +
+    "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{frozen? ? 'Fz' : readonly? ? 'RdO' : ''}" +
+    "#{@virtual &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }}" +
     #" Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}" +
     '>'
   end

@@ -298,10 +298,9 @@ class Card < ActiveRecord::Base
 
   def destroy
     run_callbacks( :destroy ) do
-      deps = self.dependents # already called once.  reuse?
       @trash_changed = true
       self.update_attributes :trash => true
-      deps.each do |dep|
+      dependents.each do |dep|
         dep.destroy
       end
       true
@@ -378,12 +377,17 @@ class Card < ActiveRecord::Base
 
   def dependents
     return [] if new_card?
-    wql_key = simple? ? :part : :left
-    Account.as_bot do
-      Card.search( wql_key=>name ).map do |c|
-        [ c ] + c.dependents
-      end.flatten
+
+    if @dependents.nil?
+      @dependents = 
+        Account.as_bot do
+          deps = Card.search( { (simple? ? :part : :left) => name } ).to_a
+          deps.inject(deps) do |array, card|
+            array +  card.dependents
+          end
+        end
     end
+    @dependents
   end
 
   def repair_key

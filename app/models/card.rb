@@ -131,14 +131,15 @@ class Card < ActiveRecord::Base
 
     if type_id.nil? && @type_args.nil?
       raise "no type or type args"
-    elsif !@type_args.nil?
+    elsif @type_args
+
       type_id = case
-        when @type_args[:type_id]
-          return # type_id was set explicitly.  no need to set again.
-        when @type_args[:typecode]
-          code=@type_args[:typecode] and Wagn::Codename[code] || (card=Card[code] and card.id)
-        when @type_args[:type]
-          Card.fetch_id @type_args[:type]
+        when @type_args[:type_id];   return   # type_id was set explicitly.  no need to set again.
+
+        when typecode = @type_args[:typecode]; Wagn::Codename[typecode]
+
+        when typearg  = @type_args[:type]    ; Card.fetch_id typearg
+
         else
           if name && tmpl=template
             reset_patterns #still necessary even with new template handling?
@@ -158,11 +159,6 @@ class Card < ActiveRecord::Base
 
     include_set_modules unless skip_modules
   end
-
-  #def sets_loaded?
-    #raise "deep" if caller.length > 300
-    @sets_loaded
-  #end
 
   def include_set_modules
     unless @sets_loaded

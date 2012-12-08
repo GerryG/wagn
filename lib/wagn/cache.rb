@@ -84,12 +84,14 @@ module Wagn
       private
 
       def reset_local
-        warn "reset local Classes: #{@@cache_by_class.map{|k,v|k.to_s+' '+v.to_s}*", "}"
+        #warn "reset local Classes: #{@@cache_by_class.map{|k,v|k.to_s+' '+v.to_s}*", "}"
         @@cache_by_class.each{ |cc, cache|
           if Wagn::Cache===cache
             cache.reset_local
-          else warn "reset class #{cc}, #{cache.class} #{caller[0..8]*"\n"} ???" end
+          #else warn "reset class #{cc}, #{cache.class} #{caller[0..8]*"\n"} ???"
+          end
         }
+            
       end
 
     end
@@ -98,7 +100,7 @@ module Wagn
 
     def initialize(klass=Card)
       opts, klass = Hash==klass ? [klass, (klass[:class] || Card)] : [{}, klass]
-      Rails.logger.warn "init cache #{self} opts: #{opts.inspect}, k:#{klass}, K:#{@klass}"
+      #Rails.logger.warn "init cache #{self} opts: #{opts.inspect}, k:#{klass}, K:#{@klass}"
       @klass ||= klass
       #Rails.logger.warn "nil class for cache #{caller*"\n"}" if @klass.nil?
       @local = {}
@@ -236,9 +238,9 @@ Local: #{ dump }"
     end
 
     def dump
-      p "dumping local...."
+      Rails.logger.warn "dumping local...."
       @local.each do |k, v|
-        p "#{k} --> #{v.inspect[0..30]}"
+        Rails.logger.warn "#{k} --> #{v.inspect[0..30]}"
       end
     end
 

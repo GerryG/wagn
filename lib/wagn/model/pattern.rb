@@ -238,7 +238,7 @@ module Wagn::Model
           }
         end
         def trunk_name card
-          left = card.loaded_trunk || card.left
+          left = card.loaded_left || card.left
           #Rails.logger.warn "trunk_name #{card.inspect}, #{left.inspect}"
           type_name = (left && left.type_name) || Card[ Card::DefaultTypeID ].name
           "#{type_name}+#{card.cardname.tag}"

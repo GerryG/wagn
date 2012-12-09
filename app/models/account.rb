@@ -79,8 +79,8 @@ class Account
     end
 
     def first_login?()
-       Card.cache.first_login.nil? ||
-         ( Card.cache.first_login= User.count > 3 )
+       Card.cache.first_login? || 
+         Card.cache.first_login= User.where(:status => 'active').count > 2
     end
 
     def always_ok?

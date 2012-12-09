@@ -26,8 +26,6 @@ module Wagn
       @first_login
     end
 
-    @@prepopulating     = nil
-    @@using_rails_cache = nil
     @@prefix_root       = Wagn::Application.config.database_configuration[Rails.env]['database']
     @@frozen            = {}
     @@cache_by_class    = {}
@@ -56,7 +54,10 @@ module Wagn
 
         reset_global
         #reset_local
-        @@cache_by_class[klass] = Marshal.load(frozen[klass]) if @@cache_by_class[klass] and self.prepopulating and klass==Card
+        if @@cache_by_class[klass] and self.prepopulating and klass==Card
+          warn "prepop #{@@cache_by_class[klass]} = #{data=Marshal.load(frozen[klass])}"
+          @@cache_by_class[klass] = data
+        end
       end
 
       def generate_cache_id
@@ -73,13 +74,11 @@ module Wagn
 
 
       def prepopulating
-        @@prepopulating = Rails.env == 'cucumber' if @@prepopulating.nil?
-        @@prepopulating
+        Rails.env == 'cucumber'
       end
 
       def using_rails_cache
-        @@using_rails_cache = !(Rails.env =~ /^cucumber|test$/) if @@using_rails_cache.nil?
-        @@using_rails_cache
+        Rails.env !~ /^cucumber|test$/
       end
 
       private
@@ -107,10 +106,10 @@ module Wagn
       @local = {}
       @stats = {}
       @times = {}
+      @store = nil
       @stat_count = 0
       self.cache_id  # cause it to write the prefix related vars
 
-      @@prepopulating = @@using_rails_cache = nil
       @@cache_by_class[@klass] = self
 
       self.class.prepopulating and @klass == Card and prepopulate @klass 
@@ -121,6 +120,7 @@ module Wagn
       ['*all','*all plus','basic+*type','html+*type','*cardtype+*type','*sidebar+*self'].each do |k|
         [k,"#{k}+*content", "#{k}+*default", "#{k}+*read" ].each { |k| klass[k] }
       end
+      warn "prepop #{}"
       frozen[klass] = Marshal.dump Cache[klass]
     end
 

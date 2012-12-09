@@ -234,7 +234,7 @@ module Wagn::Model
         end
         def prototype_args base
           { :name=>"*dummy+#{base.tag}",
-            :loaded_trunk=> Card.new( :name=>'*dummy', :type=>base.trunk_name )
+            :loaded_left=> Card.new( :name=>'*dummy', :type=>base.trunk_name )
           }
         end
         def trunk_name card

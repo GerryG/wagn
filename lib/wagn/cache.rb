@@ -61,7 +61,6 @@ module Wagn
 
         reset_local
         if @@cache_by_class[klass] and self.prepopulating and klass==Card
-          #warn " laod prepop data #{frozen[klass]} #{@@cache_by_class[klass]}"
           @@cache_by_class[klass] = Marshal.load frozen[klass]
         end
       end
@@ -72,7 +71,6 @@ module Wagn
 
       def reset_global
         @@cache_by_class.keys do |klass, cache|
-          raise "???" unless NilCache===cache
           Rails.logger.warn "reset global #{klass}, #{cache}"
           cache.reset hard=true
         end
@@ -82,7 +80,6 @@ module Wagn
       private
 
       def reset_local
-        #warn "reset local Classes: #{@@cache_by_class.map{|k,v|k.to_s+' '+v.to_s}*", "}"
         @@cache_by_class.each{ |cc, cache|
           if Wagn::Cache===cache
             cache.reset_local
@@ -118,7 +115,6 @@ module Wagn
         [k,"#{k}+*content", "#{k}+*default", "#{k}+*read" ].each { |k| klass[k] }
       end
       frozen[klass] = Marshal.dump Cache[klass]
-      #warn "prepopulated #{klass} #{frozen[klass]}"
     end
 
     def store
@@ -133,7 +129,6 @@ module Wagn
     end
 
     def cache_id
-      #warn "cache_id r k:#{cache_id_key}, cid:#{@cache_id}"
       if @cache_id.nil?
         @cache_id = self.class.generate_cache_id
         store.write cache_id_key, @cache_id
@@ -153,6 +148,7 @@ module Wagn
 
     INTERVAL = 10000
 
+=begin
     def stat key, t
       @stats[key] ||= 0
       @times[key] ||= 0
@@ -169,28 +165,24 @@ module Wagn
           } } end * "\n" }
 "
       end
-    end
+=end
 
-    #def stat *a; end  # to disable stat collections
+    def stat *a; end  # to disable stat collections
 
     def read key
-      #warn "wcache read #{key}"
       start = Time.now
       if @local.has_key?(key)
         l = @local[key]
-        #warn "wcache read hit #{key} : #{l}"
         stat (Integer===key ? (l.nil? ? :id_nil : :id_hit ) : (l.nil? ? :key_nil : :key_hit )), start
         return l
       end
       stat :id_miss, start if Integer===key
       return if Integer===key
 
-      #warn "read global: #{prefix} K:#{key} #{prefix+key}"
       obj = store.read prefix + key
       obj.reset_mods if obj.respond_to? :reset_mods
       raise "global hit? #{store},#{obj.inspect}" unless obj.nil?
       stat (obj.nil? ? :global_miss : :global_hit), start
-      #Rails.logger.warn "c read: #{key}, #{obj.inspect}, pk:#{prefix + key}"
 
       astart = Time.now
       Card===obj and  i=obj.id.to_i and @local[i] = obj and
@@ -210,14 +202,11 @@ module Wagn
       if Card===obj
         id = obj.id.to_i
         id != 0 and @local[ id ] = obj
-        #warn "c write k#{key}, i#{id}, #{obj.inspect}"
         stat (id == 0 ? :noid_local : :wr_local_id), start
       end
-      #warn "c write l:#{@local.class}, gk:#{prefix + key}, v:#{obj.inspect}"
 
       @local[key] = write_global key, obj
       stat :write, start
-      #warn "write loc k#{key}, #{obj.inspect}"
       obj
     end
 
@@ -225,13 +214,11 @@ module Wagn
       start = Time.now
       store.write "#{ prefix }#{ key }", obj
       stat :write_global, start
-      #warn "write g #{key}, #{obj}"
       obj
     end
 
     def delete key
       obj = @local.delete key
-      #Rails.logger.warn "c delete #{obj.inspect}, k:#{key}"
       @local.delete obj.id if Card===obj
       store.delete prefix + key
     end
@@ -251,7 +238,6 @@ module Wagn
     end
 
     def reset hard=false
-      #warn "reset #{hard} #{@cache_id}"
       reset_local
       @cache_id = nil
       if hard

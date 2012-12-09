@@ -4,6 +4,7 @@ describe Card, "deleted card" do
   before do
     Account.as_bot do
       @c = Card['A']
+      warn "c??? #{@c.inspect}"
       @c.destroy!
     end
   end
@@ -13,7 +14,8 @@ describe Card, "deleted card" do
   it "should come out of the trash when a plus card is created" do
     Account.as_bot do
       Card.create(:name=>'A+*acct')
-      c = Card['A']
+      c = Card.fetch 'A', :new=>{}
+      warn "card A #{c.inspect}"
       c.trash.should be_false
     end
   end

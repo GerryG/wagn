@@ -54,7 +54,8 @@ module Wagn
       def restore klass=Card
         raise "no klass" if klass.nil?
 
-        reset_local
+        reset_global
+        #reset_local
         @@cache_by_class[klass] = Marshal.load(frozen[klass]) if @@cache_by_class[klass] and self.prepopulating and klass==Card
       end
 
@@ -107,13 +108,13 @@ module Wagn
       @stats = {}
       @times = {}
       @stat_count = 0
-      @@prepopulating = @@using_rails_cache = nil
-
       self.cache_id  # cause it to write the prefix related vars
 
-      self.class.prepopulating and @klass == Card and prepopulate @klass 
-
+      @@prepopulating = @@using_rails_cache = nil
       @@cache_by_class[@klass] = self
+
+      self.class.prepopulating and @klass == Card and prepopulate @klass 
+      self
     end
 
     def prepopulate klass
@@ -147,9 +148,7 @@ module Wagn
     end
 
     def prefix
-      r=
       system_prefix + '/' + @cache_id + '/'
-      #warn "prefix is #{r}"; r
     end
 
     # ---------------- STATISTICS ----------------------
@@ -170,8 +169,7 @@ module Wagn
             } avg: #{
             (@times[key]/@stats[key]).to_s.gsub( /^([^\.]*\.\d{3})\d*(e?.*)$/, "#{$1}#{$2.nil? ? '' : ' ' + $2}" )
           } } end * "\n" }
-
-Local: #{ dump }"
+"
       end
     end
 
@@ -191,7 +189,7 @@ Local: #{ dump }"
       obj = store.read prefix + key
       obj.reset_mods if obj.respond_to? :reset_mods
       stat (obj.nil? ? :global_miss : :global_hit), start
-      #Rails.logger.warn "c read: #{key}, #{obj.inspect}, #{Card===obj and obj.sets_loaded? and i=obj.id.to_i and "r:#{@local[i].inspect}"}, pk:#{prefix + key} p:#{prefix}"
+      #Rails.logger.warn "c read: #{key}, #{obj.inspect}, pk:#{prefix + key}"
 
       astart = Time.now
       Card===obj and  i=obj.id.to_i and @local[i] = obj and
@@ -210,7 +208,6 @@ Local: #{ dump }"
       start = Time.now
       if Card===obj
         #Rails.logger.warn "c write #{obj.inspect}"
-        #obj.init_sets unless obj.sets_loaded?
         id = obj.id.to_i
         id != 0 and @local[ id ] = obj
         stat (id == 0 ? :noid_local : :wr_local_id), start

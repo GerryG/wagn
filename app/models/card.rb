@@ -134,7 +134,9 @@ class Card < ActiveRecord::Base
     elsif @type_args
 
       type_id = case
-        when @type_args[:type_id];   return   # type_id was set explicitly.  no need to set again.
+        when @type_args[:type_id]
+          include_set_modules unless skip_modules
+           return   # type_id was set explicitly.  no need to set again.
 
         when typecode = @type_args[:typecode]; Wagn::Codename[typecode]
 
@@ -161,12 +163,12 @@ class Card < ActiveRecord::Base
   end
 
   def include_set_modules
-    unless @sets_loaded
+    unless @set_mods_loaded
       set_modules.each do |m|
         #warn "ism #{m}"
         singleton_class.send :include, m
       end
-      @sets_loaded=true
+      @set_mods_loaded=true
     end
     self
   end
@@ -426,12 +428,7 @@ class Card < ActiveRecord::Base
   end
 
   def type_name
-    #init_sets if type_id.nil? or type_id < 1
-    #raise "deep #{inspect}" if caller.length > 250
-    raise "type id? #{inspect}" if type_id.nil? or type_id < 1
-    return if type_id.nil?
-    card = Card.fetch type_id, :skip_modules=>true, :skip_virtual=>true
-    card and card.name
+    card = Card.fetch( type_id, :skip_modules=>true, :skip_virtual=>true ) and card.name
   end
 
   def type= type_name

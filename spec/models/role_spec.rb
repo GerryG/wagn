@@ -53,6 +53,7 @@ describe User, 'Joe User' do
     @jucard = Account.user_card
     @r1 = Card['r1']
     @roles_card=@jucard.fetch(:new=>{},:trait=>:roles)
+    warn "roles init card: #{@jucard.inspect}, #{@r1},  #{@roles_card.inspect}"
   end
 
   it "should initially have no roles" do
@@ -62,7 +63,10 @@ describe User, 'Joe User' do
     @roles_card.item_names.length.should==0
   end
   it "should immediately set new roles and return auth, anon, and the new one" do
-    Account.as_bot { @roles_card << @r1 }
+    Account.as_bot do
+      warn "roles card: #{@roles_card.inspect}"
+      @roles_card << @r1
+    end
     @roles_card.item_names.length.should==1
   end
   it "should save new roles and reload correctly" do

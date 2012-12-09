@@ -87,7 +87,7 @@ describe Wagn::Cache do
       @cache = Wagn::Cache.new
       @store = @cache.store
 
-      @store.clear
+      @store.clear if Pathname.new(cache_path).exist?
       #cache_path = cache_path + "/prefix"
       #p = Pathname.new(cache_path)
       #p.mkdir if !p.exist?

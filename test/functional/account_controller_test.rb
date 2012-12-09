@@ -20,7 +20,7 @@ class AccountControllerTest < ActionController::TestCase
     @response   = ActionController::TestResponse.new
 
     @newby_email = 'newby@wagn.net'
-    @newby_args =  {:user=>{ :email=>@newby_email },
+    @newby_args =  {:account=>{ :email=>@newby_email },
                     :card=>{ :name=>'Newby Dooby' }}
     Account.as_bot do
       Card.create(:name=>'Account Request+*type+*captcha', :content=>'0')
@@ -42,13 +42,12 @@ class AccountControllerTest < ActionController::TestCase
 
   def test_should_signout
     get :signout
-    assert_nil session[:user]
+    assert_equal session[:user], nil
     assert_response :redirect
   end
 
   def test_create_successful
     integration_login_as 'joe_user', true
-    #login_as 'joe_user'
     assert_difference ActionMailer::Base.deliveries, :size do
       assert_new_account do
         post_invite
@@ -65,13 +64,18 @@ class AccountControllerTest < ActionController::TestCase
     post :signup, @newby_args
 
     assert_response :redirect
-    assert Card['Newby Dooby'], "should create User card"
-    assert_status @newby_email, 'pending'
+    assert ucard=Card['Newby Dooby'], "should create User card"
+    assert card=ucard.fetch( :trait => :account ), "should create User+*account card"
+    assert card.account, "should create User"
+    assert ucard.account, "should access user from User card"
+    assert_status @newby_email, 'pending', "pending when requested"
 
+    Rails.logger.info "accepting #{Account.find_by_email(@newby_email).inspect}"
     integration_login_as 'joe_admin', true
     post :accept, :card=>{:key=>'newby_dooby'}, :email=>{:subject=>'hello', :message=>'world'}
     assert_response :redirect
-    assert_status @newby_email, 'active'
+    Rails.logger.info "accepted #{Account.find_by_email(@newby_email).inspect}"
+    assert_status @newby_email, 'active', "active when accepted"
   end
 
   def test_signup_without_approval
@@ -81,12 +85,13 @@ class AccountControllerTest < ActionController::TestCase
       create_accounts_rule.save!
     end
     post :signup, @newby_args
+    Rails.logger.warn "without app #{Card['Newby Dooby'].inspect}"
     assert_response :redirect
     assert_status @newby_email, 'active'
   end
 
-  def test_dont_let_blocked_user_signin
-    u = User.find_by_email('u3@user.com')
+  def test_dont_let_blocked_account_signin
+    u = Account.find_by_email('u3@user.com')
     u.blocked = true
     u.save
     post :signin, :login => 'u3@user.com', :password => 'u3_pass'
@@ -107,7 +112,7 @@ class AccountControllerTest < ActionController::TestCase
   def test_forgot_password_blocked
     email = 'u3@user.com'
     Account.as_bot do
-      u = User.find_by_email(email)
+      u = Account.find_by_email(email)
       u.status = 'blocked'
       u.save!
     end

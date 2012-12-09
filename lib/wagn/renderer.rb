@@ -215,7 +215,7 @@ module Wagn
           root.error_status = error_code
         end
       end
-      #warn "ok_view[#{original_view}] #{view}, #{args.inspect}, Cd:#{card.inspect}" #{caller[0..20]*"\n"}"
+      Rails.logger.info "ok_view[#{original_view}] #{view}, #{args.inspect}, Cd:#{card.inspect}" #{caller[0..20]*"\n"}"
       view
     end
 
@@ -427,14 +427,22 @@ module Wagn
     end
 
     def update_references rendering_result = nil, refresh = false
-      #Rails.logger.warn "update references...card:#{card.inspect}, rr: #{rendering_result}, refresh: #{refresh} where:#{caller[0..6]*', '}"
-      #warn "update references...card: #{card.inspect}, rr: #{rendering_result}, refresh: #{refresh}, #{caller*"\n"}"
-      return unless card && card_id = card.id
-      Card::Reference.where( :card_id => card_id ).delete_all
+
+      #Rails.logger.warn "update references...card name: #{card.name}, rr: #{rendering_result}, refresh: #{refresh}"
+      return unless card && card.id
+
+      Rails.logger.info "update refs #{card.inspect}"
+      raise "???" if caller.length > 500
+
+      Card::Reference.delete_all :card_id => card.id
+
       # FIXME: why not like this: references_expired = nil # do we have to make sure this is saved?
       #Card.where( :id => card_id ).update_all( :references_expired=>nil )
+      #  or just this and save it elsewhere?
+      #card.references_expired=nil
       card.connection.execute("update cards set references_expired=NULL where id=#{card.id}")
-      card.expire if refresh
+      card.expire if frozen?
+
       if rendering_result.nil?
          rendering_result = WikiContent.new(card, _render_refs, self).render! do |opts|
            expand_inclusion(opts) { yield }
@@ -455,13 +463,6 @@ module Wagn
       end
       #Rails.logger.warn "update refs hash #{hash.inspect}"
  
-      hash.each do |ref_id, v|
-        #warn "card ref #{v.inspect}"
-        #Rails.logger.warn "card ref #{v.inspect}"
-        Card::Reference.create! :card_id => card_id,
-          :referenced_card_id => v[:ref_id], :referenced_name => v[:name],
-          :ref_type => v[:ref_type], :present => v[:present]
-      end
     end
   end
 

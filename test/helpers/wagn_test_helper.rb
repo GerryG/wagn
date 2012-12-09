@@ -5,23 +5,11 @@ module WagnTestHelper
 
   include CardBuilderMethods
 
-  def setup_default_user
-    User.cache.reset
+  def setup_default_account
+    Account.reset
 
-    user_card = Card['joe user'] #Card[Card::WagnBotID]
-    user_card = Card[:wagn_bot]
-    Account.user= user_card.id
-    @user = Account.user
-    #STDERR << "user #{user_card.inspect}\n"
-
-    @user.update_column 'crypted_password', '610bb7b564d468ad896e0fe4c3c5c919ea5cf16c'
-    #user_card.fetch(:trait=>:roles) << Card::AdminID
-
-    # setup admin while we're at it
-    #@admin_card = Card[Card::WagnBotID]
-
-    #@admin_card.fetch(:trait=>:roles) << Card::AdminID
-    Account.user = 'joe_user'
+    Account.session = 'joe_user'
+    Rails.logger.warn "setup du #{Account.session}, #{Account.authorized}, #{Account.as_card}"
     nil
   end
 
@@ -42,10 +30,10 @@ module WagnTestHelper
     r.process_content()
   end
 
-  def assert_difference(object, method = nil, difference = 1)
+  def assert_difference(object, method = nil, difference = 1, name=nil)
     initial_value = object.send(method)
     yield
-    assert_equal initial_value + difference, object.send(method), "#{object}##{method}"
+    assert_equal initial_value+difference, object.send(method), "#{name || object}##{method}"
   end
 
   def assert_no_difference(object, method, &block)
@@ -58,21 +46,18 @@ module WagnTestHelper
     'u3@user.com' => 'u3_pass'
   }
 
-  def integration_login_as(user, functional=nil)
-    User.cache.reset
+  def integration_login_as(user_login, functional=nil)
 
-    raise "Don't know email & password for #{user}" unless uc=Card[user] and
-        u=User.where(:card_id=>uc.id).first and
-        login = u.email and pass = USERS[login]
+    raise "Don't know email & password for #{user_login}, #{Card[user_login].inspect}" unless user_card=Card[user_login] and
+        usr=user_card.account and login = usr.email and pass = USERS[login]
 
     if functional
-      #warn "functional login #{login}, #{pass}"
+      Rails.logger.warn "functional login #{login}, #{pass}"
       post :signin, :login=>login, :password=>pass, :controller=>:account
     else
-      #warn "integration login #{login}, #{pass}"
       post 'account/signin', :login=>login, :password=>pass, :controller=>:account
     end
-    assert_response :redirect
+    assert_response :redirect, "integration login broken"
 
     if block_given?
       yield
@@ -83,7 +68,7 @@ module WagnTestHelper
   def post_invite(options = {})
     action = options[:action] || :invite
     post action,
-      :user => { :email => 'new@user.com' }.merge(options[:user]||{}),
+      :account => { :email => 'new@user.com' }.merge(options[:account]||{}),
       :card => { :name => "New User" }.merge(options[:card]||{}),
       :email => { :subject => "mailit",  :message => "baby"  }
   end

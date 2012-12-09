@@ -17,7 +17,10 @@ module Wagn
     end
 
     define_view :raw      do |args|  card ? card.raw_content : _render_blank                          end
-    define_view :refs     do |args|  card.respond_to?('references_expired') ? card.raw_content : ''   end
+    define_view :refs     do |args|
+      #warn "refs view: #{card.respond_to?(:references_expired)}, cd:#{card.inspect}" #{caller*"\n"}"
+      #warn "refs view: rc:#{card.raw_content}"
+      card.respond_to?(:references_expired) ? card.raw_content : ''   end
     define_view :core     do |args|  process_content _render_raw                                      end
     define_view :content  do |args|  _render_core                                                     end
       # this should be done as an alias, but you can't make an alias with an unknown view,
@@ -83,6 +86,7 @@ module Wagn
     end
 
     # The below have HTML!?  should not be any html in the base renderer
+    # Is the one change to '' correct?  Should the rest be same and originals in rich_html?
 
 
     define_view :closed_missing, :perms=>:none do |args|

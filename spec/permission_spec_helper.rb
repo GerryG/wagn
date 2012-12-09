@@ -21,6 +21,7 @@ module PermissionSpecHelper
   end
 
   def assert_not_hidden( card, msg='' )
+    Rails.logger.warn "anothidden #{Card.search(:id=>card.id).inspect}"
     assert_equal [card.name], Card.search(:id=>card.id).plot(:name), msg
   end
 
@@ -39,7 +40,7 @@ RSpec::Core::ExampleGroup.send :include, PermissionSpecHelper
 class Card
   def writeable_by(user)
     Account.as(user.id) do
-    #warn "writeable #{Account.as_id}, #{user.inspect}"
+    #warn "writeable #{Account.as.id}, #{user.inspect}"
       ok? :update
     end
   end

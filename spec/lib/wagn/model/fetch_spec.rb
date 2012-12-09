@@ -34,12 +34,9 @@ describe Card do
         card = Card.fetch("Joe User+*email")
         card.should be_instance_of(Card)
         card.name.should == "Joe User+*email"
+        Rails.logger.warn "card is #{card.inspect}"
         Wagn::Renderer.new(card).render_raw.should == 'joe@user.com'
       end
-      #card.raw_content.should == 'joe@user.com'
-      #cached_card = Card.cache.read("joe_user+*email")
-      #cached_card.missing?.should be_true
-      #cached_card.virtual?.should be_true
     end
 
     it "fetches virtual cards after skipping them" do
@@ -169,7 +166,7 @@ describe Card do
   end
 
   describe "#fetch_virtual" do
-    before { Account.as :joe_user }
+    before { Account.as 'joe_user' }
 
     it "should find cards with *right+*content specified" do
       Account.as_bot do

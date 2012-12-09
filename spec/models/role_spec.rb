@@ -17,7 +17,7 @@ end
 =begin
 describe User, "Anonymous User" do
   before do
-    Account.user= Card::AnonID
+    Account.session = Card::AnonID
   end
 
   it "should ok anon role" do Wagn.role_ok?(Role['anon'].id).should be_true end
@@ -26,7 +26,7 @@ end
 
 describe User, "Authenticated User" do
   before do
-    Account.user= 'joe_user'
+    Account.session = 'joe_user'
   end
   it "should ok anon role" do Wagn.role_ok?(Role['anon'].id).should be_true end
   it "should ok auth role" do Wagn.role_ok?(Role['auth'].id).should be_true end
@@ -35,22 +35,21 @@ end
 
 describe User, "Admin User" do
   before do
-    Account.user= Card::WagnBotID
+    Account.session = Card::WagnBotID
   end
 #  it "should ok admin role" do Wagn.role_ok?(Role['admin'].id).should be_true end
 
   it "should have correct parties" do
-    Account.user_card.parties.sort.should == [Card::WagnBotID, Card::AuthID, Card::AdminID]
+    Account.authorized.parties.sort.should == [Card::WagnBotID, Card::AuthID, Card::AdminID]
   end
 
 end
 
 describe User, 'Joe User' do
   before do
-    Account.user= :joe_user
-    User.cache.delete 'joe_user'
-    @ju = Account.user
-    @jucard = Account.user_card
+    Account.session = 'joe_user'
+    @ju = Account.session
+    @jucard = Account.authorized
     @r1 = Card['r1']
     @roles_card=@jucard.fetch(:new=>{},:trait=>:roles)
   end
@@ -72,10 +71,10 @@ describe User, 'Joe User' do
       @roles_card.content=''
       @roles_card << @r1;
     }
-    @ju = Card['joe_user'].to_user
+    @ju = Card['joe_user+*account'].account
     @roles_card = Card[@jucard.fetch(:new=>{},:trait=>:roles).id]
     @roles_card.item_names.length.should==1
-    @jucard.parties.should == [Card::AuthID, Card['r1'].id, @ju.card_id]
+    @jucard.parties.should == [Card::AuthID, Card['r1'].id, Card[@ju.account_id].left_id]
   end
 
   it "should be 'among' itself" do

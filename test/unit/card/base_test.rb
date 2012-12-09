@@ -3,7 +3,7 @@ class Card::BaseTest < ActiveSupport::TestCase
 
   def setup
     super
-    setup_default_user
+    setup_default_account
   end
 
   test 'remove' do
@@ -67,22 +67,21 @@ class Card::BaseTest < ActiveSupport::TestCase
 
 
   test 'update_should_create_subcards' do
-    Account.user = 'joe_user'
-    Account.as(:joe_user) do
-      c=Card.create!( :name=>'Banana' )
-      #warn "created #{c.inspect}"
-      Card.update(c.id, :cards=>{ "+peel" => { :content => "yellow" }})
-      p = Card['Banana+peel']
-      assert_equal "yellow", p.content
-      #warn "creator_id #{p.creator_id}, #{p.updater_id}, #{p.created_at}"
-      assert_equal Card['joe_user'].id, p.creator_id
-    end
+    Account.session = 'joe_user'
+    joe_acct = Account.authorized
+    c=Card.create!( :name=>'Banana' )
+    #warn "created #{c.inspect}"
+    Card.update(c.id, :cards=>{ "+peel" => { :content => "yellow" }})
+    p = Card['Banana+peel']
+    assert_equal "yellow", p.content
+    #warn "creator_id #{p.creator_id}, #{p.updater_id}, #{p.created_at}"
+    assert_equal joe_acct.id, p.creator_id
   end
 
   test 'update_should_create_subcards_as_wagn_bot_if_missing_subcard_permissions' do
     Card.create(:name=>'peel')
-    Account.user = :anonymous
-    #warn Rails.logger.info("check #{Account.user_id}")
+    Account.session = :anonymous
+    #warn Rails.logger.info("check #{Account.session}")
     assert_equal false, Card['Basic'].ok?(:create), "anon can't creat"
     Card.create!( :type=>"Fruit", :name=>'Banana', :cards=>{ "+peel" => { :content => "yellow" }})
     peel= Card["Banana+peel"]
@@ -93,7 +92,7 @@ class Card::BaseTest < ActiveSupport::TestCase
 
   test 'update_should_not_create_subcards_if_missing_main_card_permissions' do
     b = nil
-    Account.as(:joe_user) do
+    Account.as 'joe_user' do
       b = Card.create!( :name=>'Banana' )
       #warn "created #{b.inspect}"
     end

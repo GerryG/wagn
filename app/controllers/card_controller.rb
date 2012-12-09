@@ -21,9 +21,7 @@ class CardController < ApplicationController
   end
 
   def read
-    if @card.errors.any?
-      errors!
-    else
+    unless errors!
       save_location # should be an event!
       show
     end
@@ -45,15 +43,8 @@ class CardController < ApplicationController
   end
 
 
-  def index
-    read
-  end # handle in load card?
-
-
-  def read_file
-    show_file
-  end #FIXME!  move to pack
-
+  alias index read
+  def read_file() show_file end
 
 
 
@@ -69,14 +60,19 @@ class CardController < ApplicationController
 
   def comment
     raise Wagn::BadAddress, "comment without card" unless params[:card]
+
+    # FIXME: need this loaded like an inflector, this can't be the only place that would use this
+    # or maybe wrap it with the split, map, join too, and why not strip it in any case?
+    to_html = lambda {|line| "<p>#{line.strip.empty? ? '&nbsp;' : line}</p>"}
+
     # this previously failed unless request.post?, but it is now (properly) a PUT.
     # if we enforce RESTful http methods, we should do it consistently,
     # and error should be 405 Method Not Allowed
+    author = Account.logged_in? ? "[[#{Account.authorized.name}]]" :
+              "#{session[:comment_author] = params[:card][:comment_author]} (Not signed in)"
+    comment = params[:card][:comment].split(/\n/).map(&to_html) * "\n"
 
-    author = Account.user_id == Card::AnonID ?
-        "#{session[:comment_author] = params[:card][:comment_author]} (Not signed in)" : "[[#{Account.user.card.name}]]"
-    comment = params[:card][:comment].split(/\n/).map{|c| "<p>#{c.strip.empty? ? '&nbsp;' : c}</p>"} * "\n"
-    @card.comment = "<hr>#{comment}<p><em>&nbsp;&nbsp;--#{author}.....#{Time.now}</em></p>"
+    @card.comment = %{<hr>#{ comment }<p><em>&nbsp;&nbsp;--#{ author }.....#{Time.now}</em></p>}
 
     if @card.save
       show
@@ -96,7 +92,8 @@ class CardController < ApplicationController
   def watch
     watchers = @card.fetch :trait=>:watchers, :new=>{}
     watchers = watchers.refresh
-    myname = Card[Account.user_id].name
+    myname = Account.authorized.name
+    #warn "watch (#{myname}) #{watchers.inspect}, #{watchers.item_names.inspect}"
     watchers.send((params[:toggle]=='on' ? :add_item : :drop_item), myname)
     ajax? ? show(:watch) : read
   end
@@ -109,41 +106,50 @@ class CardController < ApplicationController
   #-------- ( ACCOUNT METHODS )
 
   def update_account
+    #Rails.logger.warn "updating account #{params[:account].inspect}, #{@card.fetch(:trait => :account).account}"
+    if account_args = params[:account] and
+        acct_cd = @card.fetch(:trait=>:account) and
+        acct = acct_cd.account
 
-    if params[:save_roles]
-      role_card = @card.fetch :trait=>:roles, :new=>{}
-      role_card.ok! :update
+      my_card = Account.authorized.id == acct_cd.id
+      my_card and !account_args[:blocked] and
+      Account.authorized.id == acct_cd.id and !account_args[:blocked] and
+        @card.ok! :update
 
-      role_hash = params[:user_roles] || {}
-      role_card = role_card.refresh
-      role_card.items= role_hash.keys.map &:to_i
-    end
-
-    account = @card.to_user
-    if account and account_args = params[:account]
-      unless Account.as_id == @card.id and !account_args[:blocked]
-        @card.fetch(:trait=>:account).ok! :update
+      if params[:save_roles] and my_card || roles_card = @card.fetch(:trait=>:roles, :new=>{}) and roles_card.ok?(:create)
+        roles = (params[:user_roles]||{}).keys.map(&:to_i)
+        roles_card = roles_card.refresh
+        roles_card.items= roles
+        roles_card.save
+        roles_card.errors.each {|f,e| @card.errors.add f, e } if roles_card.errors.any?
       end
-      account.update_attributes account_args
-    end
 
-    if account && account.errors.any?
-      account.errors.each do |field, err|
-        @card.errors.add field, err
+      acct.update_attributes account_args if request.put? or request.post?
+
+      if acct.errors.any?
+        acct.errors.each {|f,e| @card.errors.add f, e }
+        errors!
+      else
+        success
       end
-      errors!
-    else
-      success
     end
   end
 
+  # FIXME: make this part of create
   def create_account
     @card.ok!(:create, :new=>{}, :trait=>:account)
-    email_args = { :subject => "Your new #{Card.setting :title} account.",   #ENGLISH
-                   :message => "Welcome!  You now have an account on #{Card.setting :title}." } #ENGLISH
-    @user, @card = User.create_with_card(params[:user],@card, email_args)
-    raise ActiveRecord::RecordInvalid.new(@user) if !@user.errors.empty?
-    #@account = User.new(:email=>@user.email)
+    @account = @card.account = Account.new( params[:account] ).active
+    Rails.logger.info "create_account 1 #{@account.inspect}, #{@card.inspect}"
+    if @card.save
+      email_args = { :password => @account.password,
+                     :subject  => "Your new #{Card.setting :title} account.",   #ENGLISH
+                     :message  => "Welcome!  You now have an account on #{Card.setting :title}." } #ENGLISH
+    Rails.logger.info "create_account #{params.inspect}, #{email_args.inspect}"
+      @card.send_account_info email_args
+    end
+    Rails.logger.warn "create_account error: #{@account.errors.map{|k,v|"#{k} -> #{v}"}*', '}" if @account.errors.any?
+    # FIXME: don't raise, handle it
+    raise ActiveRecord::RecordInvalid.new(@account) if @account.errors.any?
 #    flash[:notice] ||= "Done.  A password has been sent to that email." #ENGLISH
     params[:attribute] = :account
 
@@ -176,7 +182,6 @@ class CardController < ApplicationController
     end
   end
 
-
   def load_card
     @card = case params[:id]
       when '*previous'   ; return wagn_redirect( previous_location )
@@ -206,6 +211,7 @@ class CardController < ApplicationController
     @card = @card.refresh
   end
 
+  #-------( REDIRECTION )
 
   def success default_target='_self'
     target = params[:success] || default_target

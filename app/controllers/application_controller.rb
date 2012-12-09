@@ -34,9 +34,9 @@ class ApplicationController < ActionController::Base
 
       Wagn::Cache.renew
 
-      #warn "set curent_user (app-cont) #{self.session_user}, U.cu:#{Account.user_id}"
-      Account.user = self.session_user || Card::AnonID
-      #warn "set curent_user a #{session_user}, U.cu:#{Account.user_id}"
+      #warn "set curent_account (app-cont) #{self.session_account}, U.cu:#{Account.session}"
+      Account.session = self.session_account || Card::AnonID
+      #warn "set curent_account a #{session_account}, U.cu:#{Account.session}"
 
       # RECAPTCHA HACKS
       Wagn::Conf[:recaptcha_on] = !Account.logged_in? &&     # this too
@@ -87,10 +87,12 @@ class ApplicationController < ActionController::Base
   end
 
   def errors! options={}
+    return false unless @card.errors.any?
     @card ||= Card.new
     view   = options[:view]   || (@card && @card.error_view  ) || :errors
     status = options[:status] || (@card && @card.error_status) || 422
     show view, status
+    true
   end
 
   def show view = nil, status = 200
@@ -139,7 +141,7 @@ class ApplicationController < ActionController::Base
 
 
   rescue_from Exception do |exception|
-    Rails.logger.info "exception = #{exception.class}: #{exception.message}"
+    Rails.logger.debug "exception = #{exception.class}: #{exception.message} #{exception.backtrace*"\n"}"
 
     view, status = case exception
     when Wagn::NotFound, ActiveRecord::RecordNotFound

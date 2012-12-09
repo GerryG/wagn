@@ -45,4 +45,3 @@ module Wagn::Set::Type::Basic
     end
   end
 end
-

@@ -9,9 +9,8 @@ describe Mailer do
   #include ActionMailer::Quoting
 
   before do
-    #FIXME: from addresses are really Account.user, not Account.as_user based, but
+    #FIXME: from addresses are really Account.session, not Account.as based, but
     # these tests are pretty much all using the Account.as, not logging in.
-    Account.user=nil # this is needed to clear logins from other test run before
     ActionMailer::Base.delivery_method = :test
     ActionMailer::Base.perform_deliveries = true
     ActionMailer::Base.deliveries = []
@@ -23,12 +22,12 @@ describe Mailer do
   #  (ie try renamed change notice below to change_notice) then *notify+*from gets stuck on.
   context "account info, new password" do # forgot password
     before do
-      user_id =  Card['sara'].id
-      Account.as_bot do
-        @user = User.where(:card_id=>user_id).first
-        @user.generate_password
-        @email = Mailer.account_info(@user, "New password subject", "Forgot my password")
-      end
+      c=Card['sara']
+      Account.session = c.fetch :trait => :account
+      @user = c.account
+      @user.generate_password
+      @email = Mailer.account_info c, {:to=>@user.email, :password=>@user.password,
+        :subject=>"New password subject", :message=>"Forgot my password"}
     end
 
     context "new password message" do
@@ -36,8 +35,8 @@ describe Mailer do
         @email.should deliver_to(@user.email)
       end
 
-      it "is from Wagn Bot email" do
-        #warn "test from #{User.admin.inspect}, #{User.admin.email}"
+      it "is from Wag bot email" do  # I think logged in user is right here, so anon ...
+        Account.session = Card[Account.ANONCARD_ID]
         @email.should deliver_from("Wagn Bot <no-reply@wagn.org>")
       end
 

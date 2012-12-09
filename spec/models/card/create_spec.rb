@@ -3,7 +3,7 @@ require File.expand_path('../../spec_helper', File.dirname(__FILE__))
 # FIXME this shouldn't be here
 describe Wagn::Set::Type::Cardtype, ".create with :codename" do
   before do
-    Account.as :joe_user
+    Account.as 'joe_user'
   end
   it "should work" do
     Card.create!(:name=>"Foo Type", :codename=>"foo", :type=>'Cardtype').typecode.should==:cardtype
@@ -75,13 +75,15 @@ describe Card, "created with autoname" do
   end
 
   it "should handle cards without names" do
-    c = Card.create! :type=>'Book'
+    c = Account.as_bot { Card.create! :type=>'Book' }
     c.name.should== 'b1'
   end
 
   it "should increment again if name already exists" do
-    Card.create :name=>'b1'
-    c = Card.create! :type=>'Book'
+    c = Account.as_bot do
+      Card.create :name=>'b1'
+      Card.create! :type=>'Book'
+    end
     c.name.should== 'b2'
 
   end
@@ -90,8 +92,9 @@ end
 
 describe Card, "create junction" do
   before(:each) do
-    Account.as :joe_user
-    @c = Card.create! :name=>"Peach+Pear", :content=>"juicy"
+    Account.as 'joe_user' do
+      @c = Card.create! :name=>"Peach+Pear", :content=>"juicy"
+    end
   end
 
   it "should not have errors" do

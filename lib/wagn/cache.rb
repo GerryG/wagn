@@ -11,6 +11,11 @@ module Wagn
     end
   end
 
+  class NilCache
+    def initialize                  ; self end
+    def method_missing method, *args; nil  end
+  end
+
   class Cache
 
     # FIXME: move the initial login test to Account
@@ -22,8 +27,7 @@ module Wagn
     end
 
     def first_login= status=false
-      write_global FIRST_KEY, @first_login = status
-      @first_login
+      @first_login = write_global FIRST_KEY, status
     end
 
     @@prefix_root       = Wagn::Application.config.database_configuration[Rails.env]['database']
@@ -33,6 +37,9 @@ module Wagn
     cattr_reader :frozen, :prefix_root
 
     class << self
+      def prepopulating ; Rails.env == 'cucumber' end
+      def use_rails_cache?; !%w{ cucumber test }.member? Rails.env end
+
       def [] klass
         if @@cache_by_class[klass].nil?
           self.new klass
@@ -52,11 +59,10 @@ module Wagn
       def restore klass=Card
         raise "no klass" if klass.nil?
 
-        reset_global
-        #reset_local
+        reset_local
         if @@cache_by_class[klass] and self.prepopulating and klass==Card
-          warn "prepop #{@@cache_by_class[klass]} = #{data=Marshal.load(frozen[klass])}"
-          @@cache_by_class[klass] = data
+          #warn " laod prepop data #{frozen[klass]} #{@@cache_by_class[klass]}"
+          @@cache_by_class[klass] = Marshal.load frozen[klass]
         end
       end
 
@@ -65,20 +71,12 @@ module Wagn
       end
 
       def reset_global
-        @@cache_by_class.keys.each do |klass|
-          next unless cache = klass.cache
+        @@cache_by_class.keys do |klass, cache|
+          raise "???" unless NilCache===cache
+          Rails.logger.warn "reset global #{klass}, #{cache}"
           cache.reset hard=true
         end
         Wagn::Codename.reset_cache
-      end
-
-
-      def prepopulating
-        Rails.env == 'cucumber'
-      end
-
-      def using_rails_cache
-        Rails.env !~ /^cucumber|test$/
       end
 
       private
@@ -88,7 +86,6 @@ module Wagn
         @@cache_by_class.each{ |cc, cache|
           if Wagn::Cache===cache
             cache.reset_local
-          #else warn "reset class #{cc}, #{cache.class} #{caller[0..8]*"\n"} ???"
           end
         }
             
@@ -100,9 +97,9 @@ module Wagn
 
     def initialize(klass=Card)
       opts, klass = Hash==klass ? [klass, (klass[:class] || Card)] : [{}, klass]
-      #Rails.logger.warn "init cache #{self} opts: #{opts.inspect}, k:#{klass}, K:#{@klass}"
+      @use_rails_cache = opts[:use_rails_cache]
+      #warn "init cache #{self} opts: #{opts.inspect}, k:#{klass}, K:#{@klass}"
       @klass ||= klass
-      #Rails.logger.warn "nil class for cache #{caller*"\n"}" if @klass.nil?
       @local = {}
       @stats = {}
       @times = {}
@@ -120,13 +117,15 @@ module Wagn
       ['*all','*all plus','basic+*type','html+*type','*cardtype+*type','*sidebar+*self'].each do |k|
         [k,"#{k}+*content", "#{k}+*default", "#{k}+*read" ].each { |k| klass[k] }
       end
-      warn "prepop #{}"
       frozen[klass] = Marshal.dump Cache[klass]
+      #warn "prepopulated #{klass} #{frozen[klass]}"
     end
 
     def store
-      @store ||= Cache.using_rails_cache ? Rails.cache : ActiveSupport::Cache::MemoryStore.new
-      #warn "store is #{@store}"; @store
+      if @store.nil?
+        @store = @use_rails_cache || Cache.use_rails_cache? ? Rails.cache : NilCache.new
+      end
+      @store
     end
 
     def cache_id_key
@@ -139,16 +138,15 @@ module Wagn
         @cache_id = self.class.generate_cache_id
         store.write cache_id_key, @cache_id
       end
-      raise("no id? #{ system_prefix + '/cache_id' }") if @cache_id.nil?
       @cache_id
     end
 
     def system_prefix
-      Cache.prefix_root + '/' + @klass.to_s
+      "#{ Cache.prefix_root }/#{ @klass.to_s }"
     end
 
     def prefix
-      system_prefix + '/' + @cache_id + '/'
+      "#{ system_prefix }/#{ cache_id }/"
     end
 
     # ---------------- STATISTICS ----------------------
@@ -176,9 +174,11 @@ module Wagn
     #def stat *a; end  # to disable stat collections
 
     def read key
+      #warn "wcache read #{key}"
       start = Time.now
       if @local.has_key?(key)
         l = @local[key]
+        #warn "wcache read hit #{key} : #{l}"
         stat (Integer===key ? (l.nil? ? :id_nil : :id_hit ) : (l.nil? ? :key_nil : :key_hit )), start
         return l
       end
@@ -188,6 +188,7 @@ module Wagn
       #warn "read global: #{prefix} K:#{key} #{prefix+key}"
       obj = store.read prefix + key
       obj.reset_mods if obj.respond_to? :reset_mods
+      raise "global hit? #{store},#{obj.inspect}" unless obj.nil?
       stat (obj.nil? ? :global_miss : :global_hit), start
       #Rails.logger.warn "c read: #{key}, #{obj.inspect}, pk:#{prefix + key}"
 
@@ -207,16 +208,17 @@ module Wagn
     def write key, obj
       start = Time.now
       if Card===obj
-        #Rails.logger.warn "c write #{obj.inspect}"
         id = obj.id.to_i
         id != 0 and @local[ id ] = obj
+        #warn "c write k#{key}, i#{id}, #{obj.inspect}"
         stat (id == 0 ? :noid_local : :wr_local_id), start
       end
-      #Rails.logger.warn "c write l:#{@local.class}, gk:#{prefix + key}, v:#{obj.inspect}"
+      #warn "c write l:#{@local.class}, gk:#{prefix + key}, v:#{obj.inspect}"
 
-      write_global key, obj
+      @local[key] = write_global key, obj
       stat :write, start
-      @local[key] = obj
+      #warn "write loc k#{key}, #{obj.inspect}"
+      obj
     end
 
     def write_global key, obj
@@ -252,9 +254,10 @@ module Wagn
       #warn "reset #{hard} #{@cache_id}"
       reset_local
       @cache_id = nil
-      initialize
       if hard
         store.clear
+      else
+        cache_id # accessing it will generate and write the new id
       end
     end
 

@@ -45,13 +45,13 @@ class Card < ActiveRecord::Base
       args.delete('content') if args['attach'] # should not be handled here!
 
       if name = args['name'] and !name.blank?
-        if  Card.cache                                        and
-            cc = Card.cache.read_local(name.to_name.key)  and
-            cc.type_args                                      and
-            args['type']          == cc.type_args[:type]      and
-            args['typecode']      == cc.type_args[:typecode]  and
-            args['type_id']       == cc.type_args[:type_id]   and
-            args['loaded_left']  == cc.loaded_left
+        if  Card.cache                                       and
+            cc = Card.cache.read_local(name.to_name.key)     and
+            cc.type_args                                     and
+            args['type']          == cc.type_args[:type]     and
+            args['typecode']      == cc.type_args[:typecode] and
+            args['type_id']       == cc.type_args[:type_id]  and
+            args['loaded_left']   == cc.loaded_left
 
           args['type_id'] = cc.type_id
           return cc.send( :initialize, args )
@@ -79,7 +79,7 @@ class Card < ActiveRecord::Base
         super
       end
     rescue NameError
-        warn "ne: const_miss #{e.inspect}, #{const_name} R:#{x}\n#{caller*"\n"}" if const_name.to_sym==:Card; x
+        warn "ne: const_miss #{e.inspect}, #{const}" if const.to_sym==:Card
     end
 
     def setting name
@@ -116,7 +116,6 @@ class Card < ActiveRecord::Base
       :typecode => args.delete('typecode'),
       :type_id  => args[       'type_id' ]
     }
-    Rails.logger.warn "Card#new #{args.inspect}, TA:#{@type_args.inspect}"
 
     skip_modules = args.delete 'skip_modules'
 
@@ -128,18 +127,21 @@ class Card < ActiveRecord::Base
   end
 
   def init_sets skip_modules=false
-    Rails.logger.warn "init_sets[#{skip_modules}, #{inspect}, #{@type_args.inspect}"
+    #Rails.logger.warn "init_sets[#{skip_modules}, #{inspect}, #{@type_args.inspect}"
 
     if type_id.nil? && @type_args.nil?
       raise "no type or type args"
-    elsif !@type_args.nil?
+    elsif @type_args
+
       type_id = case
         when @type_args[:type_id]
-          return # type_id was set explicitly.  no need to set again.
-        when @type_args[:typecode]
-          code=@type_args[:typecode] and Wagn::Codename[code] || (card=Card[code] and card.id)
-        when @type_args[:type]
-          Card.fetch_id @type_args[:type]
+          include_set_modules unless skip_modules
+           return   # type_id was set explicitly.  no need to set again.
+
+        when typecode = @type_args[:typecode]; Wagn::Codename[typecode]
+
+        when typearg  = @type_args[:type]    ; Card.fetch_id typearg
+
         else
           if name && tmpl=template
             reset_patterns #still necessary even with new template handling?
@@ -160,18 +162,13 @@ class Card < ActiveRecord::Base
     include_set_modules unless skip_modules
   end
 
-  def sets_loaded?
-    raise "deep" if caller.length > 300
-    @sets_loaded
-  end
-
   def include_set_modules
-    unless sets_loaded?
+    unless @set_mods_loaded
       set_modules.each do |m|
         #warn "ism #{m}"
         singleton_class.send :include, m
       end
-      @sets_loaded=true
+      @set_mods_loaded=true
     end
     self
   end
@@ -299,10 +296,9 @@ class Card < ActiveRecord::Base
 
   def destroy
     run_callbacks( :destroy ) do
-      deps = self.dependents # already called once.  reuse?
       @trash_changed = true
       self.update_attributes :trash => true
-      deps.each do |dep|
+      dependents.each do |dep|
         dep.destroy
       end
       true
@@ -381,12 +377,17 @@ class Card < ActiveRecord::Base
 
   def dependents
     return [] if new_card?
-    wql_key = simple? ? :part : :left
-    Account.as_bot do
-      Card.search( wql_key=>name ).map do |c|
-        [ c ] + c.dependents
-      end.flatten
+
+    if @dependents.nil?
+      @dependents = 
+        Account.as_bot do
+          deps = Card.search( { (simple? ? :part : :left) => name } ).to_a
+          deps.inject(deps) do |array, card|
+            array +  card.dependents
+          end
+        end
     end
+    @dependents
   end
 
   def repair_key
@@ -429,12 +430,7 @@ class Card < ActiveRecord::Base
   end
 
   def type_name
-    #init_sets if type_id.nil? or type_id < 1
-    raise "deep #{inspect}" if caller.length > 250
-    raise "type id? #{inspect}" if type_id.nil? or type_id < 1
-    return if type_id.nil?
-    card = Card.fetch type_id, :skip_modules=>true, :skip_virtual=>true
-    card and card.name
+    card = Card.fetch( type_id, :skip_modules=>true, :skip_virtual=>true ) and card.name
   end
 
   def type= type_name
@@ -576,8 +572,8 @@ class Card < ActiveRecord::Base
     "#<#{self.class.name}" + "##{id}" +
     "###{object_id}" + "lf:#{tag_id}rt:#{tag_id}" +
     "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
-    "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}" +
-    "#{@virual.nil? ? '' : "virtual#{@virtual}"}#{sets_loaded?&&'I'||"!loaded[#{@type_args.inspect}]" }}" +
+    "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{frozen? ? 'Fz' : readonly? ? 'RdO' : ''}" +
+    "#{@virtual &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }}" +
     #" Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}" +
     '>'
   end

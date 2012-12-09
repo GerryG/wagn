@@ -7,14 +7,16 @@ module AuthenticatedSystem
   # Accesses the current user from the session.
   def session_user
     @session_user ||= session[:user]
+    Rails.logger.warn "su = #{@session_user.inspect}"; @session_user
   rescue Exception => e
-    #warn "except #{e.inspect}, #{e.backtrace*"\n"}"
+    Rails.logger.warn "except #{e.inspect}, #{e.backtrace*"\n"}"
     session[:user] = nil
     raise e
   end
 
   # Store the given user in the session.
   def session_user= new_user
+    Rails.logger.warn "set session #{new_user.inspect}"
     @session_user = session[:user] = ( Card==new_user ? card.id : new_user )
   end
 

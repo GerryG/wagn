@@ -27,6 +27,7 @@ module Wagn::Model::Fetch
 
     def fetch mark, opts = {}
 #      ActiveSupport::Notifications.instrument 'wagn.fetch', :message=>"fetch #{cardname}" do
+      raise "fetch #{mark.inspect}, #{opts.inspect}" if caller.length > 500
       return nil if mark.nil?
       # Symbol (codename) handling
       if Symbol===mark
@@ -79,8 +80,8 @@ module Wagn::Model::Fetch
 
       return card.fetch_new(opts) if card.new_card? and ( opts[:skip_virtual] || !card.virtual? )
 
-      #warn "fetch returning #{card.inspect}"
       card.include_set_modules unless opts[:skip_modules]
+      #warn "fetch returning #{card.inspect}"
       card
     end
 

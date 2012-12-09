@@ -37,6 +37,7 @@ module Wagn
     class << self
       def [] klass
         if @@cache_by_class[klass].nil?
+          warn "??? #{@@cache_by_class.inspect}, #{klass}"
           self.new klass
         end
         raise("????") if @@cache_by_class[klass].nil?
@@ -54,7 +55,7 @@ module Wagn
       def restore klass=Card
         raise "no klass" if klass.nil?
 
-        reset_local
+        reset_global
         @@cache_by_class[klass] = Marshal.load(frozen[klass]) if @@cache_by_class[klass] and self.prepopulating and klass==Card
       end
 
@@ -84,7 +85,6 @@ module Wagn
       private
 
       def reset_local
-        #warn "reset local Classes: #{@@cache_by_class.map{|k,v|k.to_s+' '+v.to_s}*", "}"
         @@cache_by_class.each{ |cc, cache|
           if Wagn::Cache===cache
             cache.reset_local
@@ -100,27 +100,30 @@ module Wagn
 
     def initialize(klass=Card)
       opts, klass = Hash==klass ? [klass, (klass[:class] || Card)] : [{}, klass]
-      #Rails.logger.warn "init cache #{self} opts: #{opts.inspect}, k:#{klass}, K:#{@klass}"
+      warn "init cache #{self} opts: #{opts.inspect}, k:#{klass}, K:#{@klass}"
       @klass ||= klass
       #Rails.logger.warn "nil class for cache #{caller*"\n"}" if @klass.nil?
       @local = {}
       @stats = {}
       @times = {}
       @stat_count = 0
-      @@prepopulating = @@using_rails_cache = nil
-
       self.cache_id  # cause it to write the prefix related vars
+      @@cache_by_class[@klass] = self
 
+      @@prepopulating = @@using_rails_cache = nil
       self.class.prepopulating and @klass == Card and prepopulate @klass 
 
-      @@cache_by_class[@klass] = self
+      self
     end
 
     def prepopulate klass
+=begin
       ['*all','*all plus','basic+*type','html+*type','*cardtype+*type','*sidebar+*self'].each do |k|
         [k,"#{k}+*content", "#{k}+*default", "#{k}+*read" ].each { |k| klass[k] }
       end
+      warn "prepop ? #{Cache[klass]}, #{klass}"
       frozen[klass] = Marshal.dump Cache[klass]
+=end
     end
 
     def store
@@ -171,7 +174,7 @@ module Wagn
             (@times[key]/@stats[key]).to_s.gsub( /^([^\.]*\.\d{3})\d*(e?.*)$/, "#{$1}#{$2.nil? ? '' : ' ' + $2}" )
           } } end * "\n" }
 
-Local: #{ dump }"
+Local: #{ dump_data }"
       end
     end
 
@@ -191,7 +194,7 @@ Local: #{ dump }"
       obj = store.read prefix + key
       obj.reset_mods if obj.respond_to? :reset_mods
       stat (obj.nil? ? :global_miss : :global_hit), start
-      #Rails.logger.warn "c read: #{key}, #{obj.inspect}, #{Card===obj and obj.sets_loaded? and i=obj.id.to_i and "r:#{@local[i].inspect}"}, pk:#{prefix + key} p:#{prefix}"
+      #warn "c read: #{key}, #{obj.inspect}, pk:#{prefix + key}"
 
       astart = Time.now
       Card===obj and  i=obj.id.to_i and @local[i] = obj and
@@ -210,7 +213,6 @@ Local: #{ dump }"
       start = Time.now
       if Card===obj
         #Rails.logger.warn "c write #{obj.inspect}"
-        #obj.init_sets unless obj.sets_loaded?
         id = obj.id.to_i
         id != 0 and @local[ id ] = obj
         stat (id == 0 ? :noid_local : :wr_local_id), start
@@ -238,7 +240,14 @@ Local: #{ dump }"
     end
 
     def dump
-      Rails.logger.warn "dumping local...."
+      p "dumping local...."
+      @local.each do |k, v|
+        p "#{k} --> #{v.inspect[0..30]}"
+      end
+    end
+
+    def dump_data
+      Rails.logger.warn "dumping local.... #{self}"
       @local.each do |k, v|
         Rails.logger.warn "#{k} --> #{v.inspect[0..30]}"
       end
@@ -249,6 +258,8 @@ Local: #{ dump }"
       stat :reset_local, @reset_last
       @reset_last = Time.now
       @local = {}
+      dump
+      @local
     end
 
     def reset hard=false

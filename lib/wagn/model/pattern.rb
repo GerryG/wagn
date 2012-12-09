@@ -29,7 +29,7 @@ module Wagn::Model
 
     def reset_patterns
       @rule_cards={}
-      @set_mods_loaded = @patterns = @set_modules = @junction_only = @method_keys = @set_names = @template = nil
+      @dependents = @set_mods_loaded = @patterns = @set_modules = @junction_only = @method_keys = @set_names = @template = nil
       true
     end
 

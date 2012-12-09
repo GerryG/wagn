@@ -117,7 +117,7 @@ class Card < ActiveRecord::Base
       :type_id  => args[       'type_id' ]
     }
 
-    skip_modules = args.delete 'skip_modules'
+    skip_modules = args.has_key?('skip_modules') && !!(args.delete 'skip_modules')
 
     super args # ActiveRecord #initialize
 
@@ -127,14 +127,16 @@ class Card < ActiveRecord::Base
   end
 
   def init_sets skip_modules=false
-    #Rails.logger.warn "init_sets[#{skip_modules}, #{inspect}, #{@type_args.inspect}"
+    #warn "init_sets[#{skip_modules.inspect}] #{inspect}, #{@type_args.inspect}"
 
     if type_id.nil? && @type_args.nil?
       raise "no type or type args"
     elsif @type_args
 
       type_id = case
-        when @type_args[:type_id];   return   # type_id was set explicitly.  no need to set again.
+        when @type_args[:type_id]
+          include_set_modules unless skip_modules
+          return
 
         when typecode = @type_args[:typecode]; Wagn::Codename[typecode]
 
@@ -161,12 +163,12 @@ class Card < ActiveRecord::Base
   end
 
   def include_set_modules
-    unless @sets_loaded
+    unless @set_mods_loaded
       set_modules.each do |m|
         #warn "ism #{m}"
         singleton_class.send :include, m
       end
-      @sets_loaded=true
+      @set_mods_loaded=true
     end
     self
   end
@@ -426,12 +428,7 @@ class Card < ActiveRecord::Base
   end
 
   def type_name
-    #init_sets if type_id.nil? or type_id < 1
-    #raise "deep #{inspect}" if caller.length > 250
-    raise "type id? #{inspect}" if type_id.nil? or type_id < 1
-    return if type_id.nil?
-    card = Card.fetch type_id, :skip_modules=>true, :skip_virtual=>true
-    card and card.name
+    card = Card.fetch( type_id, :skip_modules=>true, :skip_virtual=>true ) and card.name
   end
 
   def type= type_name
@@ -571,7 +568,7 @@ class Card < ActiveRecord::Base
 
   def inspect
     "#<#{self.class.name}" + "##{id}" +
-    "###{object_id}" + "lf:#{tag_id}rt:#{tag_id}" +
+    #"###{object_id}" + "lf:#{tag_id}rt:#{tag_id}" +
     "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
     "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{frozen? ? 'Fz' : readonly? ? 'RdO' : ''}" +
     "#{@virtual &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }}" +

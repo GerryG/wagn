@@ -37,7 +37,7 @@ module Wagn
     class << self
       def [] klass
         if @@cache_by_class[klass].nil?
-          warn "??? #{@@cache_by_class.inspect}, #{klass}"
+          #warn "??? #{@@cache_by_class.inspect}, #{klass}"
           self.new klass
         end
         raise("????") if @@cache_by_class[klass].nil?
@@ -100,7 +100,7 @@ module Wagn
 
     def initialize(klass=Card)
       opts, klass = Hash==klass ? [klass, (klass[:class] || Card)] : [{}, klass]
-      warn "init cache #{self} opts: #{opts.inspect}, k:#{klass}, K:#{@klass}"
+      #warn "init cache #{self} opts: #{opts.inspect}, k:#{klass}, K:#{@klass}"
       @klass ||= klass
       #Rails.logger.warn "nil class for cache #{caller*"\n"}" if @klass.nil?
       @local = {}
@@ -173,8 +173,8 @@ module Wagn
             } avg: #{
             (@times[key]/@stats[key]).to_s.gsub( /^([^\.]*\.\d{3})\d*(e?.*)$/, "#{$1}#{$2.nil? ? '' : ' ' + $2}" )
           } } end * "\n" }
-
-Local: #{ dump_data }"
+}"
+      #dump_data
       end
     end
 
@@ -258,7 +258,6 @@ Local: #{ dump_data }"
       stat :reset_local, @reset_last
       @reset_last = Time.now
       @local = {}
-      dump
       @local
     end
 

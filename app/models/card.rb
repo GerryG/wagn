@@ -117,7 +117,7 @@ class Card < ActiveRecord::Base
       :type_id  => args[       'type_id' ]
     }
 
-    skip_modules = args.has_key?('skip_modules') && !!(args.delete 'skip_modules')
+    skip_modules = !!(args.delete 'skip_modules')
 
     super args # ActiveRecord #initialize
 

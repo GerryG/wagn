@@ -18,7 +18,7 @@ class AdminController < ApplicationController
           roles_card.content = "[[#{Card[Card::AdminID].name}]]"
           roles_card.save
           self.session_user = @card
-          Card.cache.first_login true
+          Card.cache.first_login= true
           flash[:notice] = "You're good to go!"
           redirect_to Card.path_setting('/')
         else

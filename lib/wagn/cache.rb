@@ -21,13 +21,15 @@ module Wagn
     # FIXME: move the initial login test to Account
     FIRST_KEY = 'first_login'
 
-    def first_login
-      @first_login.nil? and @first_login = store.read( prefix + FIRST_KEY )
-      @first_login
-    end
-
     def first_login= status=false
       @first_login = write_global FIRST_KEY, status
+    end
+
+    def first_login?
+      if @first_login.nil?
+        first_login = store.read prefix + FIRST_KEY
+      end
+      @first_login
     end
 
     @@prefix_root       = Wagn::Application.config.database_configuration[Rails.env]['database']
@@ -57,8 +59,6 @@ module Wagn
       end
 
       def restore klass=Card
-        raise "no klass" if klass.nil?
-
         reset_local
         if @@cache_by_class[klass] and self.prepopulating and klass==Card
           @@cache_by_class[klass] = Marshal.load frozen[klass]
@@ -148,14 +148,13 @@ module Wagn
 
     INTERVAL = 10000
 
-=begin
     def stat key, t
       @stats[key] ||= 0
       @times[key] ||= 0
       @stats[key] += 1
       @times[key] += (Time.now - t)
       if (@stat_count += 1) % INTERVAL == 0
-        Rails.logger.warn "stats[#{@stat_count}] ----------------------
+        Rails.logger.warn %{stats[#{@stat_count}] Local size: #{@local.length} ----------------------
 #{        @stats.keys.map do |key| %{#{
             ( key.to_s + ' '*16 )[0,20]
             } -> n: #{
@@ -163,11 +162,13 @@ module Wagn
             } avg: #{
             (@times[key]/@stats[key]).to_s.gsub( /^([^\.]*\.\d{3})\d*(e?.*)$/, "#{$1}#{$2.nil? ? '' : ' ' + $2}" )
           } } end * "\n" }
-"
-      end
-=end
 
-    def stat *a; end  # to disable stat collections
+        
+}
+      end
+    end
+
+    #def stat *a; end  # to disable stat collections
 
     def read key
       start = Time.now
@@ -181,7 +182,6 @@ module Wagn
 
       obj = store.read prefix + key
       obj.reset_mods if obj.respond_to? :reset_mods
-      raise "global hit? #{store},#{obj.inspect}" unless obj.nil?
       stat (obj.nil? ? :global_miss : :global_hit), start
 
       astart = Time.now

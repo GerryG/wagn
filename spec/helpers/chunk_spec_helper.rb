@@ -25,7 +25,7 @@ module ChunkSpecHelper
   end
 
   def setup_user user
-    Account.user = 'joe_user'
+    Account.session = Card['joe_user'].fetch :trait=>:account
   end
 
   def render_test_card card

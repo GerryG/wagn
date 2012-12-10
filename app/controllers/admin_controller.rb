@@ -1,12 +1,12 @@
 # -*- encoding : utf-8 -*-
 class AdminController < ApplicationController
+  Card
   layout 'application'
 
   def setup
-    raise(Wagn::Oops, "Already setup") unless Account.no_logins? # && !User[:first]
+    raise(Wagn::Oops, "Already setup") if Account.first_login?
     Wagn::Conf[:recaptcha_on] = false
     if request.post?
-      #Card::User  # wtf - trigger loading of Card::User, otherwise it tries to use U
       Account.as_bot do
         @card = Card.new params[:card]
         aparams = params[:account]
@@ -21,7 +21,7 @@ class AdminController < ApplicationController
           roles_card.content = "[[#{Card[Card::AdminID].name}]]"
           roles_card.save
           self.session_account = @card.id
-          Card.cache.delete 'no_logins'
+          Card.cache.first_login= true
           flash[:notice] = "You're good to go!"
           redirect_to Card.path_setting('/')
         else

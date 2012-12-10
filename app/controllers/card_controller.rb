@@ -245,9 +245,12 @@ Done"
   end
 
   def index_preload
-    Account.no_logins? ?
-      redirect_to( Card.path_setting '/admin/setup' ) :
-      params[:id] = (Card.setting(:home) || 'Home').to_name.url_key
+    if Account.first_login?
+      home_name = Card.setting(:home) || 'Home'
+      params[:id] = home_name.to_name.url_key
+    else
+      redirect_to Card.path_setting '/admin/setup'
+    end
   end
 
   def load_card
@@ -261,8 +264,8 @@ Done"
       else
         opts = params[:card] ? params[:card].clone : (obj = params[:object]) ? obj : {}
         opts[:type] ||= params[:type] # for /new/:type shortcut.  we should fix and deprecate this.
-        name = params[:id] ? SmartName.unescape( params[:id] ) : opts[:name]
-
+        name = params[:id] || opts[:name]
+        
         if @action == 'create'
           # FIXME we currently need a "new" card to catch duplicates (otherwise #save will just act like a normal update)
           # I think we may need to create a "#create" instance method that handles this checking.

@@ -2,6 +2,8 @@
 class InvitationError < StandardError; end
 
 class AccountController < ApplicationController
+  Card
+
   before_filter :login_required, :only => [ :invite, :update ]
   helper :wagn
 
@@ -57,7 +59,7 @@ class AccountController < ApplicationController
 
         redirect_id = REQUEST_ID
       end
-      warn "errors #{@account.errors.full_messages*", "}"
+      #warn "errors #{@account.errors.full_messages*", "}"
       Rails.logger.warn "errors? #{@card.inspect}"
 
       redirect_to target( redirect_id )

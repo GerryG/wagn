@@ -5,31 +5,24 @@ describe "Card::Reference" do
 
   describe "references on hard templated cards should get updated" do
     it "on templatee creation" do
-      Account.as_bot do
-        Card.create! :name=>"JoeForm", :type=>'UserForm'
-        Wagn::Renderer.new(Card["JoeForm"]).render(:core)
-        assert_equal ["joe_form+age", "joe_form+description", "joe_form+name"],
-          Card["JoeForm"].out_references.plot(:referenced_name).sort
-        Card["JoeForm"].references_expired.should_not == true
-      end
+      Card.create! :name=>"JoeForm", :type=>'UserForm'
+      Wagn::Renderer.new(Card["JoeForm"]).render(:core)
+      assert_equal ["joe_form+age", "joe_form+description", "joe_form+name"],
+        Card["JoeForm"].transcludees.map(&:key).sort
+      Card["JoeForm"].references_expired.should_not == true
     end
 
     it "on template creation" do
-      Account.as_bot do
-        Card.create! :name=>"SpecialForm", :type=>'Cardtype'
-        c = Card.create! :name=>"Form1", :type=>'SpecialForm', :content=>"foo"
-        warn "testing #{c.inspect}, #{c.references_expired}"
-        c.references_expired.should be_nil
-        c = Card["Form1"]
-        warn "testing a #{c.inspect}, #{c.references_expired}"
-        c.references_expired.should be_nil
-        Card.create! :name=>"SpecialForm+*type+*content", :content=>"{{+bar}}"
-        Card["Form1"].references_expired.should be_true
-        Wagn::Renderer.new(Card["Form1"]).render(:core)
-        c = Card["Form1"]
-        c.references_expired.should be_nil
-        Card["Form1"].out_references.plot(:referenced_name).should == ["form1+bar"]
-      end
+      Card.create! :name=>"SpecialForm", :type=>'Cardtype'
+      Card.create! :name=>"Form1", :type=>'SpecialForm', :content=>"foo"
+      c = Card["Form1"]
+      c.references_expired.should be_nil
+      Card.create! :name=>"SpecialForm+*type+*content", :content=>"{{+bar}}"
+      Card["Form1"].references_expired.should be_true
+      Wagn::Renderer.new(Card["Form1"]).render(:core)
+      c = Card["Form1"]
+      c.references_expired.should be_nil
+      Card["Form1"].transcludees.map(&:key).should == ["form1+bar"]
     end
 
     it "on template update" do
@@ -41,9 +34,10 @@ describe "Card::Reference" do
         Card["JoeForm"].references_expired.should be_true
         Wagn::Renderer.new(Card["JoeForm"]).render(:core)
         assert_equal ["joe_form+monkey", "joe_form+banana", "joe_form+fruit"].sort,
-          Card["JoeForm"].out_references.plot(:referenced_name).sort
+          Card["JoeForm"].transcludees.map(&:key).sort
         Card["JoeForm"].references_expired.should_not == true
       end
+
     end
   end
 
@@ -53,22 +47,23 @@ describe "Card::Reference" do
       newcard("Submarine","[[Yellow]]")
       newcard("Sun","[[Yellow]]")
       newcard("Yellow")
-      Card["Yellow"].referencers.plot(:name).sort.should == %w{ Banana Submarine Sun }
+      Card["Yellow"].referencers.map(&:name).sort.should == %w{ Banana Submarine Sun }
       y=Card["Yellow"];
       y.type_id= Card.fetch_id "UserForm";
       y.save!
-      Card["Yellow"].referencers.plot(:name).sort.should == %w{ Banana Submarine Sun }
+      Card["Yellow"].referencers.map(&:name).sort.should == %w{ Banana Submarine Sun }
     end
   end
 
   it "container transclusion" do
     Account.as_bot do
-      Card.create( :name=>'bob+city' ).should be
-      Card.create( :name=>'address+*right+*default',:content=>"{{_L+city}}" ).should be
+      Card.create :name=>'bob+city'
+      Card.create :name=>'address+*right+*default',:content=>"{{_L+city}}"
       Card.create( :name=>'bob+address' ).should be
       Card['address+*right+*default'].content.should == "{{_L+city}}"
-      Card.fetch('bob+address').transcludees.plot(:name).should == ["bob+city"]
-      Card.fetch('bob+city').transcluders.plot(:name).should == ["bob+address"]
+      Card.create :name=>'bob+address'
+      Card.fetch('bob+address').transcludees.map(&:name).should == ["bob+city"]
+      Card.fetch('bob+city').transcluders.map(&:name).should == ["bob+address"]
     end
   end
 
@@ -77,9 +72,9 @@ describe "Card::Reference" do
       @l = newcard("L", "[[Ethan]]")  # no Ethan card yet...
       @e = newcard("Earthman")
       @e.update_attributes! :name => "Ethan"  # NOW there is an Ethan card
-      # @e.referencers.plot(:name).include("L")  as the test was originally written, fails
+      # @e.referencers.map(&:name).include("L")  as the test was originally written, fails
       #  do we need the links to be caught before reloading the card?
-      Card["Ethan"].referencers.plot(:name).include?("L").should_not == nil
+      Card["Ethan"].referencers.map(&:name).include?("L").should_not == nil
     end
   end
 
@@ -116,16 +111,14 @@ describe "Card::Reference" do
     watermelon_seeds = newcard('watermelon+seeds', 'black')
     lew = newcard('Lew', "likes [[watermelon]] and [[watermelon+seeds|seeds]]")
 
-    assert_equal [1,1], lew.out_references.plot(:present), "links should not be Wanted before"
-    Rails.logger.warn "tesging #{(pseeds = Card['watermelon+seeds']).inspect}, #{pseeds.dependents.inspect}"
-    Rails.logger.warn "tesging #{(melon = Card['watermelon']).inspect}, deps: #{melon.dependents.inspect}"
+    assert_equal [1,1], lew.out_references.map(&:present), "links should not be Wanted before"
     watermelon = Card['watermelon']
     watermelon.update_referencers = false
     watermelon.name="grapefruit"
     watermelon.save!
     lew.reload.content.should == "likes [[watermelon]] and [[watermelon+seeds|seeds]]"
-    assert_equal [ LINK, LINK ], lew.out_references.plot(:link_type), "links should be a LINK"
-    assert_equal [ 0, 0 ], lew.out_references.plot(:present), "links should not be present"
+    assert_equal [ LINK, LINK ], lew.out_references.map(&:ref_type), "links should be a LINK"
+    assert_equal [ 0, 0 ], lew.out_references.map(&:present), "links should not be present"
   end
 
   it "update referencing content on rename junction card" do
@@ -154,18 +147,16 @@ describe "Card::Reference" do
       rgb = newcard 'rgb'
       green_rgb = Card.create! :name => "green+rgb", :content=>"#00ff00"
 
-      green.reload.transcludees.plot(:name).should == ["green+rgb"]
-      green_rgb.reload.transcluders.plot(:name).should == ['green']
+      green.reload.transcludees.map(&:name).should == ["green+rgb"]
+      green_rgb.reload.transcluders.map(&:name).should == ['green']
     end
   end
 
   it "simple link" do
-    Account.as_bot do
-      alpha = Card.create :name=>'alpha'
-      beta = Card.create :name=>'beta', :content=>"I link to [[alpha]]"
-      Card['beta'].referencees.plot(:name).should == ['alpha']
-      Card['alpha'].referencers.plot(:name).should == ['beta']
-    end
+    alpha = Card.create :name=>'alpha'
+    beta = Card.create :name=>'beta', :content=>"I link to [[alpha]]"
+    Card['alpha'].referencers.map(&:name).should == ['beta']
+    Card['beta'].referencees.map(&:name).should == ['alpha']
   end
 
   it "link with spaces" do
@@ -225,9 +216,9 @@ describe "Card::Reference" do
     references = new_card.card_references(true)
     references.size.should == 2
     references[0].referenced_name.should == 'WantedCard'
-    references[0].link_type.should == Card::Reference::WANTED_PAGE
+    references[0].ref_type.should == Card::Reference::WANTED_PAGE
     references[1].referenced_name.should == 'WantedCard2'
-    references[1].link_type.should == Card::Reference::WANTED_PAGE
+    references[1].ref_type.should == Card::Reference::WANTED_PAGE
 
     wanted_card = Card.create(:name=>'WantedCard')
     wanted_card.revise('And here it is!', Time.now, Card['quentin'].account), get_renderer)
@@ -237,9 +228,9 @@ describe "Card::Reference" do
     references = new_card.card_references(true)
     references.size.should == 2
     references[0].referenced_name.should == 'WantedCard'
-    references[0].link_type.should == Card::Reference::LINKED_PAGE
+    references[0].ref_type.should == Card::Reference::LINKED_PAGE
     references[1].referenced_name.should == 'WantedCard2'
-    references[1].link_type.should == Card::Reference::WANTED_PAGE
+    references[1].ref_type.should == Card::Reference::WANTED_PAGE
   end
 =end
   private

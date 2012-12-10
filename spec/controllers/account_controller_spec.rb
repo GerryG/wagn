@@ -24,7 +24,6 @@ describe AccountController do
     end
 
     it 'should create a user' do
-      warn "testing #{@user_card.inspect}, #{@account_card.inspect}"
       @account_card.should be
       @account_card.new_card?.should be_false
       @user_card.type_id.should == Card::UserID
@@ -58,7 +57,7 @@ describe AccountController do
 
     it 'should create a user' do
       post :signup, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
-      new_account = User.where(:email=>'joe@new.com').first
+      new_account = Account.lookup(:email=>'joe@new.com')
       user_card = Card['Joe New']
       new_account.should be
       new_account.card_id.should == user_card.id

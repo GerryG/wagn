@@ -73,8 +73,8 @@ describe Card do
         Card.create! :name=>'Pointer+*type'
       end
       c2 = Card.fetch('Fruit+*type')
+
       snbg = c2.setting_cards_by_group
-      #warn "snbg #{snbg.class}, #{snbg.inspect}"
       snbg[:pointer_group].map(&:codename).should == @pointer_settings
       c3 = Card.fetch('Pointer+*type')
       snbg = c3.setting_cards_by_group

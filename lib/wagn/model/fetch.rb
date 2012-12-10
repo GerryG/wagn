@@ -20,7 +20,7 @@ module Wagn::Model::Fetch
     #   Options:
     #     :skip_vitual                Real cards only
     #     :skip_modules               Don't load Set modules
-    #     :loaded_left => card       Loads the card's trunk
+    #     :loaded_left => card        Loads the card's trunk
     #     :new => {  card opts }      Return a new card when not found
     #     :trait => :code (or [:c1, :c2] maybe?)  Fetches base card + tag(s)
     #
@@ -58,6 +58,7 @@ module Wagn::Model::Fetch
 
       if Integer===mark
         raise "fetch of missing card_id #{mark}" if card.nil? || card.trash
+        raise "fetch of missing card_id #{mark}" if card.nil?
       else
         return card.fetch_new opts if card && opts[:skip_virtual] && card.new_card?
 
@@ -78,7 +79,8 @@ module Wagn::Model::Fetch
 
       return card.fetch_new(opts) if card.new_card? and ( opts[:skip_virtual] || !card.virtual? )
 
-      #warn "fetch returning #{card.inspect}"
+      #raise "???" if opts[:skip_modules] && card.key == 'anonymous+*account'
+      #warn "fetch returning #{card.inspect}, #{opts.inspect}"
       card.include_set_modules unless opts[:skip_modules]
       card
     end
@@ -98,7 +100,7 @@ module Wagn::Model::Fetch
     end
 
     def [](name)
-      c=fetch name, :skip_virtual=>true
+      fetch name, :skip_virtual=>true
     end
 
     def exists? name
@@ -137,7 +139,6 @@ module Wagn::Model::Fetch
   # ~~~~~~~~~~ Instance ~~~~~~~~~~~~~
   
   def fetch opts={}
-    #warn "fetch_new #{cardname.inspect}, #{opts.inspect}"
     if traits = opts.delete(:trait)
        traits = [traits] unless Array===traits
        traits.inject(self) { |card, trait| Card.fetch( card.cardname.trait(trait), opts ) }
@@ -145,12 +146,11 @@ module Wagn::Model::Fetch
   end
 
   def fetch_new opts={}
-    #warn "fetch_new #{cardname.inspect}, #{opts.inspect}"
     opts = opts[:new] and Card.new opts.merge(:name=>cardname)
   end
 
   def expire_pieces
-    cardname.pieces.each do |piece|
+    cardname.piece_names.each do |piece|
       Card.expire piece
     end
   end
@@ -164,9 +164,10 @@ module Wagn::Model::Fetch
       end
     end
     # FIXME really shouldn't be instantiating all the following bastards.  Just need the key.
-    self.dependents.each           { |c| c.expire }
-    self.referencers.each          { |c| c.expire }
-    self.name_referencers.each     { |c| c.expire }
+    # fix in id_cache branch
+    self.dependents.each       { |c| c.expire }
+    self.referencers.each      { |c| c.expire }
+    self.name_referencers.each { |c| c.expire }
     # FIXME: this will need review when we do the new defaults/templating system
     #if card.changed?(:content)
   end
@@ -177,7 +178,7 @@ module Wagn::Model::Fetch
   end
 
   def refresh
-    if self.frozen?
+    if self.frozen? || readonly?
       fresh_card = self.class.find id
       fresh_card.include_set_modules
       fresh_card

@@ -172,7 +172,7 @@ class Card < ActiveRecord::Base
   def include_set_modules
     unless @set_mods_loaded
       set_modules.each do |m|
-        #warn "ism #{m}"
+        Rails.logger.warn "load mod: #{m}, #{to_s}"
         singleton_class.send :include, m
       end
       @set_mods_loaded=true
@@ -227,6 +227,7 @@ class Card < ActiveRecord::Base
       expire_pieces if errors.any?
       true
     rescue Exception => e
+      Rails.logger.warn "except avalid #{e.inspect}"
       expire_pieces
       raise e
     end
@@ -235,6 +236,7 @@ class Card < ActiveRecord::Base
   def save
     super
   rescue Exception => e
+    Rails.logger.warn "save #{e.inspect}"
     expire_pieces
     raise e
   end
@@ -242,6 +244,7 @@ class Card < ActiveRecord::Base
   def save!
     super
   rescue Exception => e
+    Rails.logger.warn "save! #{e.inspect}"
     expire_pieces
     raise e
   end
@@ -261,6 +264,7 @@ class Card < ActiveRecord::Base
     send_notifications
     true
   rescue Exception=>e
+    Rails.logger.warn "base afters #{e.inspect}"
     expire_pieces
     @subcards.each{ |card| card.expire_pieces }
     raise e
@@ -445,6 +449,7 @@ class Card < ActiveRecord::Base
   def all_default_rule; end
 
   def type_name
+    raise "??? #{inspect}" if caller.length > 400
     card = Card.fetch( type_id, :skip_modules=>true, :skip_virtual=>true ) and card.name
   end
 
@@ -656,9 +661,10 @@ class Card < ActiveRecord::Base
     (no_account? ? '' : "Usr[#{@account}]") +
     #(errors.any? ? '*Errors*' : 'noE') +
     (errors.any? ? "<E*#{errors.full_messages*', '}*>" : '') +
-    "{#{references_expired==1 ? 'Exp' : "noEx"}:" +
+    "{#{references_expired==1 ? 'Exp' : ''}:" +
     "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{frozen? ? 'Fz' : readonly? ? 'RdO' : ''}" +
-    "#{@virtual &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }}" +
+    "#{@virtual &&'virtual:'||''}#{@set_mods_loaded.inspect #&&'I'||'!loaded'
+    }}" +
     #" Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}" +
     '>'
   end

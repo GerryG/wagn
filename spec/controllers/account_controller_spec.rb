@@ -24,7 +24,6 @@ describe AccountController do
     end
 
     it 'should create a user' do
-      warn "testing #{@user_card.inspect}, #{@account_card.inspect}"
       @account_card.should be
       @account_card.new_card?.should be_false
       @user_card.type_id.should == Card::UserID

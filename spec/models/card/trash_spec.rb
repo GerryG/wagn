@@ -202,7 +202,6 @@ describe Card, "indestructables" do
     Account.as_bot do
       [:all, :default, '*all+*default'].each do |key|
         card = Card[key] and card.destroy
-        warn "card #{card.inspect}, #{card.errors.full_messages*', '}"
         Card[key].should be
       end
     end

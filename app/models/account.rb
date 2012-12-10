@@ -52,8 +52,8 @@ class Account
 
   # FIXME: check for this in boot and don't start if newcard?
   # these might be newcard?, but only in migrations
-  ANONCARD_ID = Card[Card::AnonID].fetch(:trait=>:account).id
-  BOTCARD_ID  = Card[Card::WagnBotID].fetch(:trait=>:account).id
+  ANONCARD_ID = Card[Card::AnonID].fetch(:skip_modules=>true, :trait=>:account).id
+  BOTCARD_ID  = Card[Card::WagnBotID].fetch(:skip_modules=>true, :trait=>:account).id
 
   cattr_accessor :account_class
 
@@ -99,7 +99,7 @@ class Account
 
     def first_login?()
        Card.cache.first_login? || 
-         Card.cache.first_login= User.where(:status => 'active').count > 2
+         Card.cache.first_login= @@session_class.where(:status => 'active').count > 2
     end
 
     def always_ok?

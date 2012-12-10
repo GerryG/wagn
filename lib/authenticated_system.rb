@@ -6,7 +6,9 @@ module AuthenticatedSystem
 
   # Accesses the current user from the session.
   def session_account
+    Rails.logger.warn "session is #{@session_account}, #{session.inspect}";
     @session_account ||= session[:user]
+    Rails.logger.warn "session is #{@session_account}"; @session_account
   rescue Exception => e
     Rails.logger.warn "except #{e.inspect}, #{e.backtrace*"\n"}"
     session[:user] = nil
@@ -18,6 +20,7 @@ module AuthenticatedSystem
     @session_account = session[:user] = new_account
     Account.session = @session_account || Card::AnonID
     Rails.logger.warn "Logged in: #{new_account.inspect}, #{@session_account.inspect}, #{Account.authorized}"
+    warn "session set #{@session_account}"; @session_account
     @session_account
   end
 

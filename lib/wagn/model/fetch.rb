@@ -79,7 +79,8 @@ module Wagn::Model::Fetch
 
       return card.fetch_new(opts) if card.new_card? and ( opts[:skip_virtual] || !card.virtual? )
 
-      #warn "fetch returning #{card.inspect}"
+      #raise "???" if opts[:skip_modules] && card.key == 'anonymous+*account'
+      #warn "fetch returning #{card.inspect}, #{opts.inspect}"
       card.include_set_modules unless opts[:skip_modules]
       card
     end

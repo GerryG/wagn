@@ -10,6 +10,7 @@ module Wagn
       results = begin
         card.item_cards( search_params )
       rescue Exception=>e
+        Rails.logger.warn "except search #{e.inspect}"
         error = e; nil
       end
 
@@ -47,6 +48,7 @@ module Wagn
       results= begin
         card.item_cards( search_params )
       rescue Exception=>e
+        Rails.logger.warn "except search #{e.inspect}"
         error = e; nil
       end
 

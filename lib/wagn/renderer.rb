@@ -428,8 +428,8 @@ module Wagn
 
     def update_references rendering_result = nil, refresh = false
 
-      #Rails.logger.warn "update references...card name: #{card.name}, rr: #{rendering_result}, refresh: #{refresh}"
-      return unless card && card.id
+      #warn "update references...card name: #{card.name}, rr: #{rendering_result}, refresh: #{refresh}"
+      return unless card && card_id = card.id
 
       Rails.logger.info "update refs #{card.inspect}"
       raise "???" if caller.length > 500
@@ -463,6 +463,13 @@ module Wagn
       end
       #Rails.logger.warn "update refs hash #{hash.inspect}"
  
+      hash.each do |ref_id, v|
+        #warn "card ref #{v.inspect}"
+        #Rails.logger.warn "card ref #{v.inspect}"
+        Card::Reference.create! :card_id => card_id,
+          :referenced_card_id => v[:ref_id], :referenced_name => v[:name],
+          :ref_type => v[:ref_type], :present => v[:present]
+      end
     end
   end
 

@@ -6,7 +6,7 @@ module Wagn::Model
     def self.register_class klass
       @@subclasses.unshift klass
     end
-    
+
     def self.method_key opts
       @@subclasses.each do |pclass|
         if !pclass.opt_keys.map(&opts.method(:has_key?)).member? false;
@@ -79,6 +79,7 @@ module Wagn::Model
           module_name_parts = mod.split('/') << 'model'
           module_name_parts.inject BASE_MODULE do |base, part|
             return if base.nil?
+            #Rails.logger.warn "find m #{base}, #{part}"
             part = part.camelize
             key = "#{base}::#{part}"
             if MODULES.has_key?(key)
@@ -88,7 +89,9 @@ module Wagn::Model
               MODULES[key] = base.const_defined?(*args) ? base.const_get(*args) : nil
             end
           end
-        rescue NameError
+        rescue Exception => e
+        #rescue NameError => e
+          puts "error ? #{e.inspect}, #{e.backtrace*"\n"}"
           nil
         end
 
@@ -130,16 +133,18 @@ module Wagn::Model
         self
       end
 
-      def set_module
-        case
-        when  self.class.trunkless?    ; self.class.key
-        when  opt_vals.member?( nil )  ; nil
-        else  "#{self.class.key}/#{opt_vals * '_'}"
-        end
-      end
-
       def set_const
-        self.class.find_module set_module
+        if set_module = case
+              when  self.class.trunkless?    ; self.class.key
+              when  opt_vals.member?( nil )  ; nil
+              else  "#{self.class.key}/#{opt_vals * '_'}"
+            end
+
+          self.class.find_module set_module
+
+        end
+
+      rescue Exception => e; warn "exception set_const #{e.inspect}," #{e.backtrace*"\n"}"
       end
 
       def get_method_key()
@@ -237,6 +242,7 @@ module Wagn::Model
           }
         end
         def trunk_name card
+          #raise "???" if caller.length > 500
           left = card.loaded_left || card.left
           type_name = (left && left.type_name) || Card[ Card::DefaultTypeID ].name
           "#{type_name}+#{card.cardname.tag}"

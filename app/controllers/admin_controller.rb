@@ -1,12 +1,12 @@
 # -*- encoding : utf-8 -*-
 class AdminController < ApplicationController
+  Card
   layout 'application'
 
   def setup
     raise(Wagn::Oops, "Already setup") if Account.first_login?
     Wagn::Conf[:recaptcha_on] = false
     if request.post?
-      #Card::User  # wtf - trigger loading of Card::User, otherwise it tries to use U
       Account.as_bot do
         @card = Card.new params[:card]
         aparams = params[:account]

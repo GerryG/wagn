@@ -2,16 +2,58 @@ module Wagn
  module Model::References
   include Card::ReferenceTypes
 
-  def name_referencers(rname = key)
-    Card.find_by_sql(
-      "SELECT DISTINCT c.* FROM cards c JOIN card_references r ON c.id = r.card_id "+
-      "WHERE (r.referenced_name = #{ActiveRecord::Base.connection.quote(rname.to_name.key)})"
-    )
+  def name_referencers ref_name=nil
+    ref_name = ref_name.nil? ? key : ref_name.to_name.key
+    
+    #warn "name refs for #{ref_name.inspect}"
+    r=Card.all( :joins => :out_references, :conditions => { :card_references => { :referenced_name => ref_name } } )
+    #warn "name refs #{inspect} ::  #{r.map(&:inspect)*', '}"; r
   end
 
   def extended_referencers
-    #fixme .. we really just need a number here.
+    # FIXME .. we really just need a number here.
     (dependents + [self]).plot(:referencers).flatten.uniq
+  end
+
+  # ---------- Referenced cards --------------
+
+  def referencers
+    #warn "ncers #{inspect} :: #{references.inspect}"
+    return [] unless refs = references
+    #warn "ncers 2 #{inspect} :: #{refs.inspect}"
+    refs.map(&:card_id).map( &Card.method(:fetch) )
+  end
+
+  def transcluders
+    return [] unless refs = transcludes
+    #warn "clders #{inspect} :: #{refs.inspect}"
+    refs.map(&:card_id).map( &Card.method(:fetch) )
+  end
+
+  def existing_referencers
+    return [] unless refs = references
+    #warn "e ncers #{inspect} :: #{refs.inspect}"
+    refs.map(&:referenced_name).map( &Card.method(:fetch) ).compact
+  end
+
+  def existing_transcluders
+    return [] unless refs = transcludes
+    #warn "e clders #{inspect} :: #{refs.inspect}"
+    refs.map(&:referenced_name).map( &Card.method(:fetch) ).compact
+  end
+
+  # ---------- Referencing cards --------------
+
+  def referencees
+    return [] unless refs = out_references
+    #warn "cees #{inspect} :: #{refs.inspect}"
+    refs. map { |ref| Card.fetch ref.referenced_name, :new=>{} }
+  end
+
+  def transcludees
+    return [] unless refs = out_transcludes
+    #warn "cldees #{inspect} :: #{refs.inspect}"
+    refs.map { |ref| Card.fetch ref.referenced_name, :new=>{} }
   end
 
   protected
@@ -39,27 +81,22 @@ module Wagn
 
 
   def self.included(base)
+
     super
+
     base.class_eval do
 
-      has_many :in_references,:class_name=>'Card::Reference', :foreign_key=>'referenced_card_id'
-      has_many :out_references,:class_name=>'Card::Reference', :foreign_key=>'card_id', :dependent=>:destroy
+      # ---------- Reference associations -----------
+      has_many :references,  :class_name => :Reference, :foreign_key => :referenced_card_id
+      has_many :transcludes, :class_name => :Reference, :foreign_key => :referenced_card_id,
+        :conditions => { :ref_type => TRANSCLUDE }
 
-      has_many :in_transclusions, :class_name=>'Card::Reference', :foreign_key=>'referenced_card_id',
-               :conditions=>{ :link_type => TRANSCLUDE }
-      has_many :out_transclusions,:class_name=>'Card::Reference', :foreign_key=>'card_id',
-               :conditions=>{ :link_type => TRANSCLUDE }
+      has_many :out_references,  :class_name => :Reference, :foreign_key => :card_id
+      has_many :out_transcludes, :class_name => :Reference, :foreign_key => :card_id, :conditions => { :ref_type => TRANSCLUDE }
 
-      has_many :referencers, :through=>:in_references
-      has_many :transcluders, :through=>:in_transclusions, :source=>:referencer
-
-      has_many :referencees, :through=>:out_references
-      has_many :transcludees, :through=>:out_transclusions, :source=>:referencee # used in tests only
-
-      after_create :update_references_on_create
+      after_create  :update_references_on_create
       after_destroy :update_references_on_destroy
-      after_update :update_references_on_update
-
+      after_update  :update_references_on_update
     end
 
   end

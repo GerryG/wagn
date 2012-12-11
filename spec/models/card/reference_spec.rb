@@ -163,8 +163,8 @@ describe "Card::Reference" do
     Account.as_bot do
       alpha = Card.create! :name=>'alpha card'
       beta =  Card.create! :name=>'beta card', :content=>"I link to [[alpha_card|ALPHA CARD]]"
-      Card['beta card'].referencees.plot(:name).should == ['alpha card']
-      Card['alpha card'].referencers.plot(:name).should == ['beta card']
+      Card['beta card'].referencees.map(&:name).should == ['alpha card']
+      Card['alpha card'].referencers.map(&:name).should == ['beta card']
     end
   end
 
@@ -173,8 +173,8 @@ describe "Card::Reference" do
     Account.as_bot do
       alpha = Card.create :name=>'alpha'
       beta = Card.create :name=>'beta', :content=>"I transclude to {{alpha}}"
-      Card['beta'].transcludees.plot(:name).should == ['alpha']
-      Card['alpha'].transcluders.plot(:name).should == ['beta']
+      Card['beta'].transcludees.map(&:name).should == ['alpha']
+      Card['alpha'].transcluders.map(&:name).should == ['beta']
     end
   end
 
@@ -182,8 +182,8 @@ describe "Card::Reference" do
     Account.as_bot do
       alpha = Card.create :name=>'alpha'
       beta = Card.create :name=>'beta', :content=>"I link to [[alpha|ALPHA]]"
-      Card['beta'].referencees.plot(:name).should == ['alpha']
-      Card['alpha'].referencers.plot(:name).should == ['beta']
+      Card['beta'].referencees.map(&:name).should == ['alpha']
+      Card['alpha'].referencers.map(&:name).should == ['beta']
     end
   end
 
@@ -193,7 +193,7 @@ describe "Card::Reference" do
       @l = newcard("woof", "[[Lewdog]]")  # no Lewdog card yet...
       @e = newcard("Lewdog")              # now there is
       # NOTE @e.referencers does not work, you have to reload
-      @e.reload.referencers.plot(:name).include?("woof").should_not == nil
+      @e.reload.referencers.map(&:name).include?("woof").should_not == nil
     end
   end
 
@@ -201,7 +201,7 @@ describe "Card::Reference" do
     Account.as_bot do
       @l = Card.create! :name=>"woof", :content=>"{{Lewdog}}"  # no Lewdog card yet...
       @e = Card.new(:name=>"Lewdog", :content=>"grrr")              # now there is
-      @e.name_referencers.plot(:name).include?("woof").should_not == nil
+      @e.name_referencers.map(&:name).include?("woof").should_not == nil
     end
   end
 

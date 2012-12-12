@@ -58,11 +58,12 @@ module Wagn::Model::Permissions
   end
   
   def update_account_ok? #FIXME - temporary API
-    to_user and Account.as_id==id || fetch(:trait=>:account, :new=>{}).ok?( :update )
+    #warn "up acct ok? #{inspect}, tu:#{to_user} as:#{Account.as_id} acct up ok: #{ok?(:update, :trait=>:account, :new=>{})}"
+    to_user and Account.as_id==id || ok?(:update, :trait=>:account, :new=>{})
   end
 
   def who_can operation
-    #warn "who_can[#{name}] #{(prc=permission_rule_card(operation)).inspect}, #{prc.first.item_cards.map(&:name)}" #if operation == :update
+    #warn "who_can[#{name}] #{(prc=permission_rule_card(operation)).inspect}, #{prc.first.item_cards.map(&:name)}" if operation == :update
     permission_rule_card(operation).first.item_cards.map(&:id)
   end
 

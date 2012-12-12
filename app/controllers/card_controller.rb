@@ -15,49 +15,28 @@ class CardController < ApplicationController
   before_filter :refresh_card, :only=> [ :create, :update, :delete, :comment, :rollback ]
   before_filter :read_ok,      :only=> [ :read_file ]
 
-
-  def create
-    if @card.save
+  def action_handler
+    warn "action_handler #{@action}"
+    if send "_handle_#{@action}"
       success
     else
       errors!
     end
   end
 
-  def read
-    if @card.errors.any?
-      errors!
-    else
-      save_location # should be an event!
-      show
+  cattr_reader :subset_handlers
+
+  @@subset_handlers   = {}
+
+  def handler_method event
+    return "_final_#{event}" unless @card && @@subset_handlers[event]
+    @card.method_keys.each do |method_key|
+      meth = "_final_"+(method_key.blank? ? "#{event}" : "#{method_key}_#{event}")
+      #warn "looking up #{method_key}, M:#{meth} for #{@card.name}"
+      return meth if respond_to?(meth.to_sym)
     end
+    nil
   end
-
-  def update
-    case
-    when @card.new_card?                          ;  create
-    when @card.update_attributes( params[:card] ) ;  success
-    else                                             errors!
-    end
-  end
-
-  def delete
-    @card.destroy
-
-    discard_locations_for @card
-    success 'REDIRECT: *previous'
-  end
-
-
-  def index
-    read
-  end # handle in load card?
-
-
-  def read_file
-    show_file
-  end #FIXME!  move to pack
-
 
 
 

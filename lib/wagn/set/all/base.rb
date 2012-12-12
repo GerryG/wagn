@@ -3,6 +3,51 @@ module Wagn
   module Set::All::Base
     include Sets
 
+    ### --- Core action_handers -----
+
+    event_handler :create do |*a|
+      if @card.save
+        success
+      else
+        errors!
+      end
+    end
+
+    event_handler :read do |*a|
+      return false if @card.errors.any?
+
+      save_location # should be an event!
+      show
+    end
+
+    event_handler :update do |*a|
+      case
+      when @card.new_card?
+        handle_create
+      when @card.update_attributes( params[:card] )
+        @card.save
+      end
+    end
+
+    event_handler :delete do |*a|
+      if @card.destroy
+        warn "destroyed? #{@card.inspect}"
+
+        discard_locations_for @card
+        success 'REDIRECT: *previous'
+      else
+        warn "destroyed? false #{@card.inspect}"
+        false
+      end
+    end
+
+    alias_handler :index,     {}, :read
+    alias_handler :read_file, {}, :show_file
+
+
+
+    # ------- Views ------------
+
     format :base
 
     ### ---- Core renders --- Keep these on top for dependencies
@@ -97,4 +142,5 @@ module Wagn
       %{<span class="too-slow">Timed out! #{ showname } took too long to load.</span>}
     end
   end
+
 end

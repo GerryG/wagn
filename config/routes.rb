@@ -13,18 +13,18 @@ Wagn::Application.routes.draw do
     { :asset=>/assets|images?|stylesheets?|javascripts?/, :foo => /.*/ }
 
   # RESTful actions, card#action dispatches on request.method
-  match '/' => 'card#action'
-  match 'recent(.:format)' => 'card#action', :id => '*recent', :view => 'content'
-  match '(/wagn)/:id(.:format)' => 'card#action'
+  match '/' => 'card#read'
+  match 'recent(.:format)' => 'card#read', :id => '*recent', :view => 'content'
+  match '(/wagn)/:id(.:format)' => 'card#read'
 
   match '/files/(*id)' => 'card#read_file'
 
-  match 'new/:type' => 'card#action', :view => 'new'
+  match 'new/:type' => 'card#read', :view => 'new'
 
-  match 'card/:view(/:id(.:format)(/:attribute))' => 'card#action',
+  match 'card/:view(/:id(.:format)(/:attribute))' => 'card#read',
     :constraints => { :view=> /new|changes|options|related|edit/ }
 
-  #match ':controller/:action(/:id(.:format)(/:attribute))' => "card#action"
+  #match ':controller/:action(/:id(.:format)(/:attribute))' => "card#read"
 
   match '*id' => 'card#action', :view => 'bad_address'
 

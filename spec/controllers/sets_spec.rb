@@ -1,6 +1,6 @@
 
-require File.expand_path('../../spec_helper', File.dirname(__FILE__))
-include AuthenticatedTestHelper
+require File.expand_path('../spec_helper', File.dirname(__FILE__))
+#include AuthenticatedTestHelper
 
 describe CardController do
   it "module exists and autoloads" do

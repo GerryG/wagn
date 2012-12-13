@@ -63,7 +63,7 @@ module WagnTestHelper
 
     raise "Don't know email & password for #{user}" unless uc=Card[user] and
         u=User.where(:card_id=>uc.id).first and
-        login = u.email and pass = USERS[login]
+        email = u.email and pass = USERS[login]
 
     if functional
       #warn "functional login #{login}, #{pass}"
@@ -76,7 +76,7 @@ module WagnTestHelper
 
     if block_given?
       yield
-      delete '/Session',:controller=>:card
+      delete :action, :id=>'/Session',:controller=>:card
     end
   end
 

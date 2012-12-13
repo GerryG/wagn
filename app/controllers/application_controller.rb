@@ -86,13 +86,14 @@ class ApplicationController < ActionController::Base
     params[:action] = action if action
     @card.error_view = :denial
     @card.error_status = 403
-    errors!
+    render_errors
   end
 
-  def errors! options={}
-    return false unless @card.errors.any?
+  def render_errors options={}
+    return false if @card.errors.empty?
     @card ||= Card.new
     view   = options[:view]   || (@card && @card.error_view  ) || :errors
+    #warn "422 status " unless options[:status] || (@card && @card.error_status)
     status = options[:status] || (@card && @card.error_status) || 422
     show view, status
     true
@@ -168,7 +169,7 @@ class ApplicationController < ActionController::Base
       end
     end
 
-    errors! :view=>view, :status=>status
+    render_errors :view=>view, :status=>status
   end
 
 end

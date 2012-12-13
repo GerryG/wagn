@@ -3,7 +3,7 @@ module Wagn
   module Set::All::Base
     include Sets
 
-    ### --- Core action_handers -----
+    ### --- Core actions -----
 
     action :create do |*a|
       if @card.save
@@ -23,7 +23,7 @@ module Wagn
     action :update do |*a|
       case
       when @card.new_card?
-        handle_create
+        action_create
       when @card.update_attributes( params[:card] )
         @card.save
       end

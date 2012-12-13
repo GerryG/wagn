@@ -1,5 +1,6 @@
 
 require 'wagn/renderer'
+require 'card_controller'
 
 module Wagn
 
@@ -139,9 +140,9 @@ module Wagn
 
       # FIXME: the definition stuff is pretty much exactly parallel, DRY, fold them together
 
-      def event_handler event, opts={}, &handler
+      def action event, opts={}, &handler
         handler_key = get_set_key event, opts
-        #warn "event_handler #{event.inspect}, #{handler_key}, O:#{opts.inspect}"
+        #warn "define action #{event.inspect}, #{handler_key}, O:#{opts.inspect}"
 
         CardController.class_eval { define_method "_final_#{handler_key}", &handler }
 
@@ -184,7 +185,7 @@ module Wagn
         end
       end
 
-      def alias_handler event, opts={}, *aliases
+      def alias_action event, opts={}, *aliases
         event_key = get_set_key(event, opts)
         Renderer.subset_handlers[event] = true if !opts.empty?
         aliases.each do |alias_event|

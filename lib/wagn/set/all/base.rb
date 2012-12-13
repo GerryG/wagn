@@ -5,7 +5,7 @@ module Wagn
 
     ### --- Core action_handers -----
 
-    event_handler :create do |*a|
+    action :create do |*a|
       if @card.save
         success
       else
@@ -13,14 +13,14 @@ module Wagn
       end
     end
 
-    event_handler :read do |*a|
+    action :read do |*a|
       return false if @card.errors.any?
 
       save_location # should be an event!
       show
     end
 
-    event_handler :update do |*a|
+    action :update do |*a|
       case
       when @card.new_card?
         handle_create
@@ -29,7 +29,7 @@ module Wagn
       end
     end
 
-    event_handler :delete do |*a|
+    action :delete do |*a|
       if @card.destroy
         warn "destroyed? #{@card.inspect}"
 
@@ -41,8 +41,8 @@ module Wagn
       end
     end
 
-    alias_handler :index,     {}, :read
-    alias_handler :read_file, {}, :show_file
+    alias_action :index,     {}, :read
+    alias_action :read_file, {}, :show_file
 
 
 

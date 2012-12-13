@@ -28,7 +28,7 @@ class CardController < ApplicationController
     warn "action_handler #{request.method}, #{@action} #{params.inspect}"
     if send "_handle_#{@action}"
     else
-      errors!
+      render_errors
     end
   end
 
@@ -54,7 +54,7 @@ class CardController < ApplicationController
     if @card.save_draft params[:card][:content]
       render :nothing=>true
     else
-      errors!
+      render_errors
     end
   end
 
@@ -72,7 +72,7 @@ class CardController < ApplicationController
     if @card.save
       show
     else
-      errors!
+      render_errors
     end
   end
 
@@ -93,6 +93,56 @@ class CardController < ApplicationController
   end
 
 
+
+
+  #-------- ( ACCOUNT METHODS )
+
+  def update_account
+
+    if params[:save_roles]
+      role_card = @card.fetch :trait=>:roles, :new=>{}
+      role_card.ok! :update
+
+      role_hash = params[:user_roles] || {}
+      role_card = role_card.refresh
+      role_card.items= role_hash.keys.map &:to_i
+    end
+
+    account = @card.to_user
+    if account and account_args = params[:account]
+      unless Account.as_id == @card.id and !account_args[:blocked]
+        @card.fetch(:trait=>:account).ok! :update
+      end
+      account.update_attributes account_args
+    end
+
+    if account && account.errors.any?
+      account.errors.each do |field, err|
+        @card.errors.add field, err
+      end
+      render_errors
+    else
+      success
+    end
+  end
+
+  def create_account
+    @card.ok!(:create, :new=>{}, :trait=>:account)
+    email_args = { :subject => "Your new #{Card.setting :title} account.",   #ENGLISH
+                   :message => "Welcome!  You now have an account on #{Card.setting :title}." } #ENGLISH
+    @user, @card = User.create_with_card(params[:user],@card, email_args)
+    raise ActiveRecord::RecordInvalid.new(@user) if !@user.errors.empty?
+    #@account = User.new(:email=>@user.email)
+#    flash[:notice] ||= "Done.  A password has been sent to that email." #ENGLISH
+    params[:attribute] = :account
+
+    wagn_redirect( previous_location )
+  end
+
+
+
+
+  private
 
   #-------( FILTERS )
 

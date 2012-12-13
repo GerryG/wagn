@@ -12,19 +12,21 @@ Wagn::Application.routes.draw do
   match ':asset/:foo' => 'application#fast_404', :constraints =>
     { :asset=>/assets|images?|stylesheets?|javascripts?/, :foo => /.*/ }
 
-  match '/' => 'card#index'
-  match 'recent(.:format)' => 'card#read', :id => '*recent', :view => 'content'
-  match '(/wagn)/:id(.:format)' => 'card#read'
+  # RESTful actions, card#action dispatches on request.method
+  match '/' => 'card#action'
+  match 'recent(.:format)' => 'card#action', :id => '*recent', :view => 'content'
+  match '(/wagn)/:id(.:format)' => 'card#action'
+
   match '/files/(*id)' => 'card#read_file'
 
-  match 'new/:type' => 'card#read', :view => 'new'
+  match 'new/:type' => 'card#action', :view => 'new'
 
-  match 'card/:view(/:id(.:format)(/:attribute))' => 'card#read', :constraints =>
-    { :view=> /new|changes|options|related|edit/ }
+  match 'card/:view(/:id(.:format)(/:attribute))' => 'card#action',
+    :constraints => { :view=> /new|changes|options|related|edit/ }
 
-  match ':controller/:action(/:id(.:format)(/:attribute))' => "card#action_handler"
+  #match ':controller/:action(/:id(.:format)(/:attribute))' => "card#action"
 
-  match '*id' => 'card#read', :view => 'bad_address'
+  match '*id' => 'card#action', :view => 'bad_address'
 
 end
 

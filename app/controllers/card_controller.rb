@@ -8,17 +8,25 @@ class CardController < ApplicationController
 
   helper :wagn
 
-  before_filter :index_preload, :only=> [ :index ]
   before_filter :read_file_preload, :only=> [ :read_file ]
 
   before_filter :load_card
   before_filter :refresh_card, :only=> [ :create, :update, :delete, :comment, :rollback ]
   before_filter :read_ok,      :only=> [ :read_file ]
 
-  def action_handler
-    warn "action_handler #{@action}"
+  METHODS = {
+    'POST'   => :create,  # C
+    'GET'    => :read,    # R
+    'PUT'    => :update,  # U
+    'DELETE' => :delete,  # D
+    'INDEX'  => :index
+  }
+
+  def action
+    @action = METHODS[request.method]
+    Rails.logger.warn "action_handler #{request.method}, #{@action} #{params.inspect}"
+    warn "action_handler #{request.method}, #{@action} #{params.inspect}"
     if send "_handle_#{@action}"
-      success
     else
       errors!
     end
@@ -86,58 +94,6 @@ class CardController < ApplicationController
 
 
 
-
-
-
-  #-------- ( ACCOUNT METHODS )
-
-  def update_account
-
-    if params[:save_roles]
-      role_card = @card.fetch :trait=>:roles, :new=>{}
-      role_card.ok! :update
-
-      role_hash = params[:user_roles] || {}
-      role_card = role_card.refresh
-      role_card.items= role_hash.keys.map &:to_i
-    end
-
-    account = @card.to_user
-    if account and account_args = params[:account]
-      unless Account.as_id == @card.id and !account_args[:blocked]
-        @card.fetch(:trait=>:account).ok! :update
-      end
-      account.update_attributes account_args
-    end
-
-    if account && account.errors.any?
-      account.errors.each do |field, err|
-        @card.errors.add field, err
-      end
-      errors!
-    else
-      success
-    end
-  end
-
-  def create_account
-    @card.ok!(:create, :new=>{}, :trait=>:account)
-    email_args = { :subject => "Your new #{Card.setting :title} account.",   #ENGLISH
-                   :message => "Welcome!  You now have an account on #{Card.setting :title}." } #ENGLISH
-    @user, @card = User.create_with_card(params[:user],@card, email_args)
-    raise ActiveRecord::RecordInvalid.new(@user) if !@user.errors.empty?
-    #@account = User.new(:email=>@user.email)
-#    flash[:notice] ||= "Done.  A password has been sent to that email." #ENGLISH
-    params[:attribute] = :account
-
-    wagn_redirect( previous_location )
-  end
-
-
-
-
-  private
-
   #-------( FILTERS )
 
   def read_file_preload
@@ -150,7 +106,8 @@ class CardController < ApplicationController
     end
   end
 
-  def index_preload
+  #before_filter :index_preload, :only=> [ :index ]
+  action :before => :index do
     if Account.first_login?
       home_name = Card.setting(:home) || 'Home'
       params[:id] = home_name.to_name.url_key
@@ -220,6 +177,29 @@ class CardController < ApplicationController
       @card = target
       show new_params[:view]
     end
+  end
+
+
+  def password_authentication(login, password)
+    if self.session_user = User.authenticate( params[:login], params[:password] )
+      flash[:notice] = "Successfully signed in"
+      #warn Rails.logger.info("to prev #{previous_location}")
+      redirect_to previous_location
+    else
+      usr=User.where(:email=>params[:login].strip.downcase).first
+      failed_login(
+        case
+        when usr.nil?     ; "Unrecognized email."
+        when usr.blocked? ; "Sorry, that account is blocked."
+        else              ; "Wrong password"
+        end
+      )
+    end
+  end
+
+  def failed_login(message)
+    flash[:notice] = "Oops: #{message}"
+    render :action=>'signin', :status=>403
   end
 
 end

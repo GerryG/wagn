@@ -67,22 +67,23 @@ module WagnTestHelper
 
     if functional
       #warn "functional login #{login}, #{pass}"
-      post :signin, :login=>login, :password=>pass, :controller=>:account
+      post :action, :id=>'Session', :login=>login, :password=>pass, :controller=>:card
     else
       #warn "integration login #{login}, #{pass}"
-      post 'account/signin', :login=>login, :password=>pass, :controller=>:account
+      post '/Session', :login=>login, :password=>pass, :controller=>:card
     end
     assert_response :redirect
 
     if block_given?
       yield
-      post 'account/signout',:controller=>'account'
+      delete '/Session',:controller=>:card
     end
   end
 
   def post_invite(options = {})
     action = options[:action] || :invite
-    post action,
+    Rails.logger.warn "post invite #{options.inspect}"
+    post :action, :id=>"*account+*invite",
       :user => { :email => 'new@user.com' }.merge(options[:user]||{}),
       :card => { :name => "New User" }.merge(options[:card]||{}),
       :email => { :subject => "mailit",  :message => "baby"  }

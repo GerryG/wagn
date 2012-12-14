@@ -23,7 +23,7 @@ class Card < ActiveRecord::Base
     :cards, :loaded_left, :nested_edit, # should be possible to merge these concepts
     :error_view, :error_status #yuck
       
-  attr_writer :update_read_rule_list
+  attr_writer :update_read_rule_list, :dependents
   attr_reader :type_args, :broken_type
 
   before_save :set_stamper, :base_before_save, :set_read_rule, :set_tracked_attributes
@@ -395,15 +395,15 @@ class Card < ActiveRecord::Base
   def dependents
     if new_card?; [] 
 
-    else
-      @dependents ||= Account.as_bot do
-
-            #deps = Card.search( { (simple? ? :part : :left) => name } ).to_a
-            deps = Card.search (simple? ? :part : :left) => name
-            deps.inject(deps) do |array, card|
-              array +  card.dependents
-            end
+    if @dependents.nil?
+      @dependents = 
+        Account.as_bot do
+          deps = Card.search( { (simple? ? :part : :left) => name } ).to_a
+          deps.inject(deps) do |array, card|
+            array + card.dependents
           end
+        end
+      Rails.logger.warn "dependents[#{inspect}] #{@dependents.inspect}"
     end
   end
 

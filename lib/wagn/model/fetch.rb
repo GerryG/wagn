@@ -15,53 +15,52 @@ module Wagn::Model::Fetch
     #   - database
     #   - virtual cards
     #
+    # "mark" here means a generic identifier -- can be a numeric id, a name, a string name, etc.
+    #
     #   Options:
     #     :skip_vitual                Real cards only
     #     :skip_modules               Don't load Set modules
-    #     :loaded_trunk => card       Loads the card's trunk
+    #     :loaded_left => card        Loads the card's trunk
     #     :new => {  card opts }      Return a new card when not found
     #     :trait => :code (or [:c1, :c2] maybe?)  Fetches base card + tag(s)
     #
 
     def fetch mark, opts = {}
-      # "mark" here means a generic identifier -- can be a numeric id, a name, a string name, etc.
 #      ActiveSupport::Notifications.instrument 'wagn.fetch', :message=>"fetch #{cardname}" do
       return nil if mark.nil?
-      #warn "fetch #{mark.inspect}, #{opts.inspect}"
       # Symbol (codename) handling
       if Symbol===mark
         mark = Wagn::Codename[mark] || raise("Missing codename for #{mark.inspect}")
       end
 
 
-      cache_key, method, val = if Integer===mark
-        [ "~#{mark}", :find_by_id_and_trash, mark ]
-      else
-        key = mark.to_name.key
-        [ key, :find_by_key_and_trash, key ]
-      end
+      key = Integer===mark ? mark : mark.to_name.key
 
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       # lookup card
 
+      #warn "fetch #{key}, #{mark}"
       #Cache lookup
-      result = Card.cache.read cache_key if Card.cache
-      card = (result && Integer===mark) ? Card.cache.read(result) : result
-      #warn "fetch R #{cache_key}, #{method}, R:#{result}, c:#{card&&card.name}"
+      card = Card.cache.read key
 
-      unless card
-        # DB lookup
+      # DB lookup
+      if card.nil?
         needs_caching = true
-        card = Card.send method, val, false
+        card = if Integer===mark
+            Card.find mark
+          else
+            Card.where(:key=> key, :trash=>false).first
+          end
       end
 
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-      opts[:skip_virtual] = true if opts[:loaded_trunk]
+      opts[:skip_virtual] = true if opts[:loaded_left]
 
       if Integer===mark
+        raise "fetch of missing card_id #{mark}" if card.nil? || card.trash
         raise "fetch of missing card_id #{mark}" if card.nil?
       else
-        return card.fetch_new(opts) if card && opts[:skip_virtual] && card.new_card?
+        return card.fetch_new opts if card && opts[:skip_virtual] && card.new_card?
 
         # NEW card -- (either virtual or missing)
         if card.nil? or ( !opts[:skip_virtual] && card.type_id==-1 )
@@ -74,9 +73,8 @@ module Wagn::Model::Fetch
         end
       end
 
-      if Card.cache && needs_caching
+      if needs_caching
         Card.cache.write card.key, card
-        Card.cache.write "~#{card.id}", card.key if card.id and card.id != 0
       end
 
       return card.fetch_new(opts) if card.new_card? and ( opts[:skip_virtual] || !card.virtual? )
@@ -86,13 +84,13 @@ module Wagn::Model::Fetch
       card
     end
 
-    def fetch_or_new cardname, opts={}
-      fetch cardname, opts or new opts.merge(:name=>cardname)
+    def fetch_or_new name, opts={}
+      fetch( name, opts ) || new( opts.merge(:name=>name) )
     end
 
-    def fetch_or_create cardname, opts={}
+    def fetch_or_create name, opts={}
       opts[:skip_virtual] ||= true
-      fetch( cardname, opts ) || create( opts.merge(:name=>cardname) )
+      fetch( name, opts ) || create( opts.merge(:name=>name) )
     end
 
     def fetch_id mark #should optimize this.  what if mark is int?  or codename?
@@ -104,8 +102,8 @@ module Wagn::Model::Fetch
       fetch name, :skip_virtual=>true
     end
 
-    def exists? cardname
-      card = fetch cardname, :skip_virtual=>true, :skip_modules=>true
+    def exists? name
+      card = fetch name, :skip_virtual=>true, :skip_modules=>true
       card.present?
     end
 
@@ -121,8 +119,6 @@ module Wagn::Model::Fetch
     end
 
     def set_members set_names, key
-
-      #warn Rails.logger.warn("set_members #{set_names.inspect}, #{key}")
       set_names.compact.map(&:to_name).map(&:key).map do |set_key|
         skey = "$#{set_key}" # dollar sign avoids conflict with card keys
         h = Card.cache.read skey
@@ -133,7 +129,6 @@ module Wagn::Model::Fetch
         end
         h = h.dup if h.frozen?
         h[key] = true
-        #warn Rails.logger.warn("set_members w #{h.inspect}, #{skey.inspect}")
         Card.cache.write skey, h
       end
     end
@@ -162,7 +157,7 @@ module Wagn::Model::Fetch
   def expire_related
     self.expire
 
-    if self.hard_template?
+    if self.is_hard_template?
       self.hard_templatee_names.each do |name|
         Card.expire name
       end

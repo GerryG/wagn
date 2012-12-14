@@ -22,7 +22,7 @@ class Card < ActiveRecord::Base
     :update_referencers, :allow_type_change, # seems like wrong mechanisms for this
     :cards, :loaded_left, :nested_edit, # should be possible to merge these concepts
     :error_view, :error_status #yuck
-      
+
   attr_writer :update_read_rule_list
   attr_reader :type_args, :broken_type
 
@@ -211,7 +211,6 @@ class Card < ActiveRecord::Base
 
   def set_stamper
     self.updater_id = Account.authorized.id
-    #Rails.logger.warn "sstamper #{Account.authorized.inspect}"
     self.creator_id = self.updater_id if new_card?
   end
 
@@ -368,7 +367,7 @@ class Card < ActiveRecord::Base
       Card.fetch cardname.left, *args
     end
   end
-  
+
   def right *args
     simple? ? nil : Card.fetch(cardname.right, *args)
   end
@@ -393,17 +392,18 @@ class Card < ActiveRecord::Base
   #def trunk_id()       raise "Deprecated, use left_id"      end
 
   def dependents
-    if new_card?; [] 
+    if new_card?
+      [] 
 
-    else
-      @dependents ||= Account.as_bot do
-
-            #deps = Card.search( { (simple? ? :part : :left) => name } ).to_a
-            deps = Card.search (simple? ? :part : :left) => name
-            deps.inject(deps) do |array, card|
-              array +  card.dependents
-            end
+    if @dependents.nil?
+      @dependents = 
+        Account.as_bot do
+          deps = Card.search( { (simple? ? :part : :left) => name } ).to_a
+          deps.inject(deps) do |array, card|
+            array + card.dependents
           end
+        end
+      #Rails.logger.warn "dependents[#{inspect}] #{@dependents.inspect}"
     end
   end
 
@@ -623,7 +623,7 @@ class Card < ActiveRecord::Base
       Account.as_bot do
         rcard=fetch(:trait=>:roles) and
           items = rcard.item_cards(:limit=>0).map(&:id) and
-          @all_roles += items 
+          @all_roles += items
       end
     end
     #warn "aroles #{inspect}, #{@all_roles.inspect}"

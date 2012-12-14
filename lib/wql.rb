@@ -218,9 +218,6 @@ class Wql
 
     def left(val)  merge field(:trunk_id) => subspec(val)                           end
     def right(val) merge field(:tag_id  ) => subspec(val)                           end
-    def part(val)
-      val = val.clone unless Integer===val
-      subcondition({ :left => val, :right => val }, :conj=>:or)  end
     def part(val)  subcondition({ :left => val, :right => (Integer===val) ? val : val.clone }, :conj=>:or)  end
 
     def left_plus(val)
@@ -321,8 +318,8 @@ class Wql
         case item
         when 'referred_to'
           join_field = 'id'
-          cs = CardSpec.build cs_args.merge( field(:cond)=>SqlCond.new("card_id in #{CardSpec.build( val.merge(:return=>'id')).to_sql}") )
-          cs.add_join :wr, :card_references, :id, :referenced_card_id
+          cs = CardSpec.build cs_args.merge( field(:cond)=>SqlCond.new("referer_id in #{CardSpec.build( val.merge(:return=>'id')).to_sql}") )
+          cs.add_join :wr, :card_references, :id, :referee_id
         else;  raise "count with item: #{item} not yet implemented"
         end
       else
@@ -370,11 +367,11 @@ class Wql
       return "(" + sql.conditions.last + ")" if @mods[:return]=='condition'
 
       # Permissions
-      #Rails.logger.debug "wql perms? [#{inspect}] #{Account.authorized.inspect} #{Account.always_ok?} #{root?}" 
+      #Rails.logger.debug "wql perms? [#{inspect}] #{Account.authorized.inspect} #{Account.always_ok?} #{root?}"
       unless Account.always_ok? or (Wql.root_perms_only && !root?)
         sql.conditions <<
          "(#{table_alias}.read_rule_id IN (#{(rr=Account.authorized.read_rules).nil? ? 1 : rr*','}))"
-        #Rails.logger.debug "wql perms? #{Account.always_ok?} #{Account.authorized.id}, #{rr.inspect} SqCond: #{sql.conditions.inspect}" 
+        #Rails.logger.debug "wql perms? #{Account.always_ok?} #{Account.authorized.id}, #{rr.inspect} SqCond: #{sql.conditions.inspect}"
       end
 
       sql.fields.unshift fields_to_sql
@@ -442,13 +439,13 @@ class Wql
       @spec = spec
       # FIXME: Use RefernceTypes here
       @refspecs = {
-        :refer_to       => ['card_id','referenced_card_id',''],
-        :link_to        => ['card_id','referenced_card_id',"ref_type='#{LINK}' AND"],
-        :include        => ['card_id','referenced_card_id',"ref_type='#{TRANSCLUDE}' AND"],
-        :link_to_missing=> ['card_id','referenced_card_id',"present = 0 AND ref_type='#{LINK}'"],
-        :referred_to_by => ['referenced_card_id','card_id',''],
-        :linked_to_by   => ['referenced_card_id','card_id',"ref_type='#{LINK}' AND"],
-        :included_by    => ['referenced_card_id','card_id',"ref_type='#{TRANSCLUDE}' AND"]
+        :refer_to       => ['referer_id','referee_id',''],
+        :link_to        => ['referer_id','referee_id',"link_type='#{LINK}' AND"],
+        :include        => ['referer_id','referee_id',"link_type='#{INCLUDE}' AND"],
+        :link_to_missing=> ['referer_id','referee_id',"present = 0 AND link_type='#{LINK}'"],
+        :referred_to_by => ['referee_id','referer_id',''],
+        :linked_to_by   => ['referee_id','referer_id',"link_type='#{LINK}' AND"],
+        :included_by    => ['referee_id','referer_id',"link_type='#{INCLUDE}' AND"]
       }
     end
 

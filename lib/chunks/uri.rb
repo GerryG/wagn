@@ -60,6 +60,7 @@ class URIChunk < Chunk::Abstract
     # Correct a typo bug in ruby 1.8.x lib/uri/common.rb
     PORT = '\\d*'
 
+    INTERNET_URI_GROUPS = 8
     INTERNET_URI =
         "(?:(#{SCHEME}):/{0,2})?" +   # Optional scheme:        (\1)
         "(?:(#{USERINFO})@)?" +       # Optional userinfo@      (\2)
@@ -78,34 +79,18 @@ class URIChunk < Chunk::Abstract
 
   end
 
-  def URIChunk.pattern
-    INTERNET_URI_REGEXP
-  end
+  def URIChunk.pattern() INTERNET_URI_REGEXP end
+  def URIChunk.groups() INTERNET_URI_GROUPS end
 
-  attr_reader :user, :host, :port, :path, :query, :fragment, :ref_text
+  attr_reader :user, :host, :port, :path, :query, :fragment, :link_text
 
-  def self.apply_to(content)
-    content.gsub!( self.pattern ) do |matched_text|
-      chunk = self.new($~, content)
-      card = chunk.card
-      if chunk.avoid_autolinking? || (card && card.type_id==Card::HtmlID)
-        # do not substitute nor register the chunk
-        matched_text
-      else
-        content.add_chunk(chunk)
-        chunk.mask
-      end
-    end
-  end
-
-  def initialize(match_data, content)
+  def initialize match, card_params, params
     super
-    @ref_text = match_data[0]
-    @suspicious_preceding_character = match_data[1]
-    @original_scheme, @user, @host, @port, @path, @query, @fragment = match_data[2..-1]
+    @link_text = match
+    @suspicious_preceding_character = params[0]
+    @original_scheme, @user, @host, @port, @path, @query, @fragment, rest = params[1..-1]
     treat_trailing_character
-    #Rails.logger.debug "uri_link #{@ref_text} U:#{self.uri}"
-    @unmask_text = "#{@content.renderer.build_link(self.uri,@ref_text)}#{@trailing_punctuation}"
+    @unmask_text = self.renderer ? "#{self.renderer.build_link(self.uri,@link_text)}#{@trailing_punctuation}" : @text
   end
 
   def avoid_autolinking?
@@ -116,15 +101,15 @@ class URIChunk < Chunk::Abstract
     # If the last character matched by URI pattern is in ! or ), this may be part of the markup,
     # not a URL. We should handle it as such. It is possible to do it by a regexp, but
     # much easier to do programmatically
-    [@original_scheme, @user, @host, @port, @path, @query, @fragment, @ref_text].compact.map do |section|
+    [@original_scheme, @user, @host, @port, @path, @query, @fragment, @link_text].compact.map do |section|
       section.gsub! /(&nbsp;)*$/, ''
     end
-    last_char = @ref_text[-1..-1]
+    last_char = @link_text[-1..-1]
 
 #    if last_char == ')' or last_char == '!'
     if %w{ . ) ! ? : }.member?(last_char)
       @trailing_punctuation = last_char
-      @ref_text.chop!
+      @link_text.chop!
       [@original_scheme, @user, @host, @port, @path, @query, @fragment].compact.last.chop!
     else
       @trailing_punctuation = nil
@@ -168,6 +153,7 @@ class LocalURIChunk < URIChunk
 
     # The basic URI expression as a string
     # Scheme and hostname are mandatory
+    LOCAL_URI_GROUPS = 8
     LOCAL_URI =
         "(?:(#{SCHEME})://)+" +       # Mandatory scheme://     (\1)
         "(?:(#{USERINFO})@)?" +       # Optional userinfo@      (\2)
@@ -183,8 +169,7 @@ class LocalURIChunk < URIChunk
     LOCAL_URI_REGEXP = Regexp.new(SUSPICIOUS_PRECEDING_CHARACTER + LOCAL_URI, Regexp::EXTENDED)
   end
 
-  def LocalURIChunk.pattern
-    LOCAL_URI_REGEXP
-  end
+  def LocalURIChunk.pattern() LOCAL_URI_REGEXP end
+  def LocalURIChunk.groups() LOCAL_URI_GROUPS end
 
 end

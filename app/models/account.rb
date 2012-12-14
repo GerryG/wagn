@@ -90,7 +90,7 @@ class Account
       #else fail "BLOCK REQUIRED with Card#as"
       end
     end
- 
+
     def no_logins?
       cache = Card.cache
       !!(rd=cache.read('no_logins')) ? rd : cache.write( 'no_logins',
@@ -105,7 +105,7 @@ class Account
     def always_ok?
       return true if admin? #cannot disable
       as_id = authorized.id
- 
+
       always = Card.cache.read('ALWAYS') || {}
       if always[as_id].nil?
         always = always.dup if always.frozen?

@@ -1,6 +1,9 @@
 # -*- encoding : utf-8 -*-
 class ApplicationController < ActionController::Base
+  # This is often needed for the controllers to work right
+  # FIXME: figure out when/why this is needed and why the tests don't fail
   Card
+
   include AuthenticatedSystem
   include LocationHelper
   include Recaptcha::Verify
@@ -83,13 +86,15 @@ class ApplicationController < ActionController::Base
     params[:action] = action if action
     @card.error_view = :denial
     @card.error_status = 403
-    errors!
+    render_errors
   end
 
-  def errors! options={}
-    return false unless @card.errors.any?
+  def render_errors options={}
+    #warn "render_errors #{@card.inspect}"
+    return false if @card && @card.errors.empty?
     @card ||= Card.new
-    view   = options[:view]   || (@card && @card.error_view  ) || :errors
+    view = options[:view] || (@card && @card.error_view  ) || :errors
+    #warn "422 status ? os:#{options[:status]} || cs:#{(@card && @card.error_status)}"
     status = options[:status] || (@card && @card.error_status) || 422
     show view, status
     true
@@ -107,8 +112,14 @@ class ApplicationController < ActionController::Base
     case
     when known                # renderers can handle it
       renderer = Wagn::Renderer.new @card, :format=>ext, :controller=>self
-      render :text=>renderer.render_show( :view => view || params[:view] ),
-        :status=>(renderer.error_status || status)
+      view ||= params[:view]
+      if ext == 'json'
+        render_object = renderer.render_show( :view => view )
+        render :json=>render_object, :status=>(renderer.error_status || status)
+      else
+        render :text=>renderer.render_show( :view => view ),
+          :status=>(renderer.error_status || status)
+      end
     when show_file            # send_file can handle it
     else                      # dunno how to handle it
       render :text=>"unknown format: #{extension}", :status=>404
@@ -165,7 +176,7 @@ class ApplicationController < ActionController::Base
       end
     end
 
-    errors! :view=>view, :status=>status
+    render_errors :view=>view, :status=>status
   end
 
 end

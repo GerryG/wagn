@@ -10,6 +10,7 @@ module Wagn
     DEFAULT_ITEM_VIEW = :link  # should be set in card?
 
     RENDERERS = { #should be defined in renderer
+      :json => :JsonRenderer,
       :email => :EmailHtml,
       :css  => :Text,
       :txt  => :Text
@@ -54,6 +55,7 @@ module Wagn
       if respond_to? method
         send method, args
       else
+        #Rails.logger.warn "bad view #{view.inspect}, #{self.class}"
         "<strong>unknown view: <em>#{view}</em></strong>"
       end
     end
@@ -101,7 +103,7 @@ module Wagn
     def controller()   @controller ||= StubCardController.new                     end
     def session()      CardController===controller ? controller.session : {}      end
     def ajax_call?()   @@ajax_call                                                end
-      
+
     def showname
       @showname ||= card.cardname.to_show *@context_names
     end
@@ -151,19 +153,23 @@ module Wagn
       @depth += 1
       @item_view = @main_content = @showname = nil
       opts.each { |key, value| instance_variable_set "@#{key}", value }
+      #Rails.logger.warn "subrenderer inited #{card && card.name} #{opts.inspect}, iv:#{@item_view}, #{@item}, #{@view}"
       self
     end
 
+    def process_content_s content=nil, opts={}
+      process_content(content, opts).to_s
+    end
 
     def process_content content=nil, opts={}
       return content unless card
       content = card.content if content.blank?
 
-      wiki_content = WikiContent.new(card, content, self)
+      obj_content = ObjectContent===content ? content : ObjectContent.new(content, {:card=>card, :renderer=>self})
 
-      update_references( wiki_content, true ) if card.references_expired
+      card.update_references( obj_content, true ) if card.references_expired # I thik we need this genralized
 
-      wiki_content.render! do |opts|
+      obj_content.process_content do |opts|
         expand_inclusion(opts) { yield }
       end
     end
@@ -302,7 +308,7 @@ module Wagn
       else                      ; view
       end  
 
-      result = raw sub.render( view, opts )
+      result = sub.render(view, opts)
       Renderer.current_slot = oldrenderer
       result
     end
@@ -359,6 +365,7 @@ module Wagn
       end
     end
 
+    # FIXME: this is really html links, should be in html renderer
     def build_link href, text, known_card = nil
       # Rails.logger.info( "~~~~~~~~~~~~~~~ bl #{href.inspect}, #{text.inspect}, #{known_card.inspect}" )
       klass = case href.to_s
@@ -379,8 +386,7 @@ module Wagn
           #note - CGI.escape uses '+' to escape space.  that won't work for us.
           href = full_uri href.to_s
           known_card ? 'known-card' : 'wanted-card'
-
-      end
+        end
       %{<a class="#{klass}" href="#{href}">#{text.to_s}</a>}
     end
 
@@ -405,75 +411,9 @@ module Wagn
       @context_names.uniq!
     end
 
-
-     ### FIXME -- this should not be here!   probably in Card::Reference model?
-    def replace_references old_name, new_name
-      #Rails.logger.warn "replacing references...card name old name: #{old_name}, new_name: #{new_name} C> #{card.inspect}"
-      #warn "replacing references...card name old name: #{old_name}, new_name: #{new_name} C> #{card.inspect}"
-      wiki_content = WikiContent.new(card, card.content, self)
-
-      wiki_content.find_chunks(Chunk::Reference).each do |chunk|
-        
-        if was_name = chunk.cardname and new_cardname = was_name.replace_part(old_name, new_name) and
-             was_name != new_cardname
-          Chunk::Link===chunk and link_bound = chunk.cardname == chunk.ref_text
-          chunk.cardname = new_cardname
-          Card::Reference.where(:referenced_name => was_name.key).update_all( :referenced_name=> new_cardname.key )
-          chunk.ref_text=chunk.cardname.to_s if link_bound
-        end
-      end
-
-      String.new wiki_content.unrender!
-    end
-
-    def update_references rendering_result = nil, refresh = false
-
-      #warn "update references...card name: #{card.name}, rr: #{rendering_result}, refresh: #{refresh}"
-      return unless card && card_id = card.id
-
-      Rails.logger.info "update refs #{card.inspect}"
-      raise "???" if caller.length > 500
-
-      Card::Reference.delete_all :card_id => card.id
-
-      # FIXME: why not like this: references_expired = nil # do we have to make sure this is saved?
-      #Card.where( :id => card_id ).update_all( :references_expired=>nil )
-      #  or just this and save it elsewhere?
-      #card.references_expired=nil
-      card.connection.execute("update cards set references_expired=NULL where id=#{card.id}")
-      card.expire if frozen?
-
-      if rendering_result.nil?
-         rendering_result = WikiContent.new(card, _render_refs, self).render! do |opts|
-           expand_inclusion(opts) { yield }
-         end
-      end
-
-      hash = rendering_result.find_chunks(Chunk::Reference).inject({}) do |h, chunk|
-
-        if card_id == ( ref_id = chunk.refcard.send_if :id ); h
-
-        else
-          ref_name = chunk.refcardname.send_if :key
-          h.merge (ref_id || ref_name) => { :ref_id => ref_id, :name => ref_name,
-              :ref_type => Chunk::Link===chunk ? LINK : TRANSCLUDE,
-              :present => chunk.refcard.nil?  ?   0  :   1
-            }
-        end
-      end
-      #Rails.logger.warn "update refs hash #{hash.inspect}"
- 
-      hash.each do |ref_id, v|
-        #warn "card ref #{v.inspect}"
-        #Rails.logger.warn "card ref #{v.inspect}"
-        Card::Reference.create! :card_id => card_id,
-          :referenced_card_id => v[:ref_id], :referenced_name => v[:name],
-          :ref_type => v[:ref_type], :present => v[:present]
-      end
-    end
   end
 
-  class Renderer::Json < Renderer
+  class Renderer::JsonRenderer < Renderer
   end
 
   class Renderer::Text < Renderer

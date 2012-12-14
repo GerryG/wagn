@@ -112,7 +112,7 @@ describe Wagn::Renderer::Xml, "" do
     it "content" do
       pending "with html"
       render_card(:content, :name=>'A+B').should be_html_with {
-        div( :class=>'transcluded ALL ALL_PLUS TYPE-basic RIGHT-b TYPE_PLUS_RIGHT-basic-b SELF-a-b', :home_view=>'content') {
+        div( :class=>'included ALL ALL_PLUS TYPE-basic RIGHT-b TYPE_PLUS_RIGHT-basic-b SELF-a-b', :home_view=>'content') {
           span( :class=>'content-content content')
         }
       }
@@ -435,8 +435,8 @@ describe Wagn::Renderer::Xml, "" do
     end
 
     it "replace references should work on inclusions inside links" do
-      card = Card.create!(:name=>"test", :content=>"[[test{{test}}]]"  )
-      assert_equal "[[test{{best}}]]", Wagn::Renderer::Xml.new(card).replace_references("test", "best" )
+      card = Card.create!(:name=>"test", :content=>"[[foo|test{{test}}]]"  )
+      assert_equal "[[foo|test{{best}}]]", card.replace_references("test", "best" )
     end
   end
 

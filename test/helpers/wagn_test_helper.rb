@@ -10,6 +10,7 @@ module WagnTestHelper
 
     Account.session = 'joe_user'
     Rails.logger.warn "setup du #{Account.session}, #{Account.authorized}, #{Account.as_card}"
+
     nil
   end
 
@@ -27,7 +28,7 @@ module WagnTestHelper
   def render_test_card( card )
     r = Wagn::Renderer.new(card)
     r.add_name_context card.name
-    r.process_content()
+    r.process_content_s
   end
 
   def assert_difference(object, method = nil, difference = 1, name=nil)
@@ -48,14 +49,16 @@ module WagnTestHelper
 
   def integration_login_as(user_login, functional=nil)
 
-    raise "Don't know email & password for #{user_login}, #{Card[user_login].inspect}" unless user_card=Card[user_login] and
-        usr=user_card.account and login = usr.email and pass = USERS[login]
+    raise "Don't know email & password for #{user}" unless uc=Card[user] and
+        u=User.where(:card_id=>uc.id).first and
+        email = u.email and pass = USERS[email]
 
     if functional
-      Rails.logger.warn "functional login #{login}, #{pass}"
-      post :signin, :login=>login, :password=>pass, :controller=>:account
+      #warn "functional login #{email}, #{pass}"
+      post :signin, :login=>email, :password=>pass, :controller=>:account
     else
-      post 'account/signin', :login=>login, :password=>pass, :controller=>:account
+      #warn "integration login #{email}, #{pass}"
+      post 'account/signin', :login=>email, :password=>pass, :controller=>:account
     end
     assert_response :redirect, "integration login broken"
 

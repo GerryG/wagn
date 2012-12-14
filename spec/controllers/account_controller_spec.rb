@@ -89,13 +89,14 @@ describe AccountController do
       @msgs[0].should be_a Mail::Message
       #warn "msg looks like #{@msgs[0].inspect}"
     end
-    
+
     it 'should detect duplicates' do
       post :signup, :account=>{:email=>'joe@user.com'}, :card=>{:name=>'Joe Scope'}
       #warn "first #{Card['joe scope'].inspect}"
 
       post :signup, :account=>{:email=>'joe@user.com'}, :card=>{:name=>'Joe Duplicate'}
-      
+
+      #s=Card['joe scope']
       c=Card['Joe Duplicate']
       #warn "second #{c.inspect}"
       c.should be_nil

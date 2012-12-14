@@ -1,5 +1,4 @@
 require File.expand_path('../../spec_helper', File.dirname(__FILE__))
-include ChunkManager
 include ChunkSpecHelper
 
 describe Chunk::Link, "link chunk tests" do

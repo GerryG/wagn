@@ -6,14 +6,12 @@ module ChunkSpecHelper
   # It provides a easy way to test whether a chunk matches a particular string
   # and any the values of any fields that should be set after a match.
   class ContentStub < String
-    include ChunkManager
 
     attr_reader :renderer
 
     def initialize str
       super
       @renderer = Wagn::Renderer::Html.new nil
-      init_chunk_manager
     end
 
     def card

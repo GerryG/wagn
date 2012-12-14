@@ -199,14 +199,10 @@ module Wagn::Model
 
     class TypePattern < BasePattern
       register 'type', :type
-      def self.label(name)              %{All "#{name}" cards}     end
-      def self.prototype_args(base)     {:type=>base}              end
-      def self.pattern_applies?(card)
-        return false if card.type_id.nil? || card.type_id < 1 && card.new_card?
-        raise "bogus type id #{card.inspect}" if card.type_id < 1
-        true
-      end
-      def self.trunk_name(card)        card.type_name              end
+      def self.label            name;   %{All "#{name}" cards}     end
+      def self.prototype_args   base;   {:type=>base}              end
+      def self.pattern_applies? card;   !!card.type_id             end
+      def self.trunk_name       card;   card.type_name             end
     end
 
     class StarPattern < BasePattern

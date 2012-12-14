@@ -3,6 +3,44 @@ module Wagn
   module Set::All::Base
     include Sets
 
+    ### --- Core actions -----
+
+    action :create do |*a|
+      card.errors.add(:name, "must be unique; '#{card.name}' already exists.") unless card.new_card?
+      render_errors || !card.save && render_errors
+    end
+
+    action :read do |*a|
+      return false if @card.errors.any?
+
+      save_location # should be an event!
+      show
+    end
+
+    action :update do |*a|
+      #warn "update #{card.inspect}, #{params[:card].inspect}"
+      card.update_attributes params[:card]
+      card.save
+      render_errors
+    end
+
+    action :delete do |*a|
+      card.destroy
+      render_errors || begin
+        #warn "destroyed? #{card.inspect}"
+
+        discard_locations_for card
+        success 'REDIRECT: *previous'
+      end
+    end
+
+    alias_action :index,     {}, :read
+    alias_action :read_file, {}, :show_file
+
+
+
+    # ------- Views ------------
+
     format :base
 
     ### ---- Core renders --- Keep these on top for dependencies
@@ -10,18 +48,15 @@ module Wagn
     # update_references based on _render_refs, which is the same as
     # _render_raw, except that you don't need to alias :refs as often
     # speeding up the process when there can't be any reference changes
-    # (builtins, etc.)
-    
+    # (builtins, etc.) (moved update_references to a card model module, so this isn't needed now)
+    #define_view :refs     do |args|  card.respond_to?('references_expired') ? card.raw_content : ''   end
+
     define_view :show, :perms=>:none  do |args|
       render( args[:view] || :core )
     end
 
     define_view :raw      do |args|  card ? card.raw_content : _render_blank                          end
-    define_view :refs     do |args|
-      #warn "refs view: #{card.respond_to?(:references_expired)}, cd:#{card.inspect}" #{caller*"\n"}"
-      #warn "refs view: rc:#{card.raw_content}"
-      card.respond_to?(:references_expired) ? card.raw_content : ''   end
-    define_view :core     do |args|  process_content _render_raw                                      end
+    define_view :core     do |args|  process_content_s _render_raw                                    end
     define_view :content  do |args|  _render_core                                                     end
       # this should be done as an alias, but you can't make an alias with an unknown view,
       # and base renderer doesn't know "content" at this point
@@ -101,4 +136,6 @@ module Wagn
       %{<span class="too-slow">Timed out! #{ showname } took too long to load.</span>}
     end
   end
+
 end
+

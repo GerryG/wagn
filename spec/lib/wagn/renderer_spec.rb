@@ -510,9 +510,10 @@ describe Wagn::Renderer, "" do
       Account.session = Card::WagnBotID
     end
 
+    # FIXME: this isn't really a renderer test now, should move it
     it "replace references should work on inclusions inside links" do
-      card = Card.create!(:name=>"test", :content=>"[[test{{test}}]]"  )
-      assert_equal "[[test{{best}}]]", Wagn::Renderer.new(card).replace_references("test", "best" )
+      card = Card.create!(:name=>"test", :content=>"[[test_card|test{{test}}]]"  )
+      assert_equal "[[test_card|test{{best}}]]", card.replace_references("test", "best" )
     end
   end
 

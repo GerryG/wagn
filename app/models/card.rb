@@ -395,15 +395,15 @@ class Card < ActiveRecord::Base
     if new_card?
       [] 
 
-    else
-      @dependents ||= Account.as_bot do
-
-            dependents = Card.search (simple? ? :part : :left) => name
-            dependents.inject(dependents) do |array, card|
-              array +  card.dependents
-            end
+    if @dependents.nil?
+      @dependents = 
+        Account.as_bot do
+          deps = Card.search( { (simple? ? :part : :left) => name } ).to_a
+          deps.inject(deps) do |array, card|
+            array + card.dependents
           end
-
+        end
+      #Rails.logger.warn "dependents[#{inspect}] #{@dependents.inspect}"
     end
   end
 

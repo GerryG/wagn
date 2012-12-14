@@ -25,7 +25,7 @@ module Chunk
       rc=refcardname and rc.key or ''
     end
 
-    def ref_text
+    def link_text
       refcardname.to_s
     end
 

@@ -82,7 +82,7 @@ class URIChunk < Chunk::Abstract
   def URIChunk.pattern() INTERNET_URI_REGEXP end
   def URIChunk.groups() INTERNET_URI_GROUPS end
 
-  attr_reader :user, :host, :port, :path, :query, :fragment, :ref_text
+  attr_reader :user, :host, :port, :path, :query, :fragment, :link_text
 
   def initialize match, card_params, params
     super
@@ -101,15 +101,15 @@ class URIChunk < Chunk::Abstract
     # If the last character matched by URI pattern is in ! or ), this may be part of the markup,
     # not a URL. We should handle it as such. It is possible to do it by a regexp, but
     # much easier to do programmatically
-    [@original_scheme, @user, @host, @port, @path, @query, @fragment, @ref_text].compact.map do |section|
+    [@original_scheme, @user, @host, @port, @path, @query, @fragment, @link_text].compact.map do |section|
       section.gsub! /(&nbsp;)*$/, ''
     end
-    last_char = @ref_text[-1..-1]
+    last_char = @link_text[-1..-1]
 
 #    if last_char == ')' or last_char == '!'
     if %w{ . ) ! ? : }.member?(last_char)
       @trailing_punctuation = last_char
-      @ref_text.chop!
+      @link_text.chop!
       [@original_scheme, @user, @host, @port, @path, @query, @fragment].compact.last.chop!
     else
       @trailing_punctuation = nil

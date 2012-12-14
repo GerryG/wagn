@@ -15,37 +15,61 @@ class CardController < ApplicationController
   before_filter :refresh_card, :only=> [ :create, :update, :delete, :comment, :rollback ]
   before_filter :read_ok,      :only=> [ :read_file ]
 
+  attr_reader :card
+  cattr_reader :subset_actions
+  @@subset_actions = {}
 
-  def create
-    if @card.save
-      success
-    else
-      render_errors
+  METHODS = {
+    'POST'   => :create,  # C
+    'GET'    => :read,    # R
+    'PUT'    => :update,  # U
+    'DELETE' => :delete,  # D
+    'INDEX'  => :index
+  }
+
+  # this form of dispatching is not used yet, write specs first, then integrate into routing
+  def action
+    @action = METHODS[request.method]
+    Rails.logger.warn "action #{request.method}, #{@action} #{params.inspect}"
+    warn "action #{request.method}, #{@action} #{params.inspect}"
+    send "perform_#{@action}"
+    render_errors || success
+  end
+
+  def action_method event
+    return "_final_#{event}" unless card && subset_actions[event]
+    card.method_keys.each do |method_key|
+      meth = "_final_"+(method_key.blank? ? "#{event}" : "#{method_key}_#{event}")
+      #warn "looking up #{method_key}, M:#{meth} for #{card.name}"
+      return meth if respond_to?(meth.to_sym)
     end
   end
 
+  def create
+    #warn "create #{params.inspect}, #{card.inspect} if #{card && !card.new_card?}, nc:#{card.new_card?}"
+
+    process_create || success
+  end
+
   def read
-    if @card.errors.any?
-      render_errors
-    else
+    process_read || begin
       save_location # should be an event!
       show
     end
   end
 
   def update
-    case
-    when @card.new_card?                          ;  create
-    when @card.update_attributes( params[:card] ) ;  success
-    else                                             render_errors
+    if card.new_card?; process_create
+    elsif              process_update
+    else               success
     end
   end
 
   def delete
-    @card.destroy
-
-    discard_locations_for @card
-    success 'REDIRECT: *previous'
+    process_delete || begin
+      discard_locations_for card
+      success 'REDIRECT: *previous'
+    end
   end
 
 
@@ -59,12 +83,15 @@ class CardController < ApplicationController
   end #FIXME!  move to pack
 
 
+  def action_error *a
+    warn "action_error #{a.inspect}"
+  end
 
 
   ## the following methods need to be merged into #update
 
   def save_draft
-    if @card.save_draft params[:card][:content]
+    if card.save_draft params[:card][:content]
       render :nothing=>true
     else
       render_errors
@@ -80,9 +107,9 @@ class CardController < ApplicationController
     author = Account.user_id == Card::AnonID ?
         "#{session[:comment_author] = params[:card][:comment_author]} (Not signed in)" : "[[#{Account.user.card.name}]]"
     comment = params[:card][:comment].split(/\n/).map{|c| "<p>#{c.strip.empty? ? '&nbsp;' : c}</p>"} * "\n"
-    @card.comment = "<hr>#{comment}<p><em>&nbsp;&nbsp;--#{author}.....#{Time.now}</em></p>"
+    card.comment = "<hr>#{comment}<p><em>&nbsp;&nbsp;--#{author}.....#{Time.now}</em></p>"
 
-    if @card.save
+    if card.save
       show
     else
       render_errors
@@ -90,15 +117,15 @@ class CardController < ApplicationController
   end
 
   def rollback
-    revision = @card.revisions[params[:rev].to_i - 1]
-    @card.update_attributes! :content=>revision.content
-    @card.attachment_link revision.id
+    revision = card.revisions[params[:rev].to_i - 1]
+    card.update_attributes! :content=>revision.content
+    card.attachment_link revision.id
     show
   end
 
 
   def watch
-    watchers = @card.fetch :trait=>:watchers, :new=>{}
+    watchers = card.fetch :trait=>:watchers, :new=>{}
     watchers = watchers.refresh
     myname = Card[Account.user_id].name
     watchers.send((params[:toggle]=='on' ? :add_item : :drop_item), myname)
@@ -115,7 +142,7 @@ class CardController < ApplicationController
   def update_account
 
     if params[:save_roles]
-      role_card = @card.fetch :trait=>:roles, :new=>{}
+      role_card = card.fetch :trait=>:roles, :new=>{}
       role_card.ok! :update
 
       role_hash = params[:user_roles] || {}
@@ -123,17 +150,17 @@ class CardController < ApplicationController
       role_card.items= role_hash.keys.map &:to_i
     end
 
-    account = @card.to_user
+    account = card.to_user
     if account and account_args = params[:account]
-      unless Account.as_id == @card.id and !account_args[:blocked]
-        @card.fetch(:trait=>:account).ok! :update
+      unless Account.as_id == card.id and !account_args[:blocked]
+        card.fetch(:trait=>:account).ok! :update
       end
       account.update_attributes account_args
     end
 
     if account && account.errors.any?
       account.errors.each do |field, err|
-        @card.errors.add field, err
+        card.errors.add field, err
       end
       render_errors
     else
@@ -142,10 +169,10 @@ class CardController < ApplicationController
   end
 
   def create_account
-    @card.ok!(:create, :new=>{}, :trait=>:account)
+    card.ok!(:create, :new=>{}, :trait=>:account)
     email_args = { :subject => "Your new #{Card.setting :title} account.",   #ENGLISH
                    :message => "Welcome!  You now have an account on #{Card.setting :title}." } #ENGLISH
-    @user, @card = User.create_with_card(params[:user],@card, email_args)
+    @user, @card = User.create_with_card(params[:user], card, email_args)
     raise ActiveRecord::RecordInvalid.new(@user) if !@user.errors.empty?
     #@account = User.new(:email=>@user.email)
 #    flash[:notice] ||= "Done.  A password has been sent to that email." #ENGLISH
@@ -202,16 +229,17 @@ class CardController < ApplicationController
         end
       end
 
-    Wagn::Conf[:main_name] = params[:main] || (@card && @card.name) || ''
+    Wagn::Conf[:main_name] = params[:main] || (card && card.name) || ''
     true
   end
 
   def refresh_card
-    @card = @card.refresh
+    @card = card.refresh
   end
 
 
   def success default_target='_self'
+    #warn "success #{card.inspect}"
     target = params[:success] || default_target
     redirect = !ajax?
     new_params = {}
@@ -228,10 +256,10 @@ class CardController < ApplicationController
 
     target = case target
       when '*previous'     ;  previous_location #could do as *previous
-      when '_self  '       ;  @card #could do as _self
+      when '_self  '       ;  card #could do as _self
       when /^(http|\/)/    ;  target
       when /^TEXT:\s*(.+)/ ;  $1
-      else                 ;  Card.fetch_or_new target.to_name.to_absolute(@card.cardname)
+      else                 ;  Card.fetch_or_new target.to_name.to_absolute(card.cardname)
       end
 
     case

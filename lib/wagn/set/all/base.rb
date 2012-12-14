@@ -3,6 +3,44 @@ module Wagn
   module Set::All::Base
     include Sets
 
+    ### --- Core actions -----
+
+    action :create do |*a|
+      card.errors.add(:name, "must be unique; '#{card.name}' already exists.") unless card.new_card?
+      render_errors || !card.save && render_errors
+    end
+
+    action :read do |*a|
+      return false if @card.errors.any?
+
+      save_location # should be an event!
+      show
+    end
+
+    action :update do |*a|
+      #warn "update #{card.inspect}, #{params[:card].inspect}"
+      card.update_attributes params[:card]
+      card.save
+      render_errors
+    end
+
+    action :delete do |*a|
+      card.destroy
+      render_errors || begin
+        #warn "destroyed? #{card.inspect}"
+
+        discard_locations_for card
+        success 'REDIRECT: *previous'
+      end
+    end
+
+    alias_action :index,     {}, :read
+    alias_action :read_file, {}, :show_file
+
+
+
+    # ------- Views ------------
+
     format :base
 
     ### ---- Core renders --- Keep these on top for dependencies
@@ -97,4 +135,6 @@ module Wagn
       %{<span class="too-slow">Timed out! #{ showname } took too long to load.</span>}
     end
   end
+
 end
+

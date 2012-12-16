@@ -91,13 +91,8 @@ class SharedData
     Card['u1'].fetch(:trait=>:roles, :new=>{}) << r1 << r2 << r3
     Card['u2'].fetch(:trait=>:roles, :new=>{}) << r1 << r2 << r4
     u3_star = Card['u3'].fetch(:trait=>:roles, :new=>{}) << r1 << r4
-    #r1.users = [ u1, u2, u3 ]
-    #r2.users = [ u1, u2 ]
-    #r3.users = [ u1 ]
-    #r4.users = [ u3, u2 ]
 
     u3_star << Card::AdminID
-    #Role[:admin].users<< [ u3 ]
 
     c1 = Card.create! :name=>'c1'
     c2 = Card.create! :name=>'c2'
@@ -133,7 +128,7 @@ class SharedData
     Card.create! :typecode=>'cardtype_e', :name=>"type-e-card", :content=>"type_e_content"
     Card.create! :typecode=>'cardtype_f', :name=>"type-f-card", :content=>"type_f_content"
 
-    #warn "current user #{User.session_user.inspect}.  always ok?  #{Account.always_ok?}"
+    #warn "current user #{User.session_account.inspect}.  always ok?  #{Account.always_ok?}"
     c = Card.create! :name=>'revtest', :content=>'first'
     c.update_attributes! :content=>'second'
     c.update_attributes! :content=>'third'
@@ -143,11 +138,11 @@ class SharedData
     Card.create! :type_id=>Card::CardtypeID, :name=> "UserForm"
     Card.create! :name=>"UserForm+*type+*content", :content=>"{{+name}} {{+age}} {{+description}}"
 
-    Account.user = :joe_user
+    Account.session = 'joe_user'
     Card.create!( :name=>"JoeLater", :content=>"test")
     Card.create!( :name=>"JoeNow", :content=>"test")
 
-    Account.user = :wagn_bot
+    Account.session = :wagn_bot
     Card.create!(:name=>"AdminNow", :content=>"test")
 
     Card.create :name=>'Cardtype B+*type+*create', :type=>'Pointer', :content=>'[[r1]]'
@@ -203,6 +198,7 @@ class SharedData
     Card.create :name=>'TwwoHeading', :content => "<h1>One Heading</h1>\r\n<p>and some text</p>\r\n<h2>And a Subheading</h2>\r\n<p>and more text</p>"
     Card.create :name=>'ThreeHeading', :content =>"<h1>A Heading</h1>\r\n<p>and text</p>\r\n<h2>And Subhead</h2>\r\n<p>text</p>\r\n<h1>And another top Heading</h1>"
 
+    #c=Card[:basic].fetch(:trait=>[:right, :table_of_contents], :new=>{})
     c=Card.fetch_or_new('Basic+*type+*table_of_contents')
     c.content='2'
     c.save

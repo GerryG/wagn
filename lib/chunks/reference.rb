@@ -14,6 +14,7 @@ module Chunk
 
     def refcard()
       @refcard ||= refcardname && Card.fetch(refcardname)
+      Rails.logger.warn "refcard #{refcardname.inspect}, #{@refcard.inspect}"; @refcard
     end
 
     def link_text()

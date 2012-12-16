@@ -13,8 +13,9 @@ describe Card do
 
   describe "module inclusion" do
     before do
-      Account.as :joe_user
-      @c = Card.new :type=>'Search', :name=>'Module Inclusion Test Card'
+      Account.as 'joe_user' do
+        @c = Card.new :type=>'Search', :name=>'Module Inclusion Test Card'
+      end
     end
 
     it "gets needed methods after new" do
@@ -22,8 +23,10 @@ describe Card do
     end
 
     it "gets needed methods after save" do
-      @c.save!
-      @c.respond_to?( :get_spec ).should be_true
+      Account.as 'joe_user' do
+        @c.save!
+        @c.respond_to?( :get_spec ).should be_true
+      end
     end
 
 #    it "gets needed methods after find" do
@@ -33,9 +36,11 @@ describe Card do
 #    end
 
     it "gets needed methods after fetch" do
-      @c.save!
-      c = Card.fetch(@c.name)
-      c.respond_to?( :get_spec ).should be_true
+      Account.as 'joe_user' do
+        @c.save!
+        c = Card.fetch(@c.name)
+        c.respond_to?( :get_spec ).should be_true
+      end
     end
   end
 
@@ -62,9 +67,12 @@ describe Card do
       #[:before_save, :before_create, :after_save, :after_create].each do |hookname|
       pending "mock rr seems to be broken, maybe 'call' collides with internal methode"
       mock(Wagn::Hook).call(:after_create, instance_of(Card))
-      Account.as_bot do
+      c=Account.as_bot do
         Card.create :name => "testit"
       end
+      c.left_id.should be_nil
+      c.right_id.should be_nil
+
     end
   end
 

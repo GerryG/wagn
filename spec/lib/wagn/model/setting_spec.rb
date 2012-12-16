@@ -71,7 +71,7 @@ describe Card do
     describe ".default_rule_card" do
     end
 
-    describe ".universal_setting_names_by_group" do
+    describe ".setting_cards_by_group" do
     end
 
     describe ".setting_attrib" do
@@ -215,7 +215,6 @@ describe Card do
       end
     end
   end
-#end
 
   context "when I change the general toc setting to 1" do
 

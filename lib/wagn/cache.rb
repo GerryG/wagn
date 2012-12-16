@@ -14,22 +14,15 @@ module Wagn
   class NilCache
     def initialize                  ; self end
     def method_missing method, *args; nil  end
+    def delete *a;  nil end
+    def read *a;  nil end
+    def write *a;  nil end
+    def clear *a;  nil end
   end
 
   class Cache
-
-    # FIXME: move the initial login test to Account
-    FIRST_KEY = 'first_login'
-
-    def first_login= status=false
-      @first_login = write_global FIRST_KEY, status
-    end
-
-    def first_login?
-      if @first_login.nil?
-        first_login = store.read prefix + FIRST_KEY
-      end
-      @first_login
+    def inspect
+      "#{@local.map{|k,v| "#{k}  -> #{v.inspect}"}*"\n"}\nStore:#{ store.to_s }"
     end
 
     @@prefix_root       = Wagn::Application.config.database_configuration[Rails.env]['database']
@@ -39,19 +32,19 @@ module Wagn
     cattr_reader :frozen, :prefix_root
 
     class << self
-      def prepopulating ; Rails.env == 'cucumber' end
+      #def prepopulating? ; Rails.env == 'cucumber' end
       def use_rails_cache?; !%w{ cucumber test }.member? Rails.env end
+      def prepopulating?  ; !use_rails_cache? end
 
       def [] klass
         if @@cache_by_class[klass].nil?
           self.new klass
         end
-        raise("????") if @@cache_by_class[klass].nil?
         @@cache_by_class[klass]
       end
 
       def renew
-        reset_local unless self.prepopulating
+        reset_local unless self.prepopulating?
       end
 
       def system_prefix klass
@@ -60,9 +53,7 @@ module Wagn
 
       def restore klass=Card
         reset_local
-        if @@cache_by_class[klass] and self.prepopulating and klass==Card
-          @@cache_by_class[klass] = Marshal.load frozen[klass]
-        end
+        Cache[klass].prepopulate
       end
 
       def generate_cache_id
@@ -80,12 +71,11 @@ module Wagn
       private
 
       def reset_local
-        @@cache_by_class.each{ |cc, cache|
+        @@cache_by_class.each do |cc, cache|
           if Wagn::Cache===cache
             cache.reset_local
           end
-        }
-            
+        end
       end
 
     end
@@ -106,15 +96,20 @@ module Wagn
 
       @@cache_by_class[@klass] = self
 
-      self.class.prepopulating and @klass == Card and prepopulate @klass 
+      self.class.prepopulating? and @klass == Card and init_frozen @klass
       self
     end
 
-    def prepopulate klass
-      ['*all','*all plus','basic+*type','html+*type','*cardtype+*type','*sidebar+*self'].each do |k|
-        [k,"#{k}+*content", "#{k}+*default", "#{k}+*read" ].each { |k| klass[k] }
+    def init_frozen klass
+      %w{ *all *all plus basic+*type html+*type *cardtype+*type *sidebar+*self }.each do |base|
+        klass[ base ]
+        %w{ +*content +*default +*read }.each { |plus| klass[ base + plus ] }
       end
-      frozen[klass] = Marshal.dump Cache[klass]
+      %w{ anonymous+*account wagn_bot+*account }.each { |k| klass[k] }
+
+      cache = Cache[klass]
+      #warn "dump:\n#{cache.inspect}"
+      frozen[klass] = Marshal.dump cache
     end
 
     def store
@@ -144,6 +139,19 @@ module Wagn
       "#{ system_prefix }/#{ cache_id }/"
     end
 
+    FIRST_KEY = 'first_login'
+
+    def first_login= status=false
+      @first_login = write_global FIRST_KEY, status
+    end
+
+    def first_login?
+      if @first_login.nil?
+        first_login = store.read "#{ prefix }#{ FIRST_KEY }"
+      end
+      @first_login
+    end
+
     # ---------------- STATISTICS ----------------------
 
     INTERVAL = 10000
@@ -163,7 +171,7 @@ module Wagn
             (@times[key]/@stats[key]).to_s.gsub( /^([^\.]*\.\d{3})\d*(e?.*)$/, "#{$1}#{$2.nil? ? '' : ' ' + $2}" )
           } } end * "\n" }
 
-        
+
 }
       end
     end
@@ -219,8 +227,11 @@ module Wagn
 
     def delete key
       obj = @local.delete key
-      @local.delete obj.id if Card===obj
-      store.delete prefix + key
+      if Card===obj && obj.id
+        @local.delete obj.id
+      end
+      #Rails.logger.warn "delete #{store}, #{prefix.inspect}, #{key.inspect}"
+      store.delete( prefix + key )
     end
 
     def dump
@@ -230,7 +241,15 @@ module Wagn
       end
     end
 
+    def prepopulate
+      if self.class.prepopulating? and @klass == Card
+        cache = @@cache_by_class[@class] = Marshal.load frozen[@klass]
+        #warn "loaded:\n#{cache.inspect}"
+      end
+    end
+
     def reset_local
+      Rails.logger.warn "---------- reset local instance #{store}"
       @reset_last ||= Time.now
       stat :reset_local, @reset_last
       @reset_last = Time.now
@@ -238,13 +257,16 @@ module Wagn
     end
 
     def reset hard=false
-      reset_local
+      Rails.logger.warn "------------ reset hard? #{hard} #{caller*"\n"}"
+
+      reset_local # unless self.class.prepopulating?
       @cache_id = nil
       if hard
         store.clear
       else
         cache_id # accessing it will generate and write the new id
       end
+      prepopulate
     end
 
   end

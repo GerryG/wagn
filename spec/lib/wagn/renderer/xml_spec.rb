@@ -4,7 +4,7 @@ require File.dirname(__FILE__) + '/../../../packs/pack_spec_helper'
 describe Wagn::Renderer::Xml, "" do
   before do
     Wagn::Conf[:base_url] = nil
-    Account.user= :joe_user
+    Account.session = 'joe_user'
     Wagn::Renderer::Xml.current_slot = nil
   end
 
@@ -74,7 +74,7 @@ describe Wagn::Renderer::Xml, "" do
         Card.create(:name=>'Joe no see me', :type=>'Html', :content=>'secret')
         Card.create(:name=>'Joe no see me+*self+*read', :type=>'Pointer', :content=>'[[Administrator]]')
       end
-      Account.as :joe_user do
+      Account.as 'joe_user' do
         Wagn::Renderer::Xml.new(Card.fetch('Joe no see me')).render(:core).should be_html_with { no_card(:status=>"deny view") }
       end
     end
@@ -296,7 +296,7 @@ describe Wagn::Renderer::Xml, "" do
 
     context "HTML" do
       before do
-        Account.user= Card::WagnBotID
+        Account.session = Card::WagnBotID
       end
 
       it "should have special editor" do
@@ -407,7 +407,7 @@ describe Wagn::Renderer::Xml, "" do
     context "*account link" do
       it "should have a 'my card' link" do
         pending
-        Account.as :joe_user do
+        Account.as 'joe_user' do
           render_card(:raw, :name=>'*account links').should be_html_with { span( :id=>'logging' ) {
               a( :id=>'my-card-link') { 'My Card: Joe User' }
             }
@@ -431,7 +431,7 @@ describe Wagn::Renderer::Xml, "" do
 
   context "replace refs" do
     before do
-      Account.user= Card::WagnBotID
+      Account.session = Card::WagnBotID
     end
 
     it "replace references should work on inclusions inside links" do

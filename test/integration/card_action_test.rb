@@ -13,7 +13,7 @@ class CardActionTest < ActionController::IntegrationTest
 
   def setup
     super
-    setup_default_user
+    setup_default_account
     integration_login_as 'joe_user'
   end
 
@@ -73,7 +73,7 @@ class CardActionTest < ActionController::IntegrationTest
 
   def test_newcard_works_with_fuzzy_renamed_cardtype
     given_card({:typecode=>:cardtype, :name=>"ZFoo", :content => ""})
-    Account.as(:joe_user) do
+    Account.as 'joe_user' do
       Card["ZFoo"].update_attributes! :name=>"ZFooRenamed", :update_referencers=>true
     end
 
@@ -112,26 +112,27 @@ class CardActionTest < ActionController::IntegrationTest
   def test_should_create_account_from_scratch
     integration_login_as 'joe_admin'
     assert_difference ActionMailer::Base.deliveries, :size do
-      post '/card/create_account/', :id=>'a', :user=>{:email=>'foo@bar.com'}
+      post '/card/create_account/', :id=>'a', :account=>{:email=>'foo@bar.com'}
       assert_response :redirect  # this now redirects, and I think that is correct
     end
     email = ActionMailer::Base.deliveries[-1]
-    # emails should be 'from' inviting user
-    #assert_equal Account.user.email, email.from[0]
-    #assert_equal 'active', User.find_by_email('new@user.com').status
-    #assert_equal 'active', User.find_by_email('new@user.com').status
+    Rails.logger.warn "email #{email} #{Account.authorized.account}"
+    assert_equal Account.authorized.account.email, email.from[0]
+    assert user = Account.find_by_email('foo@bar.com')
+    assert_equal 'active', user.status
   end
 
-  def test_update_user_account_email
+  def test_update_account_account_email
     post '/card/update_account', :id=>"Joe User".to_name.key, :account => { :email => 'joe@user.co.uk' }
-    assert User.where(:card_id=>Card['joe_user'].id).first.email == 'joe@user.co.uk'
+    assert account = Card['joe_user+*account'].account
+    assert account.email == 'joe@user.co.uk', "should update email"
   end
 
-  def test_user_cant_block_self
+  def test_account_cant_block_self
+    assert account = Card['joe_user+*account'].account
     post '/card/update_account', :id=>"Joe User".to_name.key, :account => { :blocked => '1' }
-    assert !User.where(:card_id=>Card['joe_user'].id).first.blocked?
+    assert !account.blocked?
   end
-#=end
 end
 
 

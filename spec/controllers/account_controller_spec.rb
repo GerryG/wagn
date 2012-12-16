@@ -4,13 +4,6 @@ require 'rr'
 
 describe AccountController do
 
-  describe "#accept" do
-    before do
-      login_as :joe_user
-      @user = Account.user
-    end
-  end
-  
   describe "#invite" do
     before do
       @msgs=[]
@@ -18,21 +11,27 @@ describe AccountController do
         @msgs << m
         mock(m).deliver }
 
-      login_as :joe_admin
+      login_as 'joe_admin'
 
       @email_args = {:subject=>'Hey Joe!', :message=>'Come on in.'}
-      post :invite, :user=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'},
+      post :invite, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'},
         :email=> @email_args
 
       @user_card = Card['Joe New']
-      @new_user = User.where(:email=>'joe@new.com').first
+      @user_card.should be
+      @account_card = @user_card.fetch :trait => :account, :new=>{}
 
     end
 
     it 'should create a user' do
-      @new_user.should be
-      @new_user.card_id.should == @user_card.id
+      @account_card.should be
+      @account_card.new_card?.should be_false
       @user_card.type_id.should == Card::UserID
+      @account_card.type_id.should == Card::BasicID
+      @new_account=Account.find_by_email('joe@new.com')
+      #warn "... #{@account_card.inspect}, #{@user_card.inspect} #{@new_account.inspect}"
+      @new_account.should be
+      @new_account.account_id.should == @account_card.id
     end
 
     it 'should send email' do
@@ -43,43 +42,62 @@ describe AccountController do
 
   describe "#signup" do
     before do
+      # to make it send signup mail, and mock the mailer methods
+      Account.as_bot { Card.create! :name=>'*request+*to', :content=>'joe@user.com' }
       @msgs=[]
-      mock.proxy(Mailer).account_info.with_any_args.times(any_times) do |m|
-        @msgs << m
-        mock(m).deliver
+      mock.proxy(Mailer).signup_alert.with_any_args.times(any_times) do |mck|
+        @msgs << mck
+        mock(mck).deliver
+      end
+      mock.proxy(Mailer).account_info.with_any_args.times(any_times) do |mck|
+        @msgs << mck
+        mock(mck).deliver
       end
     end
 
-    #FIXME: tests needed : signup without approval, signup alert emails
-
     it 'should create a user' do
-      #warn "who #{Account.user_card.inspect}"
-      post :signup, :user=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
-      new_user = User.where(:email=>'joe@new.com').first
+      post :signup, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
+      new_account = Account.lookup(:email=>'joe@new.com')
       user_card = Card['Joe New']
-      new_user.should be
-      new_user.card_id.should == user_card.id
-      new_user.pending?.should be_true
+      new_account.should be
+      new_account.card_id.should == user_card.id
       user_card.type_id.should == Card::AccountRequestID
     end
 
     it 'should send email' do
-      post :signup, :user=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
-      login_as :joe_admin
+      # a user requests an account
+      post :signup, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
 
-      post :accept, :card=>{:key=>'joe_new'}, :email=>{:subject=>'Hey Joe!', :message=>'Can I Come on in?'}
+      @card = Card['Joe New']
+      @card.should be
+      @card.account.should be
 
       @msgs.size.should == 1
       @msgs[0].should be_a Mail::Message
-      #puts "msg looks like #{@msgs[0].inspect}"
+    end
+
+    it 'should send email' do
+      # a user requests an account
+      post :signup, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
+
+      @msgs.size.should == 1
+      # and the admin accepts
+      login_as 'joe_admin'
+      post :accept, :card=>{:key=>'joe_new'}, :email=>{:subject=>'Hey Joe!', :message=>'Come on in?'}
+
+      @msgs.size.should == 2
+      @msgs[0].should be_a Mail::Message
+      #warn "msg looks like #{@msgs[0].inspect}"
     end
     
     it 'should detect duplicates' do
-      post :signup, :user=>{:email=>'joe@user.com'}, :card=>{:name=>'Joe Scope'}
-      post :signup, :user=>{:email=>'joe@user.com'}, :card=>{:name=>'Joe Duplicate'}
+      post :signup, :account=>{:email=>'joe@user.com'}, :card=>{:name=>'Joe Scope'}
+      #warn "first #{Card['joe scope'].inspect}"
+
+      post :signup, :account=>{:email=>'joe@user.com'}, :card=>{:name=>'Joe Duplicate'}
       
-      #s=Card['joe scope']
       c=Card['Joe Duplicate']
+      #warn "second #{c.inspect}"
       c.should be_nil
     end
   end
@@ -92,14 +110,14 @@ describe AccountController do
 
   describe "#forgot_password" do
     before do
-      @msgs=[]
-      mock.proxy(Mailer).account_info.with_any_args.times(any_times) { |m|
-        @msgs << m
-        mock(@mail = m).deliver }
+      @msgs = []
+      mock.proxy(Mailer).account_info.with_any_args.times(any_times) do |mck|
+        @msgs << mck
+        mock(mck).deliver
+      end
 
-      @email='joe@user.com'
-      @juser=User.where(:email=>@email).first
-      post :forgot_password, :email=>@email
+      post :forgot_password, :email=>'joe@user.com'
+      assert_response :found
     end
 
     it 'should send an email to user' do
@@ -108,8 +126,9 @@ describe AccountController do
     end
 
 
-    it "can't login now" do
+    it "can't login with original pw" do
       post :signin, :email=>'joe@user.com', :password=>'joe_pass'
+      assert_response :forbidden
     end
   end
 end

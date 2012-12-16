@@ -1,3 +1,4 @@
+
 module Wagn
  module Model::References
   include Card::ReferenceTypes
@@ -52,17 +53,19 @@ module Wagn
   protected
 
   def update_references_on_create
+    set_initial_content unless current_revision_id
+
     Card::Reference.update_on_create self
 
     # FIXME: bogus blank default content is set on hard_templated cards...
     Account.as_bot do
-      Wagn::Renderer.new(self, :not_current=>true).update_references
+      Renderer.new(self, :not_current=>true).update_references
     end
     expire_templatee_references
   end
 
   def update_references_on_update
-    Wagn::Renderer.new(self, :not_current=>true).update_references
+    Renderer.new(self, :not_current=>true).update_references
     expire_templatee_references
   end
 

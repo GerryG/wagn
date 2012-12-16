@@ -393,7 +393,7 @@ class Card < ActiveRecord::Base
   #def trunk_id()       raise "Deprecated, use left_id"      end
 
   def dependents
-    if new_card?; [] 
+    return [] if new_card?
 
     if @dependents.nil?
       @dependents = 
@@ -405,6 +405,7 @@ class Card < ActiveRecord::Base
         end
       Rails.logger.warn "dependents[#{inspect}] #{@dependents.inspect}"
     end
+    @dependents
   end
 
   def repair_key

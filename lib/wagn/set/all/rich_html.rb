@@ -16,7 +16,7 @@ module Wagn
 
     define_view :layout, :perms=>:none do |args|
       if @main_content = args.delete( :main_content )
-        @card = Card.fetch_or_new '*placeholder'
+        @card = Card.fetch '*placeholder', :new=>{}
       end
 
       layout_content = get_layout_content args
@@ -542,6 +542,7 @@ module Wagn
     end
 
     define_view :errors, :perms=>:none do |args|
+      Rails.logger.warn "errors #{args.inspect}, #{card.inspect}, #{caller*"\n"}"
       wrap :errors, args do
         %{ <h2>Problems #{%{ with <em>#{card.name}</em>} unless card.name.blank?}</h2> } +
         card.errors.map { |attrib, msg| "<div>#{attrib.upcase}: #{msg}</div>" } * ''

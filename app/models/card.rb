@@ -137,6 +137,7 @@ class Card < ActiveRecord::Base
       else :noop
       end
 
+
     case type_id
     when :noop 
     when false, nil
@@ -243,6 +244,7 @@ class Card < ActiveRecord::Base
     @virtual    = false
     @from_trash = false
     Wagn::Hook.call :after_create, self if @was_new_card
+    Rails.logger.warn "base after save #{inspect}, #{caller*"\n"}"
     send_notifications
     true
   rescue Exception=>e
@@ -564,10 +566,13 @@ class Card < ActiveRecord::Base
 
   def inspect
     "#<#{self.class.name}" + "##{id}" +
-    "###{object_id}" + #"k#{tag_id}g#{tag_id}" +
+    #"lf:#{trunk_id}rt:#{tag_id}" +
     "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
-    "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{frozen? ? 'Fz' : readonly? ? 'RdO' : ''}" +
-    "#{@virtual &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }}" +
+    #(errors.any? ? '*Errors*' : 'noE') +
+    (errors.any? ? "<E*#{errors.full_messages*', '}*>" : '') +
+    #"{#{references_expired==1 ? 'Exp' : "noEx"}:" +
+    "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}" +
+    "#{@virual.nil? ? '' : "virtual#{@virtual}"}#{@sets_loaded&&'I'||"!loaded[#{@type_args.inspect}]" }}" +
     #" Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}" +
     '>'
   end

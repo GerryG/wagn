@@ -13,17 +13,19 @@ describe Card, "deleted card" do
   it "should come out of the trash when a plus card is created" do
     Account.as_bot do
       Card.create(:name=>'A+*acct')
-      c = Card['A']
+      c = Card.fetch 'A', :new=>{}
       c.trash.should be_false
     end
   end
 end
 
 describe Card, "in trash" do
-  it "should be retrieved by fetch_or_create" do
+  it "should be retrieved by fetch or create" do
     Account.as :joe_user do
       Card.create(:name=>"Betty").destroy
-      Card.fetch_or_create "Betty"
+      card = Card.fetch "Betty", :new => {}
+      card.save if card.new_card?
+
       Card["Betty"].should be_instance_of(Card)
     end
   end

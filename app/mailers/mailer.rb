@@ -17,7 +17,7 @@ class Mailer < ActionMailer::Base
     @password = (user.password or raise Wagn::Oops.new("Oops didn't have user password"))
     @card_url = wagn_url Card[user.card_id]
     @pw_url   = wagn_url "/card/options/#{url_key}"
-    @login_url= wagn_url "/account/signin"
+    @login_url= wagn_url "/Session"
     @message  = message.clone
 
     args =  { :to => @email, :subject  => subject }
@@ -47,6 +47,7 @@ class Mailer < ActionMailer::Base
 
 
   def change_notice user, card, action, watched, subedits=[], updated_card=nil
+    #warn "notice #{card.inspect}, #{action} #{updated_card.inspect}"
     return unless user = User===user ? user : User.from_id(user)
     #warn "change_notice( #{user.email}, #{card.inspect}, #{action.inspect}, #{watched.inspect} Uc:#{updated_card.inspect}...)"
 

@@ -13,6 +13,7 @@ class ApplicationController < ActionController::Base
   before_filter :per_request_setup, :except=>[:fast_404]
   layout :wagn_layout, :except=>[:fast_404]
 
+  attr_reader :card
   attr_accessor :recaptcha_count
 
   def fast_404
@@ -90,11 +91,13 @@ class ApplicationController < ActionController::Base
   end
 
   def render_errors options={}
-    return false if @card.errors.empty?
-    @card ||= Card.new
-    view   = options[:view]   || (@card && @card.error_view  ) || :errors
-    #warn "422 status " unless options[:status] || (@card && @card.error_status)
-    status = options[:status] || (@card && @card.error_status) || 422
+    #warn "render_errors #{card.inspect}"
+    return false if card && card.errors.empty?
+    @card = Card.new if card.nil?
+    view = options[:view] || card.error_view || :errors
+    #warn "422 status ? os:#{options[:status]} || cs:#{(@card && @card.error_status)}"
+    status = options[:status] || card.error_status || 422
+    #warn "render errors #{card.inspect}, show status and view #{status}, #{view}"
     show view, status
     true
   end

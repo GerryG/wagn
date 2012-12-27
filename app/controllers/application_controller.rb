@@ -1,8 +1,17 @@
 # -*- encoding : utf-8 -*-
+
+require 'wagn/sets'
+require 'card'
+
 class ApplicationController < ActionController::Base
   # This is often needed for the controllers to work right
   # FIXME: figure out when/why this is needed and why the tests don't fail
+  #Card::Reference
   Card
+end
+
+class ApplicationController
+  include Wagn::Exceptions
 
   include AuthenticatedSystem
   include LocationHelper
@@ -146,7 +155,8 @@ class ApplicationController < ActionController::Base
 
 
   rescue_from Exception do |exception|
-    Rails.logger.info "exception = #{exception.class}: #{exception.message}"
+    Rails.logger.info "exception = #{exception.class}: #{exception.message} #{exception.backtrace*"\n"}"
+
 
     view, status = case exception
     when Wagn::NotFound, ActiveRecord::RecordNotFound

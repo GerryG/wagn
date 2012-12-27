@@ -139,8 +139,8 @@ describe "Card::Reference" do
   it "simple link" do
     alpha = Card.create :name=>'alpha'
     beta = Card.create :name=>'beta', :content=>"I link to [[alpha]]"
-    Card['alpha'].referencers.map(&:name).should == ['beta']
     Card['beta'].referencees.map(&:name).should == ['alpha']
+    Card['alpha'].referencers.map(&:name).should == ['beta']
   end
 
   it "link with spaces" do

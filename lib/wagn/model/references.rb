@@ -21,7 +21,7 @@ module Wagn
   end
 
   def includers
-    return [] unless refs = includes
+    return [] unless refs = inclusions
     refs.map(&:referer_id).map( &Card.method(:fetch) )
   end
 
@@ -32,7 +32,7 @@ module Wagn
   end
 
   def existing_includers
-    return [] unless refs = includes
+    return [] unless refs = inclusions
     refs.map(&:referee_key).map( &Card.method(:fetch) ).compact
   end
 =end
@@ -45,7 +45,7 @@ module Wagn
   end
 
   def includees
-    return [] unless refs = out_includes
+    return [] unless refs = out_inclusions
     refs.map { |ref| Card.fetch ref.referee_key, :new=>{} }
   end
 
@@ -81,11 +81,11 @@ module Wagn
 
       # ---------- Reference associations -----------
       has_many :references,  :class_name => :Reference, :foreign_key => :referee_id
-      has_many :includes, :class_name => :Reference, :foreign_key => :referee_id,
+      has_many :inclusions, :class_name => :Reference, :foreign_key => :referee_id,
         :conditions => { :link_type => INCLUDE }
 
       has_many :out_references,  :class_name => :Reference, :foreign_key => :referer_id
-      has_many :out_includes, :class_name => :Reference, :foreign_key => :referer_id, :conditions => { :link_type => INCLUDE }
+      has_many :out_inclusions, :class_name => :Reference, :foreign_key => :referer_id, :conditions => { :link_type => INCLUDE }
 
       after_create  :update_references_on_create
       after_destroy :update_references_on_destroy

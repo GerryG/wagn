@@ -1,10 +1,19 @@
 # -*- encoding : utf-8 -*-
 
+require 'wagn/sets'
+require 'card'
+
 
 class CardController < ApplicationController
   # This is often needed for the controllers to work right
   # FIXME: figure out when/why this is needed and why the tests don't fail
+  Card::Reference
   Card
+end
+
+  #include Wagn::Sets::CardControllerMethods
+
+class CardController
 
   helper :wagn
 
@@ -177,6 +186,7 @@ class CardController < ApplicationController
   end
 
 
+  # FIXME: make me an event
   def load_card
     @card = case params[:id]
       when '*previous'   ; return wagn_redirect( previous_location )
@@ -185,16 +195,20 @@ class CardController < ApplicationController
       else
         opts = params[:card] ? params[:card].clone : {}
         opts[:type] ||= params[:type] # for /new/:type shortcut.  we should fix and deprecate this.
+        Rails.logger.warn "load params: #{params.inspect}, #{opts.inspect}"
         name = params[:id] || opts[:name]
         
         if @action == 'create'
           # FIXME we currently need a "new" card to catch duplicates (otherwise #save will just act like a normal update)
           # I think we may need to create a "#create" instance method that handles this checking.
           # that would let us get rid of this...
+          Rails.logger.warn "load create card #{name.inspect}, #{opts.inspect}"
           opts[:name] ||= name
           Card.new opts
         else
-          Card.fetch_or_new name, opts
+          name = $1.to_i if name =~ /^~(\d+)$/
+          Rails.logger.warn "load card #{name.inspect}, #{opts.inspect}"
+          Card.fetch name, :new=>opts
         end
       end
 
@@ -202,6 +216,7 @@ class CardController < ApplicationController
     true
   end
 
+  # FIXME: event
   def refresh_card
     @card = @card.refresh
   end

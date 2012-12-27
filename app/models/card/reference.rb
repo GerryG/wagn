@@ -7,38 +7,14 @@ class Card < ActiveRecord::Base
   module ReferenceTypes
     LINK    = 'L'
     INCLUDE = 'T'
-      LINK = 'L'
-      WANTED_LINK = 'W'
-      INCLUSION = 'T'
-      WANTED_INCLUSION = 'M'
-  end
-end
-
-class Card::Reference
-
-  include Card::ReferenceTypes
-
-  belongs_to :referencer, :class_name=>'Card', :foreign_key=>'card_id'
-  belongs_to :referencee, :class_name=>'Card', :foreign_key=>"referenced_card_id"
-
-  validates_inclusion_of :link_type, :in => [  LINK, WANTED_LINK, INCLUSION, WANTED_INCLUSION ]
-
-  def self.find_cards_by_reference_name_and_type_list(card_name, *type_list)
-    sql_list = "'" + type_list.join("','") + "'"
-    self.find( :all, :conditions=>[%{
-      link_type in (#{sql_list}) and referenced_name=?
-    },card_name]).collect {|ref| ref.referencer }
-  end
-
-  def self.cards_that_reference(card_name)
-    self.find_cards_by_reference_name_and_type_list( card_name, LINK, WANTED_LINK, INCLUSION, WANTED_INCLUSION )
-  end
 
     TYPES   = [ LINK, INCLUDE ]
   end
 
+  class Reference
 
-  class Reference < ActiveRecord::Base
+    include ReferenceTypes
+
     def referencer
       Card[referer_id]
     end

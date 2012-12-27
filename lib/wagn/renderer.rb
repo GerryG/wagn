@@ -490,7 +490,6 @@ module Wagn
     end
 
 
-<<<<<<< HEAD
      ### FIXME -- this should not be here!   probably in Card::Reference model?
     def replace_references old_name, new_name
       #Rails.logger.warn "replacing references...card name old name: #{old_name}, new_name: #{new_name} C> #{card.inspect}"
@@ -543,8 +542,6 @@ module Wagn
       end.each_value { |update| Card::Reference.create! update.merge( :referer_id => referer_id ) }
 
     end
-=======
->>>>>>> load_cardlib
   end
 
   class Renderer::Json < Renderer

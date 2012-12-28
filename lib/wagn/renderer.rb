@@ -51,11 +51,11 @@ module Wagn
       #warn "replacing references...card name old name: #{old_name}, new_name: #{new_name} C> #{card.inspect}"
       wiki_content = WikiContent.new(card, card.content, self)
 
-      wiki_content.find_chunks(Chunk::Reference).each do |chunk|
+      wiki_content.find_chunks(Chunks::Reference).each do |chunk|
         
         if was_name = chunk.cardname and new_cardname = was_name.replace_part(old_name, new_name) and
              was_name != new_cardname
-          Chunk::Link===chunk and link_bound = chunk.cardname == chunk.link_text
+          Chunks::Link===chunk and link_bound = chunk.cardname == chunk.link_text
           chunk.cardname = new_cardname
           Card::Reference.where(:referenced_name => was_name.key).update_all( :referenced_name => new_cardname.key )
           chunk.link_text=chunk.cardname.to_s if link_bound
@@ -81,17 +81,17 @@ module Wagn
       end
 
       h=
-        rendering_result.find_chunks(Chunk::Reference).inject({}) do |hash, chunk|
+        rendering_result.find_chunks(Chunks::Reference).inject({}) do |hash, chunk|
 
         if referer_id != ( referee_id = chunk.refcard.send_if :id ) &&
            !hash.has_key?( hash_key = referee_id || chunk.refcardname.key )
 
-          ltype = Chunk::Link===chunk
+          ltype = Chunks::Link===chunk
           hash[ hash_key ] = {
               :referenced_card_id  => referee_id,
               :referenced_name => chunk.refcardname.send_if( :key ),
-              :link_type   => chunk.refcard.nil? ? ( ltype ? WANTED_LINK : WANTED_INCLUSION ) : 
-                                                   ( ltype ? LINK : INCLUSION )
+              :link_type   => chunk.refcard.nil? ? ( ltype ? WANTED_LINK : WANTED_INCLUDE ) : 
+                                                   ( ltype ? LINK        : INCLUDE )
             }
         end
 
@@ -496,11 +496,11 @@ module Wagn
       #warn "replacing references...card name old name: #{old_name}, new_name: #{new_name} C> #{card.inspect}"
       wiki_content = WikiContent.new(card, card.content, self)
 
-      wiki_content.find_chunks(Chunk::Reference).each do |chunk|
+      wiki_content.find_chunks(Chunks::Reference).each do |chunk|
         
         if was_name = chunk.cardname and new_cardname = was_name.replace_part(old_name, new_name) and
              was_name != new_cardname
-          Chunk::Link===chunk and link_bound = chunk.cardname == chunk.link_text
+          Chunks::Link===chunk and link_bound = chunk.cardname == chunk.link_text
           chunk.cardname = new_cardname
           Card::Reference.where(:referee_key => was_name.key).update_all( :referee_key => new_cardname.key )
           chunk.link_text=chunk.cardname.to_s if link_bound
@@ -525,7 +525,7 @@ module Wagn
          end
       end
 
-      rendering_result.find_chunks(Chunk::Reference).inject({}) do |hash, chunk|
+      rendering_result.find_chunks(Chunks::Reference).inject({}) do |hash, chunk|
 
         if referer_id != ( referee_id = chunk.refcard.send_if :id ) &&
            !hash.has_key?( referee_key = referee_id || chunk.refcardname.key )
@@ -533,7 +533,7 @@ module Wagn
           hash[ referee_key ] = {
               :referee_id  => referee_id,
               :referee_key => chunk.refcardname.send_if( :key ),
-              :link_type   => Chunk::Link===chunk ? LINK : INCLUDE,
+              :link_type   => Chunks::Link===chunk ? LINK : INCLUDE,
               :present     => chunk.refcard.nil?  ?   0  :   1
             }
         end

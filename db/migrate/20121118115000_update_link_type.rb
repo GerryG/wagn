@@ -5,7 +5,7 @@ class UpdateLinkType < ActiveRecord::Migration
   include Card::ReferenceTypes
 
   LINK_TYPES    = [ 'L', 'W' ]
-  INCLUDE_TYPES = [ 'T', 'M' ]
+  INCLUDE_TYPES = [ 'I', 'M', 'T' ]
 
   MISSING    = [ LINK_TYPES.last,  INCLUDE.last  ]
   PRESENT    = [ LINK_TYPES.first, INCLUDE.first ]

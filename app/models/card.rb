@@ -381,7 +381,7 @@ class Card
             array + card.dependents
           end
         end
-      Rails.logger.warn "dependents[#{inspect}] #{@dependents.inspect}"
+      #Rails.logger.warn "dependents[#{inspect}] #{@dependents.inspect}"
     end
     @dependents
   end

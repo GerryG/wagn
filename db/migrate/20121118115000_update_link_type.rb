@@ -4,11 +4,8 @@ require_dependency 'chunk_manager'
 class UpdateLinkType < ActiveRecord::Migration
   include Card::ReferenceTypes
 
-  LINK_TYPES    = [ 'L', 'W' ]
-  INCLUDE_TYPES = [ 'I', 'T', 'M' ]
-
-  MISSING    = [ LINK_TYPES.last,  INCLUDE.last  ]
-  PRESENT    = [ LINK_TYPES.first, INCLUDE.first ]
+  LINK_TYPES    = [ 'L', 'M' ]
+  INCLUDE_TYPES = [ 'I', 'T', 'W' ]
 
   def up
     Card::Reference.update_all(:present=>1)
@@ -19,5 +16,6 @@ class UpdateLinkType < ActiveRecord::Migration
   def down
     Card::Reference.where(:present=>0, :link_type=>LINK_TYPES.first).   update_all(:link_type=>LINK_TYPES.last)
     Card::Reference.where(:present=>0, :link_type=>INCLUDE_TYPES.first).update_all(:link_type=>INCLUDE_TYPES.last)
+    Card::Reference.where(:present=>1, :link_type=>INCLUDE_TYPES.first).update_all(:link_type=>INCLUDE_TYPES[1])
   end
 end

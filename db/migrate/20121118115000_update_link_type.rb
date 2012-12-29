@@ -9,8 +9,9 @@ class UpdateLinkType < ActiveRecord::Migration
 
   def up
     Card::Reference.update_all(:present=>1)
+    Card::Reference.where(:link_type=>INCLUDE_TYPES[1]).update_all(:link_type=>INCLUDE_TYPES.first)
     Card::Reference.where(:link_type=>LINK_TYPES.last).   update_all(:present=>0, :link_type=>LINK_TYPES.first)
-    Card::Reference.where(:link_type=>['in', INCLUDE_TYPES[0,2]).update_all(:present=>0, :link_type=>INCLUDE_TYPES.first)
+    Card::Reference.where(:link_type=>INCLUDE_TYPES.last).update_all(:present=>0, :link_type=>INCLUDE_TYPES.first)
   end
 
   def down

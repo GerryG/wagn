@@ -75,7 +75,6 @@ module Cardlib::References
     super
     base.class_eval do
 
-<<<<<<< HEAD
       # ---------- Reference associations -----------
       has_many :references,  :class_name => :Reference, :foreign_key => :referee_id
       has_many :inclusions, :class_name => :Reference, :foreign_key => :referee_id,
@@ -83,16 +82,6 @@ module Cardlib::References
 
       has_many :out_references,  :class_name => :Reference, :foreign_key => :referer_id
       has_many :out_inclusions, :class_name => :Reference, :foreign_key => :referer_id, :conditions => { :link_type => INCLUDE }
-=======
-      has_many :in_references,:class_name=>'Card::Reference', :foreign_key=>'referenced_card_id'
-      has_many :out_references,:class_name=>'Card::Reference', :foreign_key=>'card_id', :dependent=>:destroy
-
-      has_many :in_transclusions, :class_name=>'Card::Reference', :foreign_key=>'referenced_card_id',:conditions=>["link_type in (?,?)",Card::Reference::TRANSCLUSION, Card::Reference::WANTED_TRANSCLUSION]
-      has_many :out_transclusions,:class_name=>'Card::Reference', :foreign_key=>'card_id',           :conditions=>["link_type in (?,?)",Card::Reference::TRANSCLUSION, Card::Reference::WANTED_TRANSCLUSION]
-
-      has_many :referencers, :through=>:in_references
-      has_many :transcluders, :through=>:in_transclusions, :source=>:referencer
->>>>>>> load_cardlib
 
       has_many :referencees, :through=>:out_references
       has_many :transcludees, :through=>:out_transclusions, :source=>:referencee # used in tests only

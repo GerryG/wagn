@@ -1,4 +1,5 @@
 module Cardlib::References
+  include Card::ReferenceTypes
 
   def name_referencers link_name=nil
     link_name = link_name.nil? ? key : link_name.to_name.key
@@ -72,24 +73,18 @@ module Cardlib::References
 
 
   def self.included(base)
-    super
-    base.class_eval do
 
       # ---------- Reference associations -----------
       has_many :references,  :class_name => :Reference, :foreign_key => :referee_id
       has_many :inclusions, :class_name => :Reference, :foreign_key => :referee_id,
-        :conditions => { :link_type => INCLUDE }
+        :conditions => { :link_type => 'I' }
 
       has_many :out_references,  :class_name => :Reference, :foreign_key => :referer_id
-      has_many :out_inclusions, :class_name => :Reference, :foreign_key => :referer_id, :conditions => { :link_type => INCLUDE }
+      has_many :out_inclusions, :class_name => :Reference, :foreign_key => :referer_id, :conditions => { :link_type => 'I' }
 
-      has_many :referencees, :through=>:out_references
-      has_many :transcludees, :through=>:out_transclusions, :source=>:referencee # used in tests only
-
-      after_create :update_references_on_create
+      after_create  :update_references_on_create
       after_destroy :update_references_on_destroy
-      after_update :update_references_on_update
-
+      after_update  :update_references_on_update
     end
 
   end

@@ -103,6 +103,7 @@ class ApplicationController
     return false if @card.errors.empty?
     @card ||= Card.new
     view   = options[:view]   || (@card && @card.error_view  ) || :errors
+    #warn "422 status " unless options[:status] || (@card && @card.error_status)
     status = options[:status] || (@card && @card.error_status) || 422
     show view, status
     true

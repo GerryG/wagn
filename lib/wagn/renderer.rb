@@ -57,7 +57,7 @@ module Wagn
              was_name != new_cardname
           Chunks::Link===chunk and link_bound = chunk.cardname == chunk.link_text
           chunk.cardname = new_cardname
-          Card::Reference.where(:referenced_name => was_name.key).update_all( :referenced_name => new_cardname.key )
+          Card::Reference.where(:referee_key => was_name.key).update_all( :referee_key => new_cardname.key )
           chunk.link_text=chunk.cardname.to_s if link_bound
         end
       end
@@ -69,7 +69,7 @@ module Wagn
       Rails.logger.warn "update references...card:#{card.inspect}, rr: #{rendering_result}, refresh: #{refresh} where:#{caller[0..6]*', '}"
       #warn "update references...card: #{card.inspect}, rr: #{rendering_result}, refresh: #{refresh}, #{caller*"\n"}"
       return unless card && referer_id = card.id
-      Card::Reference.where( :card_id => referer_id ).delete_all
+      Card::Reference.where( :referer_id => referer_id ).delete_all
       # FIXME: why not like this: references_expired = nil # do we have to make sure this is saved?
       Card.where( :id => referer_id ).update_all( :references_expired=>nil )
       card.expire if refresh
@@ -84,18 +84,17 @@ module Wagn
         if referer_id != ( referee_id = chunk.refcard.send_if :id ) &&
            !hash.has_key?( hash_key = referee_id || chunk.refcardname.key )
 
-          ltype = (Chunks::Link===chunk)
           #warn "up ref #{hash_key}, #{referee_id}, #{chunk.inspect}, lt:#{ltype}"
           hash[ hash_key ] = {
-              :referenced_card_id  => referee_id,
-              :referenced_name => chunk.refcardname.send_if( :key ),
-              :link_type   => chunk.refcard.nil? ? ( ltype ? WANTED_LINK : WANTED_INCLUDE ) : 
-                                                   ( ltype ? LINK        : INCLUDE )
+              :referee_id  => referee_id,
+              :referee_key => chunk.refcardname.send_if( :key ),
+              :present   => chunk.refcard.nil? ? 0 : 1,
+              :link_type => (Chunks::Link===chunk) ? 'L' : 'I'
             }
         end
 
         hash
-      end.each_value { |update| Card::Reference.create! update.merge( :card_id => referer_id ) }
+      end.each_value { |update| Card::Reference.create! update.merge( :referer_id => referer_id ) }
 
     end
 

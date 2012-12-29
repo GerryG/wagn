@@ -294,7 +294,7 @@ class Card
   def destroy
     run_callbacks( :destroy ) do
       @trash_changed = true
-      self.update_attributes :trash => true
+      self.trash = true
       dependents.each do |dep|
         dep.destroy
       end

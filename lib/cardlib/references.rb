@@ -74,6 +74,7 @@ module Cardlib::References
 
   def self.included(base)
 
+    base.class_eval do
       # ---------- Reference associations -----------
       has_many :references,  :class_name => :Reference, :foreign_key => :referee_id
       has_many :inclusions, :class_name => :Reference, :foreign_key => :referee_id,
@@ -86,6 +87,5 @@ module Cardlib::References
       after_destroy :update_references_on_destroy
       after_update  :update_references_on_update
     end
-
   end
 end

@@ -1,7 +1,6 @@
 # -*- encoding : utf-8 -*-
 
-class Card
- 
+class Card < ActiveRecord::Base
   class Reference < ActiveRecord::Base
     def referencer
       Card[referer_id]
@@ -25,6 +24,5 @@ class Card
           update_all :present=>0, :referee_id => nil
       end
     end
-
   end
 end

@@ -1,5 +1,4 @@
 module Cardlib::References
-
   def name_referencers link_name=nil
     link_name = link_name.nil? ? key : link_name.to_name.key
     
@@ -89,6 +88,5 @@ module Cardlib::References
       after_destroy :update_references_on_destroy
       after_update  :update_references_on_update
     end
-
   end
 end

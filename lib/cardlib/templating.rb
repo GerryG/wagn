@@ -67,8 +67,7 @@ module Cardlib::Templating
   #
   # I kind of think so.  otherwise how do we handled patterned references in hard-templated cards?
   # I'll leave the FIXME here until the need is well documented.  -efm
-  #
-  # ps.  I think this code should be wiki references.
+
   def expire_templatee_references
     if wql = hard_templatee_spec
 
@@ -76,7 +75,9 @@ module Cardlib::Templating
         Wql.new (wql == true ? {:name => name} :  wql).merge(:return => :id)
       end
 
+      Rails.logger.warn "expire tee refs #{wql.inspect}"
       wql.run.each_slice(100) do |id_batch|
+        Rails.logger.warn "batch #{id_batch.inspect}"
         Card.where( :id => id_batch ).update_all :references_expired=>1
       end
     end

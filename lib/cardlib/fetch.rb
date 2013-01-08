@@ -18,7 +18,7 @@ module Cardlib::Fetch
     #   Options:
     #     :skip_vitual                Real cards only
     #     :skip_modules               Don't load Set modules
-    #     :loaded_trunk => card       Loads the card's trunk
+    #     :loaded_left => card       Loads the card's trunk
     #     :new => {  card opts }      Return a new card when not found
     #     :trait => :code (or [:c1, :c2] maybe?)  Fetches base card + tag(s)
     #
@@ -56,7 +56,7 @@ module Cardlib::Fetch
       end
 
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-      opts[:skip_virtual] = true if opts[:loaded_trunk]
+      opts[:skip_virtual] = true if opts[:loaded_left]
 
       if Integer===mark
         raise "fetch of missing card_id #{mark}" if card.nil?
@@ -110,9 +110,13 @@ module Cardlib::Fetch
     end
 
     def expire name
-      if card = Card.cache.read( name.to_name.key )
-        card.expire
+      #note: calling instance method breaks on dirty names
+      key = name.to_name.key
+      if card = Card.cache.read( key ) 
+        Card.cache.delete key
+        Card.cache.delete "~#{card.id}" if card.id
       end
+      Rails.logger.warn "expiring #{name}, #{card.inspect}"
     end
 
     # set_names reverse map (cached)
@@ -177,6 +181,7 @@ module Cardlib::Fetch
   end
 
   def expire
+    Rails.logger.warn "expiring i:#{id}, #{inspect}"
     Card.cache.delete key
     Card.cache.delete "~#{id}" if id
   end

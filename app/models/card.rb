@@ -1,16 +1,17 @@
 # -*- encoding : utf-8 -*-
+
 class Card < ActiveRecord::Base
-  require 'card/revision'
-  require 'card/reference'
+  require_dependency 'card/revision'
+  require_dependency 'card/reference'
 end
 
-require 'smart_name'
+require_dependency 'smart_name'
 SmartName.codes= Wagn::Codename
 SmartName.params= Wagn::Conf
 SmartName.lookup= Card
 SmartName.session= proc { Account.as_card.name }
 
-class Card < ActiveRecord::Base
+class Card
 
   has_many :revisions, :order => :id #, :foreign_key=>'card_id'
   belongs_to :card, :class_name => 'Card', :foreign_key => :creator_id
@@ -383,7 +384,7 @@ class Card < ActiveRecord::Base
             array + card.dependents
           end
         end
-      Rails.logger.warn "dependents[#{inspect}] #{@dependents.inspect}"
+      #Rails.logger.warn "dependents[#{inspect}] #{@dependents.inspect}"
     end
     @dependents
   end
@@ -568,7 +569,7 @@ class Card < ActiveRecord::Base
 
   def inspect
     "#<#{self.class.name}" + "##{id}" +
-    "###{object_id}" + "lf:#{tag_id}rt:#{tag_id}" +
+    "###{object_id}" + #"k#{left_id}g#{right_id}" +
     "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
     "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{frozen? ? 'Fz' : readonly? ? 'RdO' : ''}" +
     "#{@virtual &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }}" +
@@ -579,10 +580,10 @@ class Card < ActiveRecord::Base
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   # INCLUDED MODULES
 
-  include Wagn::Model
+  include Cardlib
 
   after_save :after_save_hooks
-  # moved this after Wagn::Model inclusions because aikido module needs to come after Paperclip triggers,
+  # moved this after Cardlib inclusions because aikido module needs to come after Paperclip triggers,
   # which are set up in attach model.  CLEAN THIS UP!!!
 
   def after_save_hooks # don't move unless you know what you're doing, see above.
@@ -660,7 +661,7 @@ class Card < ActiveRecord::Base
           "may not contain any of the following characters: #{ SmartName.banned_array * ' ' }"
       end
       # this is to protect against using a plus card as a tag
-      if cdname.junction? and rec.simple? and Account.as_bot { Card.count_by_wql :tag_id=>rec.id } > 0
+      if cdname.junction? and rec.simple? and Account.as_bot { Card.count_by_wql :right_id=>rec.id } > 0
         rec.errors.add :name, "#{value} in use as a tag"
       end
 

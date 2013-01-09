@@ -371,6 +371,8 @@ class Card < ActiveRecord::Base
     left args or Card.new args.merge(:name=>cardname.left)
   end
 
+  def left_id; trunk_id end
+  def right_id; tag_id end
 
   def dependents
     return [] if new_card?

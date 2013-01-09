@@ -7,7 +7,7 @@ class AdminController < ApplicationController
   layout 'application'
 
   def setup
-    raise(Wagn::Oops, "Already setup") if Account.first_login? && !User[:first]
+    raise(Wagn::Oops, "Already setup") if Account.first_login?
     Wagn::Conf[:recaptcha_on] = false
     if request.post?
       #Card::User  # wtf - trigger loading of Card::User, otherwise it tries to use U

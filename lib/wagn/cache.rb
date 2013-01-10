@@ -11,42 +11,58 @@ module Wagn
     end
   end
 
+  class NilCache
+    def initialize                  ; self end
+    def method_missing method, *args; nil  end
+  end
 
   class Cache
-    @@prepopulating     = (Rails.env == 'cucumber') ? { Card => true } : {}
-    @@using_rails_cache = Rails.env =~ /^cucumber|test$/
+
+    # FIXME: move the initial login test to Account
+    FIRST_KEY = 'first_login'
+
+    def first_login= status=false
+      @first_login = write_global FIRST_KEY, status
+    end
+
+    def first_login?
+      if @first_login.nil?
+        first_login = store.read prefix + FIRST_KEY
+      end
+      @first_login
+    end
+
     @@prefix_root       = Wagn::Application.config.database_configuration[Rails.env]['database']
     @@frozen            = {}
     @@cache_by_class    = {}
 
-    cattr_reader :cache_by_class, :prepopulating, :frozen, :prefix_root
+    cattr_reader :frozen, :prefix_root
 
     class << self
+      def prepopulating ; Rails.env == 'cucumber' end
+      def use_rails_cache?; !%w{ cucumber test }.member? Rails.env end
+
       def [] klass
-        raise "nil klass" if klass.nil?
-        cache_by_class[klass] ||= new :class=>klass, :store=>(@@using_rails_cache ? nil : Rails.cache)
+        if @@cache_by_class[klass].nil?
+          self.new klass
+        end
+        raise("????") if @@cache_by_class[klass].nil?
+        @@cache_by_class[klass]
       end
 
       def renew
-        cache_by_class.keys do |klass|
-          if klass.cache
-            cache_by_class[klass].system_prefix = system_prefix(klass)
-          else
-            raise "renewing nil cache: #{klass}"
-          end
-        end
-        reset_local if prepopulating.empty?
+        reset_local unless self.prepopulating
       end
 
       def system_prefix klass
-        "#{ prefix_root }/#{ klass }"
+        klass.system_prefix
       end
 
-      def restore klass=nil
-        klass=Card if klass.nil?
-        raise "no klass" if klass.nil?
+      def restore klass=Card
         reset_local
-        cache_by_class[klass] = Marshal.load(frozen[klass]) if cache_by_class[klass] and prepopulating[klass]
+        if @@cache_by_class[klass] and self.prepopulating and klass==Card
+          @@cache_by_class[klass] = Marshal.load frozen[klass]
+        end
       end
 
       def generate_cache_id
@@ -54,8 +70,8 @@ module Wagn
       end
 
       def reset_global
-        cache_by_class.keys.each do |klass|
-          next unless cache = klass.cache
+        @@cache_by_class.keys do |klass, cache|
+          Rails.logger.warn "reset global #{klass}, #{cache}"
           cache.reset hard=true
         end
         Wagn::Codename.reset_cache
@@ -63,30 +79,35 @@ module Wagn
 
       private
 
-
       def reset_local
-        #warn "reset local #{cache_by_class.map{|k,v|k.to_s+' '+v.to_s}*", "}"
-        cache_by_class.each{ |cc, cache|
+        @@cache_by_class.each{ |cc, cache|
           if Wagn::Cache===cache
             cache.reset_local
-          else warn "reset class #{cc}, #{cache.class} #{caller[0..8]*"\n"} ???" end
+          end
         }
+            
       end
 
     end
 
-    attr_reader :prefix, :store, :klass
-    attr_accessor :local
+    attr_reader :local
 
-    def initialize(opts={})
-      #warn "new cache #{opts.inspect}"
-      @klass = opts[:class]
-      @store = opts[:store]
-      @local = Hash.new
-      self.system_prefix = opts[:prefix] || self.class.system_prefix(opts[:class])
-      Rails.logger.warn "nil class for cache #{caller*"\n"}" if klass.nil?
-      cache_by_class[klass] = self
-      prepopulate klass if prepopulating[klass]
+    def initialize(klass=Card)
+      opts, klass = Hash==klass ? [klass, (klass[:class] || Card)] : [{}, klass]
+      @use_rails_cache = opts[:use_rails_cache]
+      #warn "init cache #{self} opts: #{opts.inspect}, k:#{klass}, K:#{@klass}"
+      @klass ||= klass
+      @local = {}
+      @stats = {}
+      @times = {}
+      @store = nil
+      @stat_count = 0
+      self.cache_id  # cause it to write the prefix related vars
+
+      @@cache_by_class[@klass] = self
+
+      self.class.prepopulating and @klass == Card and prepopulate @klass 
+      self
     end
 
     def prepopulate klass
@@ -96,86 +117,136 @@ module Wagn
       frozen[klass] = Marshal.dump Cache[klass]
     end
 
-    def system_prefix=(system_prefix)
-      @system_prefix = system_prefix
+    def store
       if @store.nil?
-        @prefix = system_prefix + self.class.generate_cache_id + "/"
-      else
-        @system_prefix += '/' unless @system_prefix[-1] == '/'
-        @cache_id = @store.fetch(@system_prefix + "cache_id") do
-          self.class.generate_cache_id
-        end
-        @prefix = @system_prefix + @cache_id + "/"
+        @store = @use_rails_cache || Cache.use_rails_cache? ? Rails.cache : NilCache.new
+      end
+      @store
+    end
+
+    def cache_id_key
+        @id_key ||= system_prefix + '/cache_id'
+    end
+
+    def cache_id
+      if @cache_id.nil?
+        @cache_id = self.class.generate_cache_id
+        store.write cache_id_key, @cache_id
+      end
+      @cache_id
+    end
+
+    def system_prefix
+      "#{ Cache.prefix_root }/#{ @klass.to_s }"
+    end
+
+    def prefix
+      "#{ system_prefix }/#{ cache_id }/"
+    end
+
+    # ---------------- STATISTICS ----------------------
+
+    INTERVAL = 10000
+
+    def stat key, t
+      @stats[key] ||= 0
+      @times[key] ||= 0
+      @stats[key] += 1
+      @times[key] += (Time.now - t)
+      if (@stat_count += 1) % INTERVAL == 0
+        Rails.logger.warn %{stats[#{@stat_count}] Local size: #{@local.length} ----------------------
+#{        @stats.keys.map do |key| %{#{
+            ( key.to_s + ' '*16 )[0,20]
+            } -> n: #{
+            ( ' '*4 + @stats[key].to_s )[-5,5]
+            } avg: #{
+            (@times[key]/@stats[key]).to_s.gsub( /^([^\.]*\.\d{3})\d*(e?.*)$/, "#{$1}#{$2.nil? ? '' : ' ' + $2}" )
+          } } end * "\n" }
+
+        
+}
       end
     end
+
+    #def stat *a; end  # to disable stat collections
 
     def read key
-      return @local[key] unless @store
-      fetch_local(key) do
-        @store.read(@prefix + key)
+      start = Time.now
+      if @local.has_key?(key)
+        l = @local[key]
+        stat (Integer===key ? (l.nil? ? :id_nil : :id_hit ) : (l.nil? ? :key_nil : :key_hit )), start
+        return l
       end
+      stat :id_miss, start if Integer===key
+      return if Integer===key
+
+      obj = store.read prefix + key
+      obj.reset_mods if obj.respond_to? :reset_mods
+      stat (obj.nil? ? :global_miss : :global_hit), start
+
+      astart = Time.now
+      Card===obj and  i=obj.id.to_i and @local[i] = obj and
+        stat :id_read_store, astart
+      obj
     end
 
-    def write key, value
-      self.write_local(key, value)
-      #@store.write(@prefix + key, Marshal.dump(value))  if @store
-      @store.write(@prefix + key, value) if @store
-      value
+    def read_local key
+      start = Time.now
+      l=@local[key]
+      stat :read_local, start
+      l
     end
 
-    def write_local(key, value) @local[key] = value end
-    def read_local(key)         @local[key]         end
-
-    def fetch key, &block
-      fetch_local(key) do
-        if @store
-          @store.fetch(@prefix + key, &block)
-        else
-          block.call
-        end
+    def write key, obj
+      start = Time.now
+      if Card===obj
+        id = obj.id.to_i
+        id != 0 and @local[ id ] = obj
+        stat (id == 0 ? :noid_local : :wr_local_id), start
       end
+
+      @local[key] = write_global key, obj
+      stat :write, start
+      obj
+    end
+
+    def write_global key, obj
+      start = Time.now
+      store.write "#{ prefix }#{ key }", obj
+      stat :write_global, start
+      obj
     end
 
     def delete key
-      @local.delete key
-      @store.delete(@prefix + key)  if @store
+      obj = @local.delete key
+      @local.delete obj.id if Card===obj
+      store.delete prefix + key
     end
 
     def dump
-      p "dumping local...."
+      Rails.logger.warn "dumping local...."
       @local.each do |k, v|
-        p "#{k} --> #{v.inspect[0..30]}"
+        Rails.logger.warn "#{k} --> #{v.inspect[0..30]}"
       end
     end
 
     def reset_local
+      @reset_last ||= Time.now
+      stat :reset_local, @reset_last
+      @reset_last = Time.now
       @local = {}
     end
 
     def reset hard=false
       reset_local
-      @cache_id = self.class.generate_cache_id
-      if @store
-        if hard
-          @store.clear
-        else
-          @store.write @system_prefix + "cache_id", @cache_id
-        end
+      @cache_id = nil
+      if hard
+        store.clear
+      else
+        cache_id # accessing it will generate and write the new id
       end
-      @prefix = @system_prefix + @cache_id + "/"
     end
 
-    private
-    def fetch_local key
-      if @local.has_key?(key)
-        @local[key]
-      else
-        val = yield
-        val.reset_mods if val.respond_to?(:reset_mods)
-        #why does this happen here?
-        @local[key] = val
-      end
-    end
   end
 end
 

@@ -57,6 +57,7 @@ module Cardlib::TrackedAttributes
         existing_card.instance_variable_set :@cardname, tr_name.to_name
         existing_card.set_tracked_attributes
         #Rails.logger.debug "trash renamed collision: #{tr_name}, #{existing_card.name}, #{existing_card.cardname.key}"
+        existing_card = existing_card.refresh
         existing_card.save!
       #else note -- else case happens when changing to a name variant.  any special handling needed?
       end
@@ -82,7 +83,7 @@ module Cardlib::TrackedAttributes
     self.type_id_without_tracking= new_type_id
     return true if new_card?
     on_type_change # FIXME this should be a callback
-    if hard_template? && !type_template?
+    if is_hard_template? && !type_template?
       hard_templatee_names.each do |templatee_name|
         tee = Card[templatee_name]
         tee.allow_type_change = true  #FIXME? this is a hacky way around the standard validation

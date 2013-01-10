@@ -1,8 +1,8 @@
 # -*- encoding : utf-8 -*-
+
 class ApplicationController < ActionController::Base
-  # This is often needed for the controllers to work right
-  # FIXME: figure out when/why this is needed and why the tests don't fail
-  Card
+  # This was in all the controllers, now it is inherited here
+  #Card
 
   include AuthenticatedSystem
   include LocationHelper
@@ -37,9 +37,9 @@ class ApplicationController < ActionController::Base
 
       Wagn::Cache.renew
 
-      #warn "set curent_user (app-cont) #{self.session_user}, U.cu:#{Account.user_id}"
-      Account.user = self.session_user || Card::AnonID
-      #warn "set curent_user a #{session_user}, U.cu:#{Account.user_id}"
+      #warn "set curent_user (app-cont) #{self.session_id}, U.cu:#{Account.user_id}"
+      Account.user = self.session_id || Card::AnonID
+      #warn "set curent_user a #{session_id}, U.cu:#{Account.user_id}"
 
       # RECAPTCHA HACKS
       Wagn::Conf[:recaptcha_on] = !Account.logged_in? &&     # this too
@@ -91,16 +91,17 @@ class ApplicationController < ActionController::Base
   end
 
   def render_errors options={}
-    if @card
-      return false if @card.errors.empty?
+    @card ||= Card.new
+    #warn "render_errors #{@card.inspect}"
+    if @card.errors.empty?
+      false
     else
-      @card = Card.new
-      @card.errors.add( :exception, options[:message] ) if options[:message]
+      message_opt = options[:message] and @card.errors.add( :exception, options[:message] )
+      view   = options[:view]   || @card.error_view   || :errors
+      status = options[:status] || @card.error_status || 422
+      show view, status
+      true
     end
-    view   = options[:view]   || @card.error_view   || :errors
-    status = options[:status] || @card.error_status || 422
-    show view, status
-    true
   end
 
   def show view = nil, status = 200
@@ -149,7 +150,8 @@ class ApplicationController < ActionController::Base
 
 
   rescue_from Exception do |exception|
-    Rails.logger.info "exception = #{exception.class}: #{exception.message}"
+    Rails.logger.info "exception = #{exception.class}: #{exception.message} #{exception.backtrace*"\n"}"
+
 
     view, status = case exception
     when Wagn::NotFound, ActiveRecord::RecordNotFound

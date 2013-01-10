@@ -78,9 +78,9 @@ class Account
       user_id != Card::AnonID
     end
 
-    def no_logins?()
-      c = Card.cache
-      !c.read('no_logins').nil? ? c.read('no_logins') : c.write('no_logins', (User.count < 3))
+    def first_login?()
+       Card.cache.first_login? || 
+         Card.cache.first_login= User.where(:status => 'active').count > 2
     end
 
     def always_ok?

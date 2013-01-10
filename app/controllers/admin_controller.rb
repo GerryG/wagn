@@ -1,13 +1,12 @@
 # -*- encoding : utf-8 -*-
-class AdminController < ApplicationController
-  # This is often needed for the controllers to work right
-  # FIXME: figure out when/why this is needed and why the tests don't fail
-  Card
 
+require_dependency 'card'
+
+class AdminController < CardController
   layout 'application'
 
   def setup
-    raise(Wagn::Oops, "Already setup") unless Account.no_logins? && !User[:first]
+    raise(Wagn::Oops, "Already setup") if Account.first_login? && !User[:first]
     Wagn::Conf[:recaptcha_on] = false
     if request.post?
       #Card::User  # wtf - trigger loading of Card::User, otherwise it tries to use U
@@ -21,8 +20,8 @@ class AdminController < ApplicationController
           roles_card = Card.fetch_or_new(@card.cardname.trait_name(:roles))
           roles_card.content = "[[#{Card[Card::AdminID].name}]]"
           roles_card.save
-          self.session_user = @card
-          Card.cache.delete 'no_logins'
+          self.session = @card
+          Card.cache.first_login= true
           flash[:notice] = "You're good to go!"
           redirect_to Card.path_setting('/')
         else
@@ -37,8 +36,8 @@ class AdminController < ApplicationController
 
   def show_cache
     key = params[:id].to_name.key
-    @cache_card = Card.fetch(key)
-    @db_card = Card.find_by_key(key)
+    @cache_card = Card.fetch key
+    @db_card = Card.find_by_key key
   end
 
   def clear_cache

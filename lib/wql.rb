@@ -3,7 +3,7 @@ class Wql
 
   ATTRIBUTES = {
 
-    :basic      =>  %w{ name type type_id content id key updater_id left_id right_id creator_id updater_id codename },
+    :basic      =>  %w{ name type type_id content id key updater_id trunk_id left_id tag_id right_id creator_id updater_id codename },
     :custom     =>  %w{ edited_by editor_of edited last_editor_of extension_type
        last_edited_by creator_of created_by member_of member role found_by sort
        part left right plus left_plus right_plus or match complete not and },
@@ -213,9 +213,9 @@ class Wql
     def or(val)    subcondition(val, :conj=>:or)                                    end
     def not(val)   merge field(:id) => subspec(val, {:return=>'id'}, negate=true)   end
 
-    def left(val)  merge field(:left_id) => subspec(val)                           end
-    def right(val) merge field(:right_id  ) => subspec(val)                           end
-    def part(val)  subcondition({ :left => val, :right => val.clone }, :conj=>:or)  end
+    def left(val)  merge field(:left_id) => subspec(val)                            end
+    def right(val) merge field(:right_id  ) => subspec(val)                         end
+    def part(val)  subcondition({ :left => val, :right => (Integer===val) ? val : val.clone }, :conj=>:or)  end
 
     def left_plus(val)
       part_spec, junc_spec = val.is_a?(Array) ? val : [ val, {} ]

@@ -82,22 +82,14 @@ module Wagn
 
     attr_reader :local
 
-    def initialize(klass=Card)
-      opts, klass = Hash==klass ? [klass, (klass[:class] || Card)] : [{}, klass]
-      @use_rails_cache = opts[:use_rails_cache]
-      #warn "init cache #{self} opts: #{opts.inspect}, k:#{klass}, K:#{@klass}"
-      @klass ||= klass
-      @local = {}
-      @stats = {}
-      @times = {}
-      @store = nil
-      @stat_count = 0
-      self.cache_id  # cause it to write the prefix related vars
-
-      @@cache_by_class[@klass] = self
-
-      self.class.prepopulating? and @klass == Card and init_frozen @klass
-      self
+    def initialize opts={}
+      #warn "new cache #{opts.inspect}"
+      @klass = opts[:class]
+      @store = opts[:store]
+      @local = Hash.new
+      self.system_prefix = opts[:prefix] || self.class.system_prefix(opts[:class])
+      cache_by_class[klass] = self
+      prepopulate klass if prepopulating[klass]
     end
 
     def init_frozen klass
@@ -112,7 +104,8 @@ module Wagn
       frozen[klass] = Marshal.dump cache
     end
 
-    def store
+    def system_prefix= system_prefix
+      @system_prefix = system_prefix
       if @store.nil?
         @store = @use_rails_cache || Cache.use_rails_cache? ? Rails.cache : NilCache.new
       end

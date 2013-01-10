@@ -378,7 +378,7 @@ describe Wagn::Renderer::Xml, "" do
     context "*version" do
       it "should have an X.X.X version" do
         render_card(:raw, :name=>'*version').
-          match(/\d\.\d\.\w+/ ).should_not be_nil
+          match(/\d\.\d+\.\w+/ ).should_not be_nil
       end
     end
 
@@ -435,8 +435,8 @@ describe Wagn::Renderer::Xml, "" do
     end
 
     it "replace references should work on inclusions inside links" do
-      card = Card.create!(:name=>"test", :content=>"[[test{{test}}]]"  )
-      assert_equal "[[test{{best}}]]", Wagn::Renderer::Xml.new(card).replace_references("test", "best" )
+      card = Card.create!(:name=>"test", :content=>"[[foo|test{{test}}]]"  )
+      assert_equal "[[foo|test{{best}}]]", card.replace_references("test", "best" )
     end
   end
 

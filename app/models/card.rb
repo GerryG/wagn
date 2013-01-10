@@ -1,18 +1,17 @@
 # -*- encoding : utf-8 -*-
+
 class Card < ActiveRecord::Base
-  require 'card/revision'
-  require 'card/reference'
+  require_dependency 'card/revision'
+  require_dependency 'card/reference'
 end
 
-require 'smart_name'
+require_dependency 'smart_name'
 SmartName.codes= Wagn::Codename
 SmartName.params= Wagn::Conf
 SmartName.lookup= Card
 SmartName.session= proc { Account.as_card.name }
 
-class Card < ActiveRecord::Base
-  Revision
-  Reference
+class Card
 
   has_many :revisions, :order => :id #, :foreign_key=>'card_id'
   belongs_to :card, :class_name => 'Card', :foreign_key => :creator_id
@@ -22,7 +21,7 @@ class Card < ActiveRecord::Base
     :update_referencers, :allow_type_change, # seems like wrong mechanisms for this
     :cards, :loaded_left, :nested_edit, # should be possible to merge these concepts
     :error_view, :error_status #yuck
-      
+
   attr_writer :update_read_rule_list
   attr_reader :type_args, :broken_type
 
@@ -54,7 +53,7 @@ class Card < ActiveRecord::Base
             args['type_id']       == cc.type_args[:type_id]  and
             args['loaded_left']   == cc.loaded_left
 
-        args['type_id'] = cc.type_id
+          args['type_id'] = cc.type_id
           return cc.send( :initialize, args )
         end
       end
@@ -215,7 +214,7 @@ class Card < ActiveRecord::Base
     self.creator_id = self.updater_id if new_card?
   end
 
-  before_validation :on => :create do
+  after_validation :on => :create do
     pull_from_trash if new_record?
     self.trash = !!trash
     true
@@ -368,7 +367,7 @@ class Card < ActiveRecord::Base
       Card.fetch cardname.left, *args
     end
   end
-  
+
   def right *args
     simple? ? nil : Card.fetch(cardname.right, *args)
   end
@@ -403,7 +402,7 @@ class Card < ActiveRecord::Base
             array + card.dependents
           end
         end
-      Rails.logger.warn "dependents[#{inspect}] #{@dependents.inspect}"
+      #Rails.logger.warn "dependents[#{inspect}] #{@dependents.inspect}"
     end
     @dependents
   end
@@ -624,7 +623,7 @@ class Card < ActiveRecord::Base
       Account.as_bot do
         rcard=fetch(:trait=>:roles) and
           items = rcard.item_cards(:limit=>0).map(&:id) and
-          @all_roles += items 
+          @all_roles += items
       end
     end
     #warn "aroles #{inspect}, #{@all_roles.inspect}"
@@ -657,15 +656,14 @@ class Card < ActiveRecord::Base
 
   def inspect
     "#<#{self.class.name}" + "##{id}" +
-    "###{object_id}" + "lf:#{tag_id}rt:#{tag_id}" +
+    "###{object_id}" + #"k#{left_id}g#{right_id}" +
     "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
     (no_account? ? '' : "Usr[#{@account}]") +
     #(errors.any? ? '*Errors*' : 'noE') +
     (errors.any? ? "<E*#{errors.full_messages*', '}*>" : '') +
     "{#{references_expired==1 ? 'Exp' : ''}:" +
     "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{frozen? ? 'Fz' : readonly? ? 'RdO' : ''}" +
-    "#{@virtual &&'virtual:'||''}#{@set_mods_loaded.inspect #&&'I'||'!loaded'
-    }}" +
+    "#{@virtual &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }:#{references_expired.inspect}}" +
     #" Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}" +
     '>'
   end
@@ -673,11 +671,10 @@ class Card < ActiveRecord::Base
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   # INCLUDED MODULES
 
-  include Wagn::Model
+  include Cardlib
 
   after_save :save_account, :after_save_hooks
-
-  # moved this after Wagn::Model inclusions because aikido module needs to come after Paperclip triggers,
+  # moved this after Cardlib inclusions because aikido module needs to come after Paperclip triggers,
   # which are set up in attach model.  CLEAN THIS UP!!!
 
   def after_save_hooks # don't move unless you know what you're doing, see above.
@@ -757,7 +754,7 @@ class Card < ActiveRecord::Base
       # this is to protect against using a plus card as a tag
       # if right_id is non-nil, and it has a simple cardname, we must be in a rename from junction to
       # existing simple? card.
-      if card.right_id and card.cardname.simple? and Account.as_bot { Card.count_by_wql :tag_id=>card.id } > 0
+      if card.right_id and card.cardname.simple? and Account.as_bot { Card.count_by_wql :right_id=>card.id } > 0
         card.errors.add :name, "#{name} in use as a tag"
       end
 

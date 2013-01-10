@@ -1,10 +1,12 @@
 # -*- encoding : utf-8 -*-
+#
 class InvitationError < StandardError; end
 
-class AccountController < ApplicationController
+class AccountController < CardController
   # This is often needed for the controllers to work right
   # FIXME: figure out when/why this is needed and why the tests don't fail
   Card
+  Card::Reference
 
   before_filter :login_required, :only => [ :invite, :update ]
   helper :wagn
@@ -58,8 +60,7 @@ class AccountController < ApplicationController
         Account.as_bot do
           Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'
         end
-
-        redirect_id = REQUEST_ID
+        wagn_redirect Card.setting( redirect_cardname )
       end
       #warn "errors #{@account.errors.full_messages*", "}"
       Rails.logger.warn "errors? #{@card.inspect}"
@@ -149,7 +150,6 @@ class AccountController < ApplicationController
 
   def signout
     self.session_account = nil
-
     flash[:notice] = "Successfully signed out"
 
     redirect_to Card.path_setting('/')  # previous_location here can cause infinite loop.  ##  Really?  Shouldn't.  -efm

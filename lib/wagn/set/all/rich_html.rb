@@ -21,8 +21,8 @@ module Wagn
 
       layout_content = get_layout_content args
 
-      args[:params] = params # this is to pass params to inclusions.  let's find a cleaner way!
-      process_content layout_content, args
+      args[:params] = params # EXPLAIN why this is needed -- try without it
+      process_content_s layout_content, args
     end
 
     define_view :content do |args|
@@ -32,10 +32,12 @@ module Wagn
     end
 
     define_view :titled do |args|
-      hidden = { :menu_link=>true, :closed_link=>true }
-#      hidden = { :menu_link=>true, :type=>true, :closed_link=>true }
+      unless args[:show] and args[:show].member? 'menu_link'  #need to simplify this pattern
+        args[:hide] ||= ['menu_link']
+      end
+      
       wrap :titled, args do
-        _render_header( args.merge :default_hidden => hidden ) +
+        _render_header( args ) +
         wrap_content( :titled ) do
           _render_core args
         end
@@ -49,6 +51,10 @@ module Wagn
     end
 
     define_view :open do |args|
+      unless args[:hide] and args[:hide].member? 'closer'
+        args[:show] ||= ['closer']
+      end
+      
       wrap :open, args.merge(:frame=>true) do
         %{
            #{ _render_header args }
@@ -60,7 +66,6 @@ module Wagn
     end
 
     define_view :header do |args|
-      hidden = args.delete(:default_hidden) || {}
       %{
       <div class="card-header">
         #{ _optional_render :menu_link, args, hidden[:menu_link] }
@@ -72,12 +77,13 @@ module Wagn
       #{ _optional_render :type, args, hidden[:type] }
     end
 
-    define_view :closed_link do |args|
-      link_to raw('&otimes;'), path(:read, :view=>:closed), :title => "close #{card.name}", :class => "toggler slotter", :remote => true
+    define_view :closer do |args|
+      link_to '', path(:read, :view=>:closed), :title => "close #{card.name}", :remote => true,
+        :class => "ui-icon ui-icon-circle-triangle-s toggler slotter"
     end
 
     define_view :menu_link do |args|
-      %{<div class="card-menu-link">#{ _render_menu }&equiv;</div>}
+      %{<div class="card-menu-link">#{ _render_menu }<a class="ui-icon ui-icon-gear"></a></div>}
     end
 
     define_view :menu do |args|
@@ -113,6 +119,19 @@ module Wagn
               %{<ul>#{ admin_items.map { |i| "<li>#{i}</li>" } * '' } </ul>}
             end
             }
+            </ul>         
+          </li>
+          <li>#{ link_to_action 'advanced', :options, :class=>'slotter' }
+            <ul>
+              <li>#{ link_to_action 'rules', :options, :class=>'slotter' }</li>
+              <li>#{ link_to_page raw("#{card.type_name} &crarr;"), card.type_name }</li>
+              #{
+                card.cardname.piece_names.map do |piece|
+                  #"<li>#{ link_to_page raw("#{goto_icon} #{piece}"), piece }</li>"
+                  "<li>#{ link_to_page raw("#{piece} &crarr;"), piece }</li>"
+                end.join "\n"
+              }
+            </ul>    
           </li>
           #{
             if Account.logged_in? && !card.new_card?
@@ -134,7 +153,8 @@ module Wagn
       wrap :closed, args do
         %{
           <div class="card-header">
-            #{ link_to raw('&oplus;'), path(:read, :view=>:open), :title => "open #{card.name}", :class => "toggler slotter", :remote => true }
+            #{ link_to '', path(:read, :view=>:open), :title => "open #{card.name}", :remote => true,
+              :class => "ui-icon ui-icon-circle-triangle-e toggler slotter" }
             #{ _render_title }
           </div>
           #{ wrap_content( :closed ) { _render_closed_content } }
@@ -181,7 +201,7 @@ module Wagn
               #{ hidden_field_tag :success, card.rule(:thanks) || '_self' }
               #{
               case
-              when name_ready                  ; _render_header + hidden_field_tag( 'card[name]', card.name )
+              when name_ready                  ; _render_title + hidden_field_tag( 'card[name]', card.name )
               when card.rule_card( :autoname ) ; ''
               else                             ; _render_name_editor
               end
@@ -222,7 +242,7 @@ module Wagn
     define_view :edit, :perms=>:update, :tags=>:unknown_ok do |args|
       confirm_delete = "Are you sure you want to delete #{card.name}?"
       if dependents = card.dependents and dependents.any?
-        confirm_delete +=  %{ \n\nThat would mean removing #{dependents.size} related pieces of information. }
+        confirm_delete +=  %{ \n\nThat would mean removing #{dependents.size} related piece(s) of information. }
       end
 
       wrap :edit, args.merge(:frame=>true) do
@@ -278,20 +298,20 @@ module Wagn
               #{ f.hidden_field :update_referencers, :class=>'update_referencers'   }
               #{ hidden_field_tag :success, '_self'  }
               #{ hidden_field_tag :old_name, card.name }
-              #{ hidden_field_tag :confirmed, 'false'  }
               #{ hidden_field_tag :referers, referers.size }
               <div class="confirm-rename hidden">
                 <h1>Are you sure you want to rename <em>#{card.name}</em>?</h1>
                 #{ %{ <h2>This change will...</h2> } if referers.any? || dependents.any? }
                 <ul>
                   #{ %{<li>automatically alter #{ dependents.size } related name(s). } if dependents.any? }
-                  #{ %{<li>break at least #{referers.size} reference(s) to this name.} if referers.any? }
+                  #{ %{<li>affect at least #{referers.size} reference(s) to "#{card.name}".} if referers.any? }
                 </ul>
                 #{ %{<p>You may choose to <em>ignore or fix</em> the references. Fixing will update references to use the new name.</p>} if referers.any? }
               </div>
               <fieldset>
                 <div class="button-area">
-                  #{ submit_tag 'Rename', :class=>'edit-name-submit-button' }
+                  #{ submit_tag 'Rename and Update', :class=>'renamer-updater hidden' }
+                  #{ submit_tag 'Rename', :class=>'renamer' }
                   #{ button_tag 'Cancel', :class=>'edit-name-cancel-button slotter', :type=>'button', :href=>path(:edit, :id=>card.id)}
                 </div>
               </fieldset>
@@ -336,7 +356,7 @@ module Wagn
       end
     end
 
-    define_view :edit_in_form, :tags=>:unknown_ok do |args|
+    define_view :edit_in_form, :perms=>:update, :tags=>:unknown_ok do |args|
       eform = form_for_multi
       content = content_field eform, :nested=>true
       attribs = %{ class="card-editor RIGHT-#{ card.cardname.tag_name.safe_key }" }

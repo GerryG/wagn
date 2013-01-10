@@ -5,13 +5,13 @@ require File.expand_path(File.join(File.dirname(__FILE__), "..", "support", "pat
 Given /^I log in as (.+)$/ do |user_card_name|
   # FIXME: define a faster simulate method ("I am logged in as")
   account=Card[user_card_name]
-  @session_account = account.id
+  @session_account_id = account.id
   account=account.fetch :trait => :account
   user = account.account
   email = user.email
   visit "/account/signin"
   fill_in("login", :with=> email )
-  fill_in("password", :with=> account.account.login.split("_")[0]+"_pass")
+  fill_in("password", :with=> user.login.split("_")[0]+"_pass")
   click_button("Sign me in")
   page.should have_content(user_card_name)
 end
@@ -46,9 +46,9 @@ end
 
 
 When /^(.*) edits? "([^\"]*)" setting (.*) to "([^\"]*)"$/ do |username, cardname, field, content|
-  logged_in_as(username) do 
+  logged_in_as(username) do
     visit "/card/edit/#{cardname.to_name.url_key}"
-    fill_in 'card[content]', :with=>content 
+    fill_in 'card[content]', :with=>content
     click_button("Submit")
   end
 end
@@ -119,9 +119,9 @@ def create_card(username,cardtype,cardname,content="")
 end
 
 def logged_in_as(username)
-  sameuser = (username == "I" or @session_account && Card[@session_account].name == username)
+  sameuser = (username == "I" or @session_account_id && Card[@session_account_id].name == username)
   unless sameuser
-    @saved_account = @session_account
+    @saved_account = @session_account_id
     step "I log in as #{username}"
   end
   yield
@@ -170,6 +170,14 @@ end
 Then /^In (.*) I should not see "([^\"]*)"$/ do |section, text|
   within scope_of(section) do
     page.should_not have_content(text)
+  end
+end
+
+Then /^In (.*) I should (not )?see a ([^\"]*) with class "([^\"]*)"$/ do |selection, neg, element, selector|
+  # checks for existence of a element with a class in a selection context
+  element = 'a' if element == 'link'
+  within scope_of(selection) do
+    page.send ( neg ? :should_not : :should ), have_css( [ element, selector ] * '.' )
   end
 end
 

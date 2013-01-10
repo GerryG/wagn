@@ -5,10 +5,10 @@ module AuthenticatedSystem
   end
 
   # Accesses the current user from the session.
-  def session_account
-    Rails.logger.warn "session is #{@session_account}, #{session.inspect}";
-    @session_account ||= session[:user]
-    Rails.logger.warn "session is #{@session_account}"; @session_account
+  def session_account_id
+    Rails.logger.warn "session is #{@session_account_id}, #{session.inspect}";
+    @session_account_id ||= session[:user]
+    Rails.logger.warn "session is #{@session_account_id}"; @session_account_id
   rescue Exception => e
     Rails.logger.warn "except #{e.inspect}, #{e.backtrace*"\n"}"
     session[:user] = nil
@@ -16,12 +16,8 @@ module AuthenticatedSystem
   end
 
   # Store the given user in the session.
-  def session_account= new_account
-    @session_account = session[:user] = new_account
-    Account.session = @session_account || Card::AnonID
-    Rails.logger.warn "Logged in: #{new_account.inspect}, #{@session_account.inspect}, #{Account.authorized}"
-    warn "session set #{@session_account}"; @session_account
-    @session_account
+  def session_account= new_user
+    @session_account_id = session[:user] = ( Card==new_user ? card.id : new_user )
   end
 
   #
@@ -70,6 +66,6 @@ module AuthenticatedSystem
   # available as ActionView helper methods.
   def self.included(base)
     super
-    base.send :helper_method, :session_account, :logged_in?
+    base.send :helper_method, :session_account_id, :logged_in?
   end
 end

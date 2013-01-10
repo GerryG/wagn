@@ -1,7 +1,10 @@
 # -*- encoding : utf-8 -*-
+
+require_dependency 'wagn/sets'
+require_dependency 'card'
+
 class ApplicationController < ActionController::Base
-  # This is often needed for the controllers to work right
-  # FIXME: figure out when/why this is needed and why the tests don't fail
+  # This was in all the controllers, now it is inherited here
   Card
 
   include AuthenticatedSystem
@@ -13,6 +16,7 @@ class ApplicationController < ActionController::Base
   before_filter :per_request_setup, :except=>[:fast_404]
   layout :wagn_layout, :except=>[:fast_404]
 
+  attr_reader :card
   attr_accessor :recaptcha_count
 
   def fast_404
@@ -38,7 +42,7 @@ class ApplicationController < ActionController::Base
       Wagn::Cache.renew
 
       #warn "set curent_account (app-cont) #{self.session_account}, U.cu:#{Account.session}"
-      Account.session = self.session_account || Card::AnonID
+      Account.session = self.session_account_id || Card::AnonID
       #warn "set curent_account a #{session_account}, U.cu:#{Account.session}"
 
       # RECAPTCHA HACKS
@@ -75,6 +79,7 @@ class ApplicationController < ActionController::Base
   # ----------( rendering methods ) -------------
 
   def wagn_redirect url
+    url = wagn_url url #make sure we have absolute url
     if ajax?
       render :text => url, :status => 303
     else
@@ -90,14 +95,16 @@ class ApplicationController < ActionController::Base
   end
 
   def render_errors options={}
-    #warn "render_errors #{@card.inspect}"
-    return false if @card && @card.errors.empty?
     @card ||= Card.new
-    view = options[:view] || (@card && @card.error_view  ) || :errors
-    #warn "422 status ? os:#{options[:status]} || cs:#{(@card && @card.error_status)}"
-    status = options[:status] || (@card && @card.error_status) || 422
-    show view, status
-    true
+    if @card.errors.empty?
+      false
+    else
+      view   = options[:view]   || @card.error_view   || :errors
+      status = options[:status] || @card.error_status || 422
+      @card.errors.add( :exception, options[:message] ) if options[:message]
+      show view, status
+      true
+    end
   end
 
   def show view = nil, status = 200
@@ -112,8 +119,14 @@ class ApplicationController < ActionController::Base
     case
     when known                # renderers can handle it
       renderer = Wagn::Renderer.new @card, :format=>ext, :controller=>self
-      render :text=>renderer.render_show( :view => view || params[:view] ),
-        :status=>(renderer.error_status || status)
+      view ||= params[:view]
+      if ext == 'json'
+        render_object = renderer.render_show( :view => view )
+        render :json=>render_object, :status=>(renderer.error_status || status)
+      else
+        render :text=>renderer.render_show( :view => view ),
+          :status=>(renderer.error_status || status)
+      end
     when show_file            # send_file can handle it
     else                      # dunno how to handle it
       render :text=>"unknown format: #{extension}", :status=>404
@@ -159,7 +172,7 @@ class ApplicationController < ActionController::Base
 
       notify_airbrake exception if Airbrake.configuration.api_key
 
-      if [Wagn::Oops, ActiveRecord::RecordInvalid].member?( exception.class ) && @card && @card.errors.any?
+      if [Wagn::Oops, ActiveRecord::RecordInvalid].member?( exception.class ) #&& @card && @card.errors.any?
         [ :errors, 422]
       elsif Wagn::Conf[:migration]
         raise exception
@@ -170,7 +183,7 @@ class ApplicationController < ActionController::Base
       end
     end
 
-    render_errors :view=>view, :status=>status
+    render_errors :view=>view, :status=>status, :message=>exception.message
   end
 
 end

@@ -121,26 +121,25 @@ module Wagn
 
 %{<h1 class="page-header">Recent Changes</h1>
 <div class="card-frame recent-changes">
-      <div class="card-body">
-        #{ paging }
-      } +
-          cards_by_day.keys.sort.reverse.map do |day|
+          <div class="card-body">
+            #{ paging }
+          } +
+              cards_by_day.keys.sort.reverse.map do |day|
 
 %{  <h2>#{format_date(day, include_time = false) }</h2>
-        <div class="search-result-list">} +
-             cards_by_day[day].map do |card| %{
-          <div class="search-result-item item-#{ @item_view }">
-               #{process_inclusion(card, :view=>@item_view) }
-          </div>}
-             end.join(' ') + %{
-        </div>
-        } end.join("\n") + %{
-          #{ paging }
-      </div>
+            <div class="search-result-list">} +
+                 cards_by_day[day].map do |card| %{
+              <div class="search-result-item item-#{ @item_view }">
+                   #{process_inclusion(card, :view=>@item_view) }
+              </div>}
+                 end.join(' ') + %{
+            </div>
+            } end.join("\n") + %{
+              #{ paging }
+          </div>
 </div>
 }
         end
-
 
 
         define_view :paging, :type=>:search_type do |args|
@@ -228,6 +227,7 @@ module Wagn
             #Rails.logger.debug "search item_cards #{params.inspect}"
             Card.search( s )
           end
+
 
           def item_names params={}
             ## FIXME - this should just alter the spec to have it return name rather than instantiating all the cards!!

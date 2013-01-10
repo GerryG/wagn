@@ -19,9 +19,9 @@ class Card
 
   attr_accessor :comment, :comment_author, :selected_rev_id,
     :update_referencers, :allow_type_change, # seems like wrong mechanisms for this
-    :cards, :loaded_trunk, :nested_edit, # should be possible to merge these concepts
+    :cards, :loaded_left, :nested_edit, # should be possible to merge these concepts
     :error_view, :error_status #yuck
-      
+
   attr_writer :update_read_rule_list
   attr_reader :type_args, :broken_type
 
@@ -50,7 +50,7 @@ class Card
             args['type']          == cc.type_args[:type]      and
             args['typecode']      == cc.type_args[:typecode]  and
             args['type_id']       == cc.type_args[:type_id]   and
-            args['loaded_trunk']  == cc.loaded_trunk
+            args['loaded_left']  == cc.loaded_left
 
           args['type_id'] = cc.type_id
           return cc.send( :initialize, args )
@@ -201,7 +201,7 @@ class Card
     self.creator_id = self.updater_id if new_card?
   end
 
-  before_validation :on => :create do
+  after_validation :on => :create do
     pull_from_trash if new_record?
     self.trash = !!trash
     true
@@ -349,7 +349,7 @@ class Card
       Card.fetch cardname.left, *args
     end
   end
-  
+
   def right *args
     Card.fetch cardname.right, *args
   end
@@ -531,8 +531,16 @@ class Card
   end
 
   def all_roles
-    ids = Account.as_bot { fetch(:new=>{}, :trait=>:roles).item_cards(:limit=>0).map(&:id) }
-    @all_roles ||= (id==Card::AnonID ? [] : [Card::AuthID] + ids)
+    if @all_roles.nil?
+      @all_roles = (id==AnonID ? [] : [AuthID])
+      Account.as_bot do
+        rcard=fetch(:trait=>:roles) and
+          items = rcard.item_cards(:limit=>0).map(&:id) and
+          @all_roles += items
+      end
+    end
+    #warn "aroles #{inspect}, #{@all_roles.inspect}"
+    @all_roles
   end
 
   def to_user
@@ -565,10 +573,10 @@ class Card
 
   def inspect
     "#<#{self.class.name}" + "##{id}" +
-    "###{object_id}" + #"k#{tag_id}g#{tag_id}" +
+    "###{object_id}" + #"k#{left_id}g#{right_id}" +
     "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
     "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{frozen? ? 'Fz' : readonly? ? 'RdO' : ''}" +
-    "#{@virtual &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }}" +
+    "#{@virtual &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }:#{references_expired.inspect}}" +
     #" Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}" +
     '>'
   end
@@ -657,7 +665,7 @@ class Card
           "may not contain any of the following characters: #{ SmartName.banned_array * ' ' }"
       end
       # this is to protect against using a plus card as a tag
-      if cdname.junction? and rec.simple? and Account.as_bot { Card.count_by_wql :tag_id=>rec.id } > 0
+      if cdname.junction? and rec.simple? and Account.as_bot { Card.count_by_wql :right_id=>rec.id } > 0
         rec.errors.add :name, "#{value} in use as a tag"
       end
 

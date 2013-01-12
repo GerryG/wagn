@@ -3,6 +3,7 @@ module Wagn
     include Sets
 
     format :html
+
     define_view :watch, :type=>'cardtype' do |args|
       wrap :watch do
         #type_link = card.watching_type? ? "#{watching_type_cards} | " : ""
@@ -42,5 +43,4 @@ module Wagn
       end
     end
   end
-
 end

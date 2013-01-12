@@ -35,19 +35,16 @@ module Wagn
     class << self
 
       def load_cardlib
-        Rails.logger.warn "load cardlib #{caller[0,8]*', '}"
         load_dir File.expand_path( "#{Rails.root}/lib/cardlib/*.rb", __FILE__ )
       end
 
       def load_sets
-        Rails.logger.warn "load sets #{caller[0,8]*', '}"
         [ "#{Rails.root}/lib/wagn/set/", Wagn::Conf[:pack_dirs].split( /,\s*/ ) ].flatten.each do |dirname|
           load_dir File.expand_path( "#{dirname}/**/*.rb", __FILE__ )
         end
       end
 
       def load_renderers
-        Rails.logger.warn "load renderers #{caller[0,8]*', '}"
         load_dir File.expand_path( "#{Rails.root}/lib/wagn/renderer/*.rb", __FILE__ )
       end
 
@@ -63,7 +60,6 @@ module Wagn
       def load_dir dir
         Dir[dir].each do |file|
           begin
-            Rails.logger.warn "load file #{file}"
             require_dependency file
           rescue Exception=>e
             Rails.logger.warn "Error loading file #{file}: #{e.message}\n#{e.backtrace*"\n"}"
@@ -140,7 +136,7 @@ module Wagn
             end
           end
 
-          Rails.logger.warn "define_method render_#{view}"
+          #Rails.logger.warn "define_method render_#{view}"
           Renderer.renderer.class_eval do
             define_method( "render_#{view}" ) do |*a|
               begin

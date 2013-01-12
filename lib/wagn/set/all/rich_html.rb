@@ -16,7 +16,7 @@ module Wagn
 
     define_view :layout, :perms=>:none do |args|
       if @main_content = args.delete( :main_content )
-        @card = Card.fetch_or_new '*placeholder'
+        @card = Card.fetch '*placeholder', :new=>{}
       end
 
       layout_content = get_layout_content args
@@ -35,7 +35,7 @@ module Wagn
       unless args[:show] and args[:show].member? 'menu_link'  #need to simplify this pattern
         args[:hide] ||= ['menu_link']
       end
-      
+
       wrap :titled, args do
         _render_header( args ) +
         wrap_content( :titled ) do
@@ -573,6 +573,7 @@ module Wagn
     end
 
     define_view :errors, :perms=>:none do |args|
+      Rails.logger.warn "errors #{args.inspect}, #{card.inspect}, #{caller*"\n"}"
       wrap :errors, args do
         %{ <h2>Problems #{%{ with <em>#{card.name}</em>} unless card.name.blank?}</h2> } +
         card.errors.map { |attrib, msg| "<div>#{attrib.upcase}: #{msg}</div>" } * ''
@@ -657,17 +658,17 @@ module Wagn
         end
       end
     end
-  end
-end
+  end  
+  
+  class Renderer::Html < Renderer
+    def watching_type_cards
+      %{<div class="faint">(following)</div>} #yuck
+    end
 
-class Wagn::Renderer::Html
-  def watching_type_cards
-    %{<div class="faint">(following)</div>} #yuck
-  end
-
-  def watch_link text, toggle, title, extra={}
-    link_to "#{text}", path(:watch, :toggle=>toggle),
-      {:class=>"watch-toggle watch-toggle-#{toggle} slotter", :title=>title, :remote=>true, :method=>'post'}.merge(extra)
-  end
+    def watch_link text, toggle, title, extra={}
+      link_to "#{text}", path(:watch, :toggle=>toggle), 
+        {:class=>"watch-toggle watch-toggle-#{toggle} slotter", :title=>title, :remote=>true, :method=>'post'}.merge(extra)
+    end
+  end  
 end
 

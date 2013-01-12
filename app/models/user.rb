@@ -63,17 +63,17 @@ class User < ActiveRecord::Base
     (em = self.email) =~ /[A-Z]/ and em=em.downcase and self.email=em end
 
   # Authenticates a user by their login name and unencrypted password.  Returns the user or nil.
-  def authenticate acct_card, params
-    return unless acct_card
+  def authenticate card_with_acct, params
+    return unless card_with_acct
 
     if password = params[:password]
       password = password.strip
-      acct_card.errors.add :account, "Authentication failed." unless crypted_password == encrypt(password)
-      acct_card.errors.add :account, "Account is blocked." unless active?
+      card_with_acct.errors.add :account, "Authentication failed." unless crypted_password == encrypt(password)
+      card_with_acct.errors.add :account, "Account is blocked." unless active?
     else
-      acct_card.errors.add :account, "No password."
+      card_with_acct.errors.add :account, "No password."
     end
-    acct_card
+    card_with_acct.id
   end
 
  protected

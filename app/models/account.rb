@@ -20,9 +20,9 @@ class Account
     # return the account card
     def authenticate params
       Rails.logger.warn "A.auth? #{params.inspect}"
-      acct = lookup(params) and acct_cd = acct.authenticate(  Card[ acct.account_id ], params )
-      Rails.logger.warn "auth? #{params.inspect}, #{acct_cd.inspect} #{acct}"
-      acct_cd
+      acct = lookup(params) and card_with_acct_id = acct.authenticate(  Card[ acct.card_id ], params )
+      Rails.logger.warn "auth? #{params.inspect}, #{card_with_acct_id.inspect} #{acct}"
+      card_with_acct_id
     end
 
     def lookup params

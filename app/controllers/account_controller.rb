@@ -137,9 +137,9 @@ class AccountController < CardController
 
       auth_args = { :email=>params[:login], :password=>params[:password] }
       Rails.logger.warn "signin #{auth_args.inspect}"
-      unless failed_login! acct_card=Account.authenticate( auth_args )
+      unless failed_login! card_id=Account.authenticate( auth_args )
 
-        self.session_account = acct_card.id
+        self.session_card_id = card_id
 
         flash[:notice] = "Successfully signed in"
 
@@ -149,7 +149,7 @@ class AccountController < CardController
   end
 
   def signout
-    self.session_account = nil
+    self.session_card_id = nil
     flash[:notice] = "Successfully signed out"
 
     redirect_to Card.path_setting('/')  # previous_location here can cause infinite loop.  ##  Really?  Shouldn't.  -efm

@@ -27,18 +27,18 @@ module Cardlib::Fetch
 
     def fetch mark, opts = {}
 #      ActiveSupport::Notifications.instrument 'wagn.fetch', :message=>"fetch #{cardname}" do
+
       if mark.nil?
         return if opts[:new].nil?
         # This is fetch_or_new now when you supply :new=>{opts}
 
       else
 
-        #warn "fetch #{mark.inspect}, #{opts.inspect}"
+        #Rails.logger.warn "fetch #{mark.inspect}, #{opts.inspect}"
         # Symbol (codename) handling
         if Symbol===mark
           mark = Wagn::Codename[mark] || raise("Missing codename for #{mark.inspect}")
         end
-
 
         cache_key, method, val = if Integer===mark
           [ "~#{mark}", :find_by_id_and_trash, mark ]
@@ -53,7 +53,6 @@ module Cardlib::Fetch
         #Cache lookup
         result = Card.cache.read cache_key if Card.cache
         card = (result && Integer===mark) ? Card.cache.read(result) : result
-        #warn "fetch R #{cache_key}, #{method}, R:#{result}, c:#{card&&card.name}"
 
         unless card
           # DB lookup
@@ -71,6 +70,7 @@ module Cardlib::Fetch
       else
         return card.fetch_new opts if card && opts[:skip_virtual] && card.new_card?
 
+        #warn "new card? #{card.inspect}"
         # NEW card -- (either virtual or missing)
         if card.nil? or ( !opts[:skip_virtual] && card.type_id==-1 )
           # The -1 type_id allows us to skip all the type lookup and flag the need for
@@ -92,15 +92,6 @@ module Cardlib::Fetch
       #warn "fetch returning #{card.inspect}, #{opts.inspect}"
       card.include_set_modules unless opts[:skip_modules]
       card
-    end
-
-    def fetch_or_new name, opts={}
-      fetch( name, opts ) || new( opts.merge(:name=>name) )
-    end
-
-    def fetch_or_create name, opts={}
-      opts[:skip_virtual] ||= true
-      fetch( name, opts ) || create( opts.merge(:name=>name) )
     end
 
     def fetch_id mark #should optimize this.  what if mark is int?  or codename?

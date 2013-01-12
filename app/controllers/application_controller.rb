@@ -1,11 +1,7 @@
 # -*- encoding : utf-8 -*-
 
-require_dependency 'wagn/sets'
-require_dependency 'card'
-
 class ApplicationController < ActionController::Base
-  # This was in all the controllers, now it is inherited here
-  Card
+  include Wagn::Exceptions
 
   include AuthenticatedSystem
   include LocationHelper
@@ -72,7 +68,7 @@ class ApplicationController < ActionController::Base
 
   # ------------------( permission filters ) -------
   def read_ok
-    @card.ok?(:read) || deny(:read)
+    card.ok?(:read) || deny(:read)
   end
 
 
@@ -89,19 +85,20 @@ class ApplicationController < ActionController::Base
 
   def deny action=nil
     params[:action] = action if action
-    @card.error_view = :denial
-    @card.error_status = 403
+    card.error_view = :denial
+    card.error_status = 403
     render_errors
   end
 
   def render_errors options={}
     @card ||= Card.new
-    if @card.errors.empty?
+    if card.errors.empty?
       false
     else
-      view   = options[:view]   || @card.error_view   || :errors
-      status = options[:status] || @card.error_status || 422
-      @card.errors.add( :exception, options[:message] ) if options[:message]
+      view   = options[:view]   || card.error_view   || :errors
+      status = options[:status] || card.error_status || 422
+
+      opt_message = options[:message] and card.errors.add( :exception, options[:message] )
       show view, status
       true
     end
@@ -111,7 +108,7 @@ class ApplicationController < ActionController::Base
     ext = request.parameters[:format]
     known = FORMATS.split('|').member? ext
 
-    if !known && @card && @card.error_view
+    if !known && card && card.error_view
       ext, known = 'txt', true
       # render simple text for errors on unknown formats; without this, file/image permissions checks are meaningless
     end
@@ -134,25 +131,25 @@ class ApplicationController < ActionController::Base
   end
 
   def show_file
-    return fast_404 if !@card
+    return fast_404 if !card
 
-    @card.selected_rev_id = (@rev_id || @card.current_revision_id).to_i
-    format = @card.attachment_format(params[:format])
+    card.selected_rev_id = (@rev_id || card.current_revision_id).to_i
+    format = card.attachment_format(params[:format])
     return fast_404 if !format
 
     if ![format, 'file'].member?( params[:format] )
-      return redirect_to( request.fullpath.sub( /\.#{params[:format]}\b/, '.' + format ) ) #@card.attach.url(style) )
+      return redirect_to( request.fullpath.sub( /\.#{params[:format]}\b/, '.' + format ) ) #card.attach.url(style) )
     end
 
-    style = @card.attachment_style @card.type_id, ( params[:size] || @style )
+    style = card.attachment_style card.type_id, ( params[:size] || @style )
     return fast_404 if style == :error
 
     # check file existence?  or just rescue MissingFile errors and raise NotFound?
     # we do see some errors from not having this, though I think they're mostly from legacy issues....
 
-    send_file @card.attach.path( *[style].compact ), #nil or empty arg breaks 1.8.7
-      :type => @card.attach_content_type,
-      :filename =>  "#{@card.cardname.url_key}#{style.blank? ? '' : '-'}#{style}.#{format}",
+    send_file card.attach.path( *[style].compact ), #nil or empty arg breaks 1.8.7
+      :type => card.attach_content_type,
+      :filename =>  "#{card.cardname.url_key}#{style.blank? ? '' : '-'}#{style}.#{format}",
       :x_sendfile => true,
       :disposition => (params[:format]=='file' ? 'attachment' : 'inline' )
   end
@@ -172,7 +169,7 @@ class ApplicationController < ActionController::Base
 
       notify_airbrake exception if Airbrake.configuration.api_key
 
-      if [Wagn::Oops, ActiveRecord::RecordInvalid].member?( exception.class ) #&& @card && @card.errors.any?
+      if [Wagn::Oops, ActiveRecord::RecordInvalid].member?( exception.class ) #&& card && card.errors.any?
         [ :errors, 422]
       elsif Wagn::Conf[:migration]
         raise exception

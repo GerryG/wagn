@@ -1,9 +1,9 @@
+require_dependency "cardlib"
 
 module Wagn
   class Renderer
-
-    cattr_accessor :current_slot, :ajax_call, :perms, :denial_views, :subset_views, :error_codes, :view_tags, :renderer
-    @@renderer = Renderer
+    Card::Reference
+    include LocationHelper
 
     DEPRECATED_VIEWS = { :view=>:open, :card=>:open, :line=>:closed, :bare=>:core, :naked=>:core }
     INCLUSION_MODES  = { :main=>:main, :closed=>:closed, :closed_content=>:closed, :edit=>:edit,
@@ -13,9 +13,13 @@ module Wagn
     RENDERERS = { #should be defined in renderer
       :json => :JsonRenderer,
       :email => :EmailHtml,
+      :html => :HtmlRenderer,
       :css  => :Text,
       :txt  => :Text
     }
+
+    cattr_accessor :current_slot, :ajax_call, :perms, :denial_views, :subset_views, :error_codes, :view_tags
+    cattr_reader :renderer
 
     @@max_char_count = 200 #should come from Wagn::Conf
     @@max_depth      = 10 # ditto
@@ -24,20 +28,26 @@ module Wagn
     @@subset_views   = {}
     @@error_codes    = {}
     @@view_tags      = {}
+    @@renderer = Renderer
 
     def self.get_renderer format
-      const_get( if RENDERERS.has_key? format
-          RENDERERS[ format ]
-        else
-          format.to_s.camelize.to_sym
-        end )
+      @@renderer = format.nil? || format == :base ? Renderer :
+        const_get( if RENDERERS.has_key? format
+            RENDERERS[ format ]
+          else
+            format.to_s.camelize.to_sym
+          end )
+    end
+
+    def self.renderer= format
+      @@renderer = get_renderer format
     end
 
     attr_reader :format, :card, :root, :parent
     attr_accessor :form, :main_content, :error_status
 
-    Card::Reference
     Card
+    Card::Reference
     include LocationHelper
 
   end
@@ -160,7 +170,7 @@ module Wagn
     #
 
     def subrenderer subcard, opts={}
-      subcard = Card.fetch_or_new(subcard) if String===subcard
+      subcard = Card.fetch(subcard, :new=>{}) if String===subcard
       sub = self.clone
       sub.initialize_subrenderer subcard, self, opts
     end
@@ -277,7 +287,7 @@ module Wagn
       when opts[:tname]=='_main' && !ajax_call? && @depth==0    ; expand_main opts
       else
         fullname = opts[:tname].to_name.to_absolute card.cardname, :params=>params
-        included_card = Card.fetch_or_new fullname, ( @mode==:edit ? new_inclusion_card_args(opts) : {} )
+        included_card = Card.fetch fullname, :new=>( @mode==:edit ? new_inclusion_card_args(opts) : {} )
 
         result = process_inclusion included_card, opts
         @char_count += result.length if result
@@ -318,14 +328,14 @@ module Wagn
 
       opts[:home_view] = [:closed, :edit].member?(view) ? :open : view
       # FIXME: special views should be represented in view definitions
-      
+
       view = case
       when @mode == :edit       ; @@perms[view]==:none || tcard.hard_template ? :blank : :edit_in_form
       when @@perms[view]==:none ; view
       when @mode == :closed     ; !tcard.known?  ? :closed_missing : :closed_content
       when @mode == :template   ; :template_rule
       else                      ; view
-      end  
+      end
 
       result = sub.render(view, opts)
       Renderer.current_slot = oldrenderer
@@ -441,7 +451,7 @@ module Wagn
   class Renderer::Text < Renderer
   end
 
-  class Renderer::Html < Renderer
+  class Renderer::HtmlRenderer < Renderer
   end
 
   class Renderer::Csv < Renderer::Text

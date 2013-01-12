@@ -32,60 +32,46 @@ class Account
       end
     end
 
-    def get_account account
-      if @@session_class===account
-        Card[account.account_id]
-      else
-        acct = ((Card===account) ? account : Card[account])
-        # if this isn't a Right::Account yet, fetch it
-        unless Card===acct && acct.id == Card::WagnBotID or
-           acct and ( acct.right_id == Card::AccountID or
-           acct = acct.fetch(:trait=>:account) )
-          Rails.logger.warn "no account #{account.inspect} #{acct}" #{caller*"\n"}"
-          nil
-        else
-          acct
-        end
+    def get_session_id session
+      case session
+      when NilClass, Integer; session
+      when @@session_class;   session.card_id
+      when Card;              session.id
+      else               Card[session].send_if :id
       end
     end
   end
 
-  # FIXME: check for this in boot and don't start if newcard?
-  # these might be newcard?, but only in migrations
-  ANONCARD_ID = Card[Card::AnonID].fetch(:skip_modules=>true, :trait=>:account).id
-  BOTCARD_ID  = Card[Card::WagnBotID].fetch(:skip_modules=>true, :trait=>:account).id
-
   cattr_accessor :account_class
 
-  @@as_card = nil
-  @@session = Card[ANONCARD_ID]
+  @@as_card_id = nil
+  @@session_id = Card::AnonID
 
   class << self
     def admin?()
-      acid = (ac=as_card).new_card? ? ac.left_id : ac.id
-      acid==BOTCARD_ID || acid == Card::WagnBotID
+      as_card_id == Card::WagnBotID
     end
 
-    def reset()            @@session = Card[ANONCARD_ID]; @@as_card = nil               end
-    def session()          @@session || Card[ANONCARD_ID]                               end
-    def authorized_email() as_card.trunk.account.email                                  end
-    def session=(account)  @@session = get_account(account) || Card[ANONCARD_ID]       end
-    def as_card()          @@as_card || session                                         end
+    def reset()            @@session_id = Card::AnonID; @@as_card_id = nil               end
+    def session()          Card[@@session_id]                               end
+    def authorized_email() authorized.account.email                                  end
+    def session_id=(account)  @@session_id = get_session_id(account) || Card::AnonID       end
+    def as_card_id()          @@as_card_id || @@session_id                                         end
     # We only need to test for the tag presence for migrations, we are going to  make sure it
     # exists and is indestructable (add tests for that)
-    def authorized()       as_card.trunk                                                end
+    def authorized()       Card[as_card_id]                                                end
     def as_bot(&block)     as Card::WagnBotID, &block                                   end
     def among?(authzed)    authorized.among? authzed                                    end
-    def logged_in?()       session.id != ANONCARD_ID                                    end
+    def logged_in?()       @@session_id != Card::AnonID                                    end
 
     def as given_account
-      save_as = @@as_card
-      @@as_card = get_account(given_account) || Card[ANONCARD_ID]
-      #Rails.logger.info "set ac #{@@as_card.inspect}"
+      save_as_id = @@as_card_id
+      @@as_card_id = get_session_id(given_account) || Card::AnonID
+      #Rails.logger.info "set ac #{authorized.inspect}"
 
       if block_given?
         value = yield
-        @@as_card = save_as
+        @@as_card_id = save_as_id
         return value
       #else fail "BLOCK REQUIRED with Card#as"
       end

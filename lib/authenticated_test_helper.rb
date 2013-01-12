@@ -5,7 +5,7 @@ module AuthenticatedTestHelper
     user_card = Card[user.to_s] and user_card.id
     Account.session = user_card.fetch(:trait=>:account)
     @request.session[:user] = Account.session.id
-    #warn "(ath)login_as #{user_card.inspect}, #{Account.session.inspect}, #{Account.as_card}, #{@request.session[:user]}"
+    #warn "(ath)login_as #{user_card.inspect}, #{Account.session.inspect}, #{Account.authorized}, #{@request.session[:user]}"
   end
 
   def signout

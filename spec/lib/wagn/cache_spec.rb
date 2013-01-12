@@ -5,17 +5,15 @@ describe Wagn::Cache do
   describe "with nil store" do
     before do
       mock(Wagn::Cache).generate_cache_id.times(2).returns("cache_id")
-
-      @store = ActiveSupport::Cache::MemoryStore.new
-      @cache = Wagn::Cache.new
+      @cache = Wagn::Cache.new :prefix=>"prefix"
     end
 
     describe "#basic operations" do
       it "should work" do
         @cache.write("a", "foo")
         @cache.read("a").should == "foo"
-        #@cache.fetch("b") { "bar" }
-        #@cache.read("b").should == "bar"
+        @cache.fetch("b") { "bar" }
+        @cache.read("b").should == "bar"
         @cache.reset
       end
     end
@@ -23,36 +21,39 @@ describe Wagn::Cache do
 
   describe "with same cache_id" do
     before :each do
-      @cache = Wagn::Cache.new
-      @store = @cache.store
-      @prefix = @cache.prefix
-      #mock(Wagn::Cache).generate_cache_id().returns("cache_id")
+      @store = ActiveSupport::Cache::MemoryStore.new
+      mock(Wagn::Cache).generate_cache_id().returns("cache_id")
+      @cache = Wagn::Cache.new :store=>@store, :prefix=>"prefix"
     end
 
     it "#read" do
-      mock(@store).read("#{@prefix}foo")
+      mock(@store).read("prefix/cache_id/foo")
       @cache.read("foo")
     end
 
     it "#write" do
-      mock(@store).write("#{@prefix}foo", "val")
+      mock(@store).write("prefix/cache_id/foo", "val")
       @cache.write("foo", "val")
       @cache.read('foo').should == "val"
     end
 
+    it "#fetch" do
+      block = Proc.new { "hi" }
+      mock(@store).fetch("prefix/cache_id/foo", &block)
+      @cache.fetch("foo", &block)
+    end
+
     it "#delete" do
-      mock(@store).delete("#{@prefix}foo")
+      mock(@store).delete("prefix/cache_id/foo")
       @cache.delete "foo"
     end
 
-=begin
     it "#write_local" do
       @cache.write_local('a', 'foo')
       @cache.read("a").should == 'foo'
       mock.dont_allow(@store).write
       @cache.store.read("a").should == nil
     end
-=end
   end
 
   it "#reset" do
@@ -69,17 +70,14 @@ describe Wagn::Cache do
     @cache.read("foo").should ==  @test_text
 
     # reset
-    #mock(Wagn::Cache).generate_cache_id.returns("cache_id1")
-    @cache.reset true
-    @cache.prefix.should == @prefix
-    #warn "testing prefix C:#{@cache}, #{@cache.store}, sp:#{@cache.cache_id_key.inspect}, #{@cache.cache_id}, #{@cache.store.read(@cache.cache_id_key).inspect}"
-    @cache.cache_id.should be
-    # this breaks, but I can't see why, the code writes the cache-key for the id with the right value
-    #@cache.store.read(@cache.cache_id_key).should == @cache.cache_id
+    mock(Wagn::Cache).generate_cache_id.returns("cache_id2")
+    @cache.reset
+    @cache.prefix.should == "prefix/cache_id2/"
+    @cache.store.read("prefix/cache_id").should == "cache_id2"
     @cache.read("foo").should be_nil
 
-    cache2 = Wagn::Cache.new
-    cache2.prefix.should == @prefix
+    cache2 = Wagn::Cache.new :store=>@store, :prefix=>"prefix"
+    cache2.prefix.should == "prefix/cache_id2/"
   end
 
   describe "with file store" do
@@ -97,8 +95,8 @@ describe Wagn::Cache do
       #files_to_remove = root_dirs.collect{|f| File.join(cache_path, f)}
       #FileUtils.rm_r(files_to_remove)
 
-      mock(Wagn::Cache).generate_cache_id.times(any_times).returns("cache_id1")
-      @cache = Wagn::Cache.new :use_rails_cache=>true
+      mock(Wagn::Cache).generate_cache_id.times(2).returns("cache_id1")
+      @cache = Wagn::Cache.new :store=>@store, :prefix=>"prefix"
     end
 
     describe "#basic operations with special symbols" do

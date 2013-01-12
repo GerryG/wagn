@@ -1,13 +1,10 @@
 # -*- encoding : utf-8 -*-
 require 'xmlscan/processor'
 
-require_dependency 'wagn/sets'
-require_dependency 'card'
+require_dependency 'cardlib'
 
 class CardController < ApplicationController
-  # This is often needed for the controllers to work right
-  # FIXME: figure out when/why this is needed and why the tests don't fail
-  Card
+  include Wagn::Sets::CardActions
 
   helper :wagn
 
@@ -68,8 +65,7 @@ Done"
 
 =end
 
-  cattr_reader :subset_actions
-  @@subset_actions = {}
+  attr_reader :card
 
   METHODS = {
     'POST'   => :create,  # C
@@ -83,9 +79,8 @@ Done"
   def action
     @action = METHODS[request.method]
     Rails.logger.warn "action #{request.method}, #{@action} #{params.inspect}"
-    warn "action #{request.method}, #{@action} #{params.inspect}"
-    send "perform_#{@action}"
-    render_errors || success
+    #warn "action method #{request.method}, #{@action} #{params.inspect}"
+    send "process_#{@action}"
   end
 
   def action_method event
@@ -100,14 +95,11 @@ Done"
   def create
     #warn "create #{params.inspect}, #{card.inspect} if #{card && !card.new_card?}, nc:#{card.new_card?}"
 
-    process_create || success
+    process_create
   end
 
   def read
-    process_read || begin
-      save_location # should be an event!
-      show
-    end
+    process_read
   end
 
 =begin FIXME move to action events
@@ -134,17 +126,11 @@ Done"
 =end
 
   def update
-    if card.new_card?; process_create
-    elsif              process_update
-    else               success
-    end
+    process_update
   end
 
   def delete
-    process_delete || begin
-      discard_locations_for card
-      success 'REDIRECT: *previous'
-    end
+    process_delete
   end
 
 
@@ -333,7 +319,7 @@ Done"
   #-------( REDIRECTION )
 
   def success default_target='_self'
-    #warn "success #{card.inspect}"
+    #warn "success #{default_target}, #{card.inspect}"
     target = params[:success] || default_target
     redirect = !ajax?
     new_params = {}
@@ -353,7 +339,7 @@ Done"
       when '_self  '       ;  card #could do as _self
       when /^(http|\/)/    ;  target
       when /^TEXT:\s*(.+)/ ;  $1
-      else                 ;  Card.fetch_or_new target.to_name.to_absolute(card.cardname)
+      else                 ;  Card.fetch target.to_name.to_absolute(card.cardname), :new=>{}
       end
 
     case
@@ -363,6 +349,7 @@ Done"
       @card = target
       show new_params[:view]
     end
+    true
   end
 
 end

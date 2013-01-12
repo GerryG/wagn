@@ -1,17 +1,13 @@
 # -*- encoding : utf-8 -*-
 
-class Card < ActiveRecord::Base
-  require_dependency 'card/revision'
-  require_dependency 'card/reference'
-end
-
 require_dependency 'smart_name'
-SmartName.codes= Wagn::Codename
-SmartName.params= Wagn::Conf
-SmartName.lookup= Card
-SmartName.session= proc { Account.as_card.name }
 
-class Card
+class Card < ActiveRecord::Base
+
+  SmartName.codes= Wagn::Codename
+  SmartName.params= Wagn::Conf
+  SmartName.lookup= Card
+  SmartName.session= proc { Account.authorized.name }
 
   has_many :revisions, :order => :id #, :foreign_key=>'card_id'
   belongs_to :card, :class_name => 'Card', :foreign_key => :creator_id
@@ -260,6 +256,7 @@ class Card
     @virtual    = false
     @from_trash = false
     Wagn::Hook.call :after_create, self if @was_new_card
+    Rails.logger.warn "base after save #{inspect}, #{caller*"\n"}"
     send_notifications
     true
   rescue Exception=>e
@@ -520,9 +517,8 @@ class Card
   end
 
   def account
-    # no id? try using the cardname to find the user Account.get_account
-    if no_account? and uid = id.nil? ?
-          ( user_card = Account.get_account(name) and user_card.id ) : id
+    # no id? try using the cardname to find the user Account.get_session_id
+    if no_account? and uid = id || user_card_id = Account.get_session_id(name)
       @account = Account[uid]
     end
     @account

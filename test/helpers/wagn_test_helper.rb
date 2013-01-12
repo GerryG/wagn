@@ -9,7 +9,7 @@ module WagnTestHelper
     Account.reset
 
     Account.session = 'joe_user'
-    Rails.logger.warn "setup du #{Account.session}, #{Account.authorized}, #{Account.as_card}"
+    Rails.logger.warn "setup default user #{Account.session}, #{Account.authorized}, #{Account.as_card_id}"
 
     nil
   end
@@ -51,20 +51,23 @@ module WagnTestHelper
 
     raise "Don't know email & password for #{user}" unless uc=Card[user] and
         u=User.where(:card_id=>uc.id).first and
-        email = u.email and pass = USERS[login]
+        email = u.email and pass = USERS[email]
 
     if functional
-      #warn "functional login #{login}, #{pass}"
-      post :action, :id=>'Session', :login=>login, :password=>pass, :controller=>:card
+      #warn "functional login #{email}, #{pass}"
+      #post :action, :id=>'Session', :login=>email, :password=>pass, :controller=>:card
+      post :signin, :id=>'Session', :login=>email, :password=>pass, :controller=>:account
     else
-      #warn "integration login #{login}, #{pass}"
-      post '/Session', :login=>login, :password=>pass, :controller=>:card
+      #warn "integration login #{email}, #{pass}"
+      #post '/Session', :login=>email, :password=>pass, :controller=>:card
+      post 'account/signin', :login=>email, :password=>pass, :controller=>:account
     end
     assert_response :redirect, "integration login broken"
 
     if block_given?
       yield
-      delete :action, :id=>'/Session',:controller=>:card
+      #delete :action, :id=>'/Session',:controller=>:card
+      post 'account/signout',:controller=>'account'
     end
   end
 

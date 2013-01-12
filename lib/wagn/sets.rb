@@ -6,21 +6,6 @@ module Wagn
     @@dirs = []
 
     module SharedMethods
-    end
-    module ClassMethods
-    end
-
-    def self.included base
-
-      #base.extend CardControllerMethods
-      base.extend SharedMethods
-      base.extend ClassMethods
-
-      super
-
-    end
-
-    module SharedMethods
       private
       def get_set_key selection_key, opts
         unless pkey = Cardlib::Pattern.method_key(opts)
@@ -77,6 +62,12 @@ module Wagn
       Wagn::Sets.all_constants(Wagn::Set)
     end
 
+    # this module also get the action definitions
+    module CardActions
+      @@subset_actions = {}
+        
+      mattr_reader :subset_actions
+    end
 
     # View definitions
     #
@@ -98,11 +89,14 @@ module Wagn
     #     _final(_set_key)_viewname(args)
 
     module ClassMethods
-
       include SharedMethods
 
+      #
+      # ~~~~~~~~~~  VIEW DEFINITION
+      #
+
       def format fmt=nil
-        Renderer.renderer = if fmt.nil? || fmt == :base then Renderer else Renderer.get_renderer fmt end
+        Renderer.renderer= fmt
       end
 
       def define_view view, opts={}, &final
@@ -171,25 +165,28 @@ module Wagn
         end
       end
 
-      # FIXME: the definition stuff is pretty much exactly parallel, DRY, fold them together
+
+      #
+      # ~~~~~~~~~~~~~~~~~~  ACTION DEFINITION ~~~~~~~~~~~~~~~~~~~
+      #
 
       def action event, opts={}, &final_action
         action_key = get_set_key event, opts
 
-        CardController.class_eval {
-        #warn "define action[#{self}] e:#{event.inspect}, ak:_final_#{action_key}, O:#{opts.inspect}" if event == :read
+        CardActions.class_eval {
+        Rails.logger.warn "define action[#{self}] e:#{event.inspect}, ak:_final_#{action_key}, O:#{opts.inspect}" if event == :read
           define_method "_final_#{action_key}", &final_action }
 
-        CardController.subset_actions[event] = true if !opts.empty?
+        CardActions.subset_actions[event] = true if !opts.empty?
 
         if !method_defined? "process_#{event}"
-          CardController.class_eval do
+          CardActions.class_eval do
 
-            #warn "defining method[#{to_s}] _process_#{event}" if event == :read
+            Rails.logger.warn "defining method[#{to_s}] _process_#{event}" if event == :read
             define_method( "_process_#{event}" ) do |*a|
               a = [{}] if a.empty?
               if final_method = action_method(event)
-                #warn "final action #{final_method}"
+                Rails.logger.warn "final action #{final_method}"
                 #with_inclusion_mode event do
                   send final_method, *a
                 #end
@@ -198,11 +195,11 @@ module Wagn
               end
             end
 
-            #warn "define action[#{self}] process_#{event}" if event == :read
+            Rails.logger.warn "define action[#{self}] process_#{event}" if event == :read
             define_method( "process_#{event}" ) do |*a|
               begin
 
-                #warn "send _process_#{event}" if event.to_sym == :read
+                Rails.logger.warn "send _process_#{event}" if event.to_sym == :read
                 send "_process_#{event}", *a
 
               rescue Exception=>e
@@ -219,7 +216,7 @@ module Wagn
 
       def alias_action event, opts={}, *aliases
         event_key = get_set_key(event, opts)
-        Renderer.subset_actions[event] = true if !opts.empty?
+        CardActions.subset_actions[event] = true if !opts.empty?
         aliases.each do |alias_event|
           alias_event_key = case alias_event
             when String; alias_event
@@ -228,14 +225,23 @@ module Wagn
             else; raise "Bad event #{alias_event.inspect}"
             end
 
-          #warn "def final_alias action #{alias_event_key}, #{event_key}"
-          @@renderer.class_eval { define_method( "_final_#{alias_event_key}".to_sym ) do |*a|
+          Rails.logger.warn "def final_alias action #{alias_event_key}, #{event_key}"
+          CardActions.class_eval { define_method( "_final_#{alias_event_key}".to_sym ) do |*a|
             send "_final_#{event_key}", *a
           end }
         end
       end
+    end
+
+    def self.included base
+
+      base.extend SharedMethods
+      base.extend ClassMethods
+
+      super
 
     end
+
   end
 end
 

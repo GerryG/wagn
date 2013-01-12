@@ -373,7 +373,7 @@ module Wagn
     end
 
     define_view :option_account, :perms=> lambda { |r|
-        Account.as_card.id==r.card.id or r.card.ok?(:update, :trait=>:account)
+        Account.as_card_id==r.card.id or r.card.ok?(:update, :trait=>:account)
       } do |args|
 
       locals = {:slot=>self, :card=>card, :account=>card.account }
@@ -660,7 +660,7 @@ module Wagn
     end
   end  
   
-  class Renderer::Html < Renderer
+  class Renderer::HtmlRenderer < Renderer
     def watching_type_cards
       %{<div class="faint">(following)</div>} #yuck
     end

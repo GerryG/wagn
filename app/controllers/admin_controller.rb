@@ -18,8 +18,10 @@ class AdminController < CardController
         @account = @card.account = Account.new( aparams ).active
         set_default_request_recipient
 
-        if @card.save
-          roles_card = Card.fetch_or_new(@card.cardname.trait_name(:roles))
+        #warn "ext id = #{@account.id}"
+
+        if @account.errors.empty?
+          roles_card = @card.fetch :trait=>:roles, :new=>{}
           roles_card.content = "[[#{Card[Card::AdminID].name}]]"
           roles_card.save
           self.session_card_id = @card.id
@@ -70,7 +72,7 @@ class AdminController < CardController
   private
 
   def set_default_request_recipient
-    to_card = Card.fetch_or_new('*request+*to')
+    to_card = Card.fetch '*request+*to', :new=>{}
     to_card.content=params[:account][:email]
     to_card.save
   end

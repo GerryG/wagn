@@ -33,7 +33,7 @@ module Cardlib::Permissions
   #      to fetch and the test is perfomed on the fetched card, therefore:
   #
   #      :trait=>:account         would fetch this card plus a tag codenamed :account
-  #      :trait=>:roles, :new=>{} would be a fetch_or_new_trait
+  #      :trait=>:roles, :new=>{} would create a new card with default ({}) options.
 
   def ok_with_fetch? operation, opts={}
     card = opts[:trait].nil? ? self : fetch(opts)
@@ -132,8 +132,8 @@ module Cardlib::Permissions
     #Rails.logger.warn "AR #{inspect} #{Account.always_ok?}"
     return true if Account.always_ok?
     @read_rule_id ||= (rr=permission_rule_card(:read).first).id.to_i
-    #Rails.logger.warn "AR #{name} #{@read_rule_id}, #{Account.session.inspect} #{rr&&rr.name}, RR:#{Account.as_card.read_rules.map{|i|c=Card[i] and c.name}*", "}"
-    unless Account.as_card.read_rules.member?(@read_rule_id.to_i)
+    #Rails.logger.warn "AR #{name} #{@read_rule_id}, #{Account.session.inspect} #{rr&&rr.name}, RR:#{Account.authorized.read_rules.map{|i|c=Card[i] and c.name}*", "}"
+    unless Account.authorized.read_rules.member?(@read_rule_id.to_i)
       deny_because you_cant("read this card")
     end
   end

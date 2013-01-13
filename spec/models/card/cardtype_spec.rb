@@ -70,7 +70,7 @@ end
 
 describe Card, "created without permission" do
   before do
-    Account.session = Card::AnonID
+    Account.session_id = Card::AnonID
   end
 
   # FIXME:  this one should pass.  unfortunately when I tried to fix it it started looking like the clean solution

@@ -4,7 +4,7 @@ require File.expand_path('../../packs/pack_spec_helper', File.dirname(__FILE__))
 
 describe Wagn::Renderer, "" do
   before do
-    Account.session = 'joe_user'
+    Account.session_id = Card['joe_user'].id
     Wagn::Renderer.current_slot = nil
     Wagn::Renderer.ajax_call = false
   end
@@ -381,7 +381,7 @@ describe Wagn::Renderer, "" do
 
     context "HTML" do
       before do
-        Account.session = Card::WagnBotID
+        Account.session_id = Card::WagnBotID
       end
 
       it "should have special editor" do
@@ -505,7 +505,7 @@ describe Wagn::Renderer, "" do
 
   context "replace refs" do
     before do
-      Account.session = Card::WagnBotID
+      Account.session_id = Card::WagnBotID
     end
 
     # FIXME: this isn't really a renderer test now, should move it

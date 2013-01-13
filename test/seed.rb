@@ -134,11 +134,11 @@ class SharedData
     Card.create! :type_id=>Card::CardtypeID, :name=> "UserForm"
     Card.create! :name=>"UserForm+*type+*content", :content=>"{{+name}} {{+age}} {{+description}}"
 
-    Account.session = 'joe_user'
+    Account.session_id = Card['joe_user'].id
     Card.create!( :name=>"JoeLater", :content=>"test")
     Card.create!( :name=>"JoeNow", :content=>"test")
 
-    Account.session = :wagn_bot
+    Account.session_id = Card::WagnBotID
     Card.create!(:name=>"AdminNow", :content=>"test")
 
     Card.create :name=>'Cardtype B+*type+*create', :type=>'Pointer', :content=>'[[r1]]'

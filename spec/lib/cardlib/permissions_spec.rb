@@ -335,7 +335,7 @@ describe "Permission", ActiveSupport::TestCase do
     Account.as(@u1) do
       Card.search(:content=>'WeirdWord').map(&:name).sort.should == %w( c1 c2 c3 )
     end
-    Account.session = Card[Account::ANONCARD_ID] # for Account.as to be effective, you can't have a logged in user
+    Account.session_id = Card::AnonID # for Account.as to be effective, you can't have a logged in user
     Account.as(@u2) do
       Card.search(:content=>'WeirdWord').map(&:name).sort.should == %w( c2 c3 )
     end
@@ -367,7 +367,7 @@ end
 
 
 describe Card, "new permissions" do
-  Account.session= Card['joe_user'].fetch :trait => :account
+  Account.session_id= Card['joe_user'].id
 
   it "should let joe view new cards" do
     @c = Card.new

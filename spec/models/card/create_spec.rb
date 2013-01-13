@@ -52,10 +52,10 @@ describe Card, "created by Card.create with valid attributes" do
     end
   end
 
-  it "should not have errors"        do @b.errors.size.should == 0        end
-  it "should have the right class"   do @c.class.should    == Card end
-  it "should have the right key"     do @c.key.should      == "new_card"  end
-  it "should have the right name"    do @c.name.should     == "New Card"  end
+  it "should not have errors"        do @b.errors.size.should == 0            end
+  it "should have the right class"   do @c.class.should    == Card            end
+  it "should have the right key"     do @c.key.should      == "new_card"      end
+  it "should have the right name"    do @c.name.should     == "New Card"      end
   it "should have the right content" do @c.content.should  == "Great Content" end
 
   it "should have a revision with the right content" do
@@ -70,7 +70,8 @@ end
 describe Card, "created with autoname" do
   before do
     Account.as_bot do
-      @b1 = Card.create! :name=>'Book+*type+*autoname', :content=>'b1'
+      Card.create! :name=>'Book+*type+*autoname', :content=>'b1'
+      warn "created rule #{Card['Book+*type+*autoname'].inspect}"
     end
   end
 
@@ -85,6 +86,7 @@ describe Card, "created with autoname" do
       Card.create! :type=>'Book'
     end
     c.name.should== 'b2'
+  end
 
   it "should auto-increment" do
     c = Account.as_bot do
@@ -95,7 +97,7 @@ describe Card, "created with autoname" do
   end
 
   it "should handle trashed names" do
-    b1 = Card.create! :type=>'Book'
+    Account.as_bot { b1 = Card.create! :type=>'Book' }
     Account.as_bot { b1.destroy }
     b1 = Card.create! :type=>'Book'
     b1.name.should== 'b1'
@@ -157,6 +159,7 @@ describe Card, "types" do
 
     Wagn::Codename.reset_cache
   end
+
   it "should accept classname as typecode" do
     ct = Card.create! :name=>"BFoo", :type=>'Cardtype', :codename=>'b_foo'
     Wagn::Codename.reset_cache

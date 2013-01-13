@@ -267,7 +267,6 @@ describe AccountController, "account tests" do
       u = User.find_by_email(email)
       u.status = 'blocked'
       u.save!
->>>>>>> action_events
     end
     #post :action, :id=>'Session+*reset_password', :email=>email
     post :forgot_password, :email=>email

@@ -35,7 +35,7 @@ end
 
 describe "On Card Changes" do
   before do
-    Account.session = 'john'
+    Account.session_id = Card['john'].id
     Timecop.travel(FUTURE)  # make sure we're ahead of all the test data
   end
 

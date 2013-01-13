@@ -18,7 +18,7 @@ describe Mailer do
   context "change notice" do
     before do
       user =  Card['sara']
-      Account.session = user.fetch(:trait=>:account)
+      Account.session_id = user.id
       card =  Card["Sunglasses"]
       action = "edited"
       Mailer.change_notice( user, card, action, card.name ).deliver

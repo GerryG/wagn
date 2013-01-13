@@ -703,11 +703,14 @@ class Card < ActiveRecord::Base
   end
 
   def autoname name
-    if Card.exists? name
+    warn "autoname #{name.class}"
+    r=if Card.exists? name
       autoname name.next
     else
+      warn "autoname not exist #{name.class}"
       name
     end
+    warn "autoname #{name} R:#{r}"; r
   end
 
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -728,9 +731,11 @@ class Card < ActiveRecord::Base
   validates_each :name do |card, a, name|
     if card.new_card? && name.blank?
       if autoname_card = card.rule_card(:autoname)
+        warn "auto card #{autoname_card.inspect}"
         Account.as_bot do
           autoname_card = autoname_card.refresh
           name = card.name = card.autoname( autoname_card.content )
+          warn "autoname is #{name} c:#{card.inspect}"
           autoname_card.content = name  #fixme, should give placeholder on new, do next and save on create
           autoname_card.save!
         end

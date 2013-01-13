@@ -52,17 +52,17 @@ class Account
       as_card_id == Card::WagnBotID
     end
 
-    def reset()            @@session_id = Card::AnonID; @@as_card_id = nil               end
-    def session()          Card[@@session_id]                               end
-    def authorized_email() authorized.account.email                                  end
-    def session_id=(account)  @@session_id = get_session_id(account) || Card::AnonID       end
-    def as_card_id()          @@as_card_id || @@session_id                                         end
+    def reset()            @@session_id = Card::AnonID; @@as_card_id = nil              end
+    def session()          Card[@@session_id]                                           end
+    def authorized_email() authorized.account.email                                     end
+    def session_id=(account)  @@session_id = get_session_id(account) || Card::AnonID    end
+    def as_card_id()          @@as_card_id || @@session_id                              end
     # We only need to test for the tag presence for migrations, we are going to  make sure it
     # exists and is indestructable (add tests for that)
-    def authorized()       Card[as_card_id]                                                end
+    def authorized()       Card[as_card_id]                                             end
     def as_bot(&block)     as Card::WagnBotID, &block                                   end
     def among?(authzed)    authorized.among? authzed                                    end
-    def logged_in?()       @@session_id != Card::AnonID                                    end
+    def logged_in?()       @@session_id != Card::AnonID                                 end
 
     def as given_account
       save_as_id = @@as_card_id

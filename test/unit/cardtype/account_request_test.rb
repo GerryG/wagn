@@ -6,7 +6,7 @@ class AccountRequestTest < ActiveSupport::TestCase
     super
     setup_default_account
     # make sure all this stuff works as anonymous user
-    Account.session = Card::AnonID
+    Account.session_id = nil
   end
 
 

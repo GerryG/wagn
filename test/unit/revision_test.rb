@@ -62,7 +62,7 @@ class RevisionTest < ActiveSupport::TestCase
 =end
 
   def test_save_draft
-    @card = newcard("mango", "foo")
+    @card = Card.create! :name=>"mango", :content=>"foo"
     @card.save_draft("bar")
     assert_equal 1, @card.drafts.length
     @card.save_draft("booboo")

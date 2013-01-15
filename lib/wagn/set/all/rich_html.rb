@@ -78,7 +78,7 @@ module Wagn
     end
 
     define_view :closer do |args|
-      link_to '', path(:read, :view=>:closed), :title => "close #{card.name}", :remote => true,
+      link_to '', path(:view=>:closed), :title => "close #{card.name}", :remote => true,
         :class => "ui-icon ui-icon-circle-triangle-s toggler slotter"
     end
 
@@ -98,12 +98,12 @@ module Wagn
 
       option_html = %{
         <ul class="card-menu">
-          <li>#{ link_to_action 'edit', :edit, :class=>'slotter' }
+          <li>#{ link_to_view 'edit', :edit, :class=>'slotter' }
             <ul>
-                <li>#{ link_to_action 'content', :edit, :class=>'slotter' }</li>
-                <li>#{ link_to_action 'name', :edit_name, :class=>'slotter' }</li>
-                <li>#{ link_to_action 'type', :edit_type, :class=>'slotter' }</li>
-                <li>#{ link_to_action 'history', :changes, :class=>'slotter' }</li>
+                <li>#{ link_to_view 'content', :edit, :class=>'slotter' }</li>
+                <li>#{ link_to_view 'name', :edit_name, :class=>'slotter' }</li>
+                <li>#{ link_to_view 'type', :edit_type, :class=>'slotter' }</li>
+                <li>#{ link_to_view 'history', :changes, :class=>'slotter' }</li>
             </ul>
           </li>
           <li>#{ link_to_action 'view', :read, :class=>'slotter' }
@@ -121,9 +121,9 @@ module Wagn
             }
             </ul>         
           </li>
-          <li>#{ link_to_action 'advanced', :options, :class=>'slotter' }
+          <li>#{ link_to_view 'advanced', :options, :class=>'slotter' }
             <ul>
-              <li>#{ link_to_action 'rules', :options, :class=>'slotter' }</li>
+              <li>#{ link_to_view 'rules', :options, :class=>'slotter' }</li>
               <li>#{ link_to_page raw("#{card.type_name} &crarr;"), card.type_name }</li>
               #{
                 card.cardname.piece_names.map do |piece|
@@ -135,9 +135,10 @@ module Wagn
           </li>
           #{
             if Account.logged_in? && !card.new_card?
-              "<li>#{ render_watch }</li>"
-             end }
-        </ul>
+              "<li>#{ link_to_view 'account', :account, :class=>'slotter' }</li>"
+            end
+          }
+        </ul>      
       }
       #fixme - many of these (including watch) need permission checks for activation
     end
@@ -153,7 +154,7 @@ module Wagn
       wrap :closed, args do
         %{
           <div class="card-header">
-            #{ link_to '', path(:read, :view=>:open), :title => "open #{card.name}", :remote => true,
+            #{ link_to '', path(:view=>:open), :title => "open #{card.name}", :remote => true,
               :class => "ui-icon ui-icon-circle-triangle-e toggler slotter" }
             #{ _render_title }
           </div>
@@ -181,7 +182,7 @@ module Wagn
       name_ready = !card.cardname.blank? && !Card.exists?( card.cardname )
 
       cancel = if ajax_call?
-        { :class=>'slotter',    :href=>path(:read, :view=>:missing)    }
+        { :class=>'slotter',    :href=>path(:view=>:missing)    }
       else
         { :class=>'redirecter', :href=>Card.path_setting('/*previous') }
       end
@@ -229,11 +230,11 @@ module Wagn
 
     define_view :missing do |args|
       return '' unless card.ok? :create  #this should be moved into ok_view
-      new_args = { 'card[name]'=>card.name }
+      new_args = { :view=>:new, 'card[name]'=>card.name }
       new_args['card[type]'] = args[:type] if args[:type]
 
       wrap :missing, args do
-        link_to raw("Add <strong>#{ showname }</strong>"), path(:new, new_args),
+        link_to raw("Add <strong>#{ showname }</strong>"), path(new_args),
           :class=>'slotter', :remote=>true
       end
     end
@@ -260,7 +261,7 @@ module Wagn
                 #{ button_tag 'Cancel', :class=>'cancel-button slotter', :href=>path(:read), :type=>'button'}
                 #{
                 if !card.new_card?
-                  button_tag "Delete", :href=>path(:delete), :type=>'button',
+                  button_tag "Delete", :href=>path(:action=>:delete), :type=>'button',
                     :class=>'delete-button slotter standard-delete', :'data-confirm'=>confirm_delete
                 end
                 }
@@ -290,7 +291,7 @@ module Wagn
       wrap :edit_name, args.merge(:frame=>true) do
         _render_header +
         wrap_content( :edit_name, :body=>true, :class=>'card-editor' ) do
-          card_form( path(:update, :id=>card.id), 'card-name-form', 'main-success'=>'REDIRECT' ) do |f|
+          card_form( path(:action=>:update, :id=>card.id), 'card-name-form', 'main-success'=>'REDIRECT' ) do |f|
             @form = f
             %{
               #{ _render_name_editor}
@@ -312,7 +313,7 @@ module Wagn
                 <div class="button-area">
                   #{ submit_tag 'Rename and Update', :class=>'renamer-updater hidden' }
                   #{ submit_tag 'Rename', :class=>'renamer' }
-                  #{ button_tag 'Cancel', :class=>'edit-name-cancel-button slotter', :type=>'button', :href=>path(:edit, :id=>card.id)}
+                  #{ button_tag 'Cancel', :class=>'edit-name-cancel-button slotter', :type=>'button', :href=>path(:view=>:edit, :id=>card.id)}
                 </div>
               </fieldset>
             }
@@ -326,7 +327,7 @@ module Wagn
         if args[:variety] == :edit
           type_field :class=>'type-field edit-type-field'
         else
-          type_field :class=>"type-field live-type-field", :href=>path(:new), 'data-remote'=>true
+          type_field :class=>"type-field live-type-field", :href=>path(:view=>:new), 'data-remote'=>true
         end
       end)
     end
@@ -347,7 +348,7 @@ module Wagn
               <fieldset>
                 <div class="button-area">              
                   #{ submit_tag 'Submit', :disable_with=>'Submitting' }
-                  #{ button_tag 'Cancel', :href=>path(:edit), :type=>'button', :class=>'edit-type-cancel-button slotter' }
+                  #{ button_tag 'Cancel', :href=>path(:view=>:edit), :type=>'button', :class=>'edit-type-cancel-button slotter' }
                 </div>
               </fieldset>
             }
@@ -416,7 +417,7 @@ module Wagn
               <div class="settings-tab">
                 #{ if !related_sets.empty?
                   %{ <div class="set-selection">
-                    #{ form_tag path(:options, :attrib=>:settings), :method=>'get', :remote=>true, :class=>'slotter' }
+                    #{ form_tag path(:view=>:options, :attrib=>:settings), :method=>'get', :remote=>true, :class=>'slotter' }
                         <label>Set:</label>
                         <select name="current_set" class="set-select">#{ set_options }</select>
                     </form>
@@ -430,7 +431,7 @@ module Wagn
                 #{ if Card.toggle(card.rule :accountable) && card.update_account_ok?
                     %{<div class="new-account-link">
                     #{ link_to %{Add a sign-in account for "#{card.name}"},
-                        path(:options, :attrib=>:new_account),
+                        path(:view=>:options, :attrib=>:new_account),
                       :class=>'slotter new-account-link', :remote=>true }
                     </div>}
                    end
@@ -560,7 +561,7 @@ module Wagn
 
              case card.updated_at.to_s
                when card.created_at.to_s; 'added'
-               when rev.created_at.to_s;  link_to('edited', path(:changes), :class=>'last-edited')
+               when rev.created_at.to_s;  link_to('edited', path(:view=>:changes), :class=>'last-edited', :rel=>'nofollow')
                else; 'updated'
              end} #{
 
@@ -576,7 +577,7 @@ module Wagn
       Rails.logger.warn "errors #{args.inspect}, #{card.inspect}, #{caller*"\n"}"
       wrap :errors, args do
         %{ <h2>Problems #{%{ with <em>#{card.name}</em>} unless card.name.blank?}</h2> } +
-        card.errors.map { |attrib, msg| "<div>#{attrib.upcase}: #{msg}</div>" } * ''
+        card.errors.map { |attrib, msg| "<div>#{attrib.to_s.upcase}: #{msg}</div>" } * ''
       end
     end
 
@@ -666,7 +667,7 @@ module Wagn
     end
 
     def watch_link text, toggle, title, extra={}
-      link_to "#{text}", path(:watch, :toggle=>toggle), 
+      link_to "#{text}", path(:action=>:watch, :toggle=>toggle), 
         {:class=>"watch-toggle watch-toggle-#{toggle} slotter", :title=>title, :remote=>true, :method=>'post'}.merge(extra)
     end
   end  

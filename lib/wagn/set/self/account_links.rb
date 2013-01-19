@@ -4,6 +4,14 @@ module Wagn
 
     format :html
 
+    define_view :raw, :name=>:signup do |args|
+      warn "signup view #{card.inspect}"
+    end
+
+    define_view :raw, :name=>:invite do |args|
+      warn "invite view #{card.inspect}"
+    end
+
     define_view :raw, :name=>:account_links do |args|
       #ENGLISH
       prefix = Wagn::Conf[:root_path] + '/account'
@@ -11,16 +19,18 @@ module Wagn
         if Account.logged_in?
           ucard = Account.user_card
           %{#{   link_to ucard.name, "#{Wagn::Conf[:root_path]}/#{ucard.cardname.url_key}", :id=>'my-card-link'
-             }#{ if invite_card = Card[:account].fetch(:trait=>:invite) and invite_card.ok? :create
+             }#{ if invite_card = Card[:invite] and invite_card.ok? :create
                    link_to 'Invite a Friend', invite_card.key, :id=>'invite-a-friend-link'
                  end
-             }#{ link_to 'Sign out', Card[:session].key, :method=>'DELETE',           :id=>'signout-link'
+             }#{ #link_to 'Sign out', Card[:session].key, :method=>'DELETE', :id=>'signout-link'
+                 link_to 'Sign out', '/account/signout', :id=>'signout-link'
            }}
          else
-           %{#{ if (signup_card = Card[:account].fetch :trait=>:signup).ok? :create
+           %{#{ if signup_card = Card[:signup].send_if(:ok?, :create)
                  link_to 'Sign up', signup_card.key, :id=>'signup-link'
                 end
-            }#{ link_to 'Sign in', Card[:session].key, :id=>'signin-link'
+            }#{ #link_to 'Sign in', Card[:session].key, :id=>'signin-link'
+                 link_to 'Sign in', '/account/signin', :id=>'signout-link'
             }}
          end }
       </span>}

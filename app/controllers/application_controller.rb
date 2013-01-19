@@ -1,14 +1,6 @@
 # -*- encoding : utf-8 -*-
 
-require_dependency 'wagn/sets'
-require_dependency 'card'
-
 class ApplicationController < ActionController::Base
-  # This was in all the controllers, now it is inherited here
-  Card
-end
-
-class ApplicationController
   include Wagn::Exceptions
 
   include AuthenticatedSystem
@@ -109,6 +101,7 @@ class ApplicationController
 
       render_obj = renderer.render_show :view => view || params[:view]
       render obj_sym => render_obj, :status=> renderer.error_status || status
+
     when show_file            # send_file can handle it
     else                      # dunno how to handle it
       render :text=>"unknown format: #{extension}", :status=>404

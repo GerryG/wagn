@@ -1,9 +1,9 @@
+require_dependency "cardlib"
 
 module Wagn
   class Renderer
-
-    cattr_accessor :current_slot, :ajax_call, :perms, :denial_views, :subset_views, :error_codes, :view_tags, :renderer
-    @@renderer = Renderer
+    Card::Reference
+    include LocationHelper
 
     DEPRECATED_VIEWS = { :view=>:open, :card=>:open, :line=>:closed, :bare=>:core, :naked=>:core }
     INCLUSION_MODES  = { :main=>:main, :closed=>:closed, :closed_content=>:closed, :edit=>:edit,
@@ -18,6 +18,9 @@ module Wagn
       :txt  => :Text
     }
 
+    cattr_accessor :current_slot, :ajax_call, :perms, :denial_views, :subset_views, :error_codes, :view_tags
+    cattr_reader :renderer
+
     @@max_char_count = 200 #should come from Wagn::Conf
     @@max_depth      = 10 # ditto
     @@perms          = {}
@@ -25,13 +28,19 @@ module Wagn
     @@subset_views   = {}
     @@error_codes    = {}
     @@view_tags      = {}
+    @@renderer = Renderer
 
     def self.get_renderer format
-      const_get( if RENDERERS.has_key? format
-          RENDERERS[ format ]
-        else
-          format.to_s.camelize.to_sym
-        end )
+      @@renderer = format.nil? || format == :base ? Renderer :
+        const_get( if RENDERERS.has_key? format
+            RENDERERS[ format ]
+          else
+            format.to_s.camelize.to_sym
+          end )
+    end
+
+    def self.renderer= format
+      @@renderer = get_renderer format
     end
 
     attr_reader :format, :card, :root, :parent
@@ -196,11 +205,11 @@ module Wagn
       self
     end
 
-    def process_content_s content=nil, opts={}
-      process_content(content, opts).to_s
+    def process_content content=nil, opts={}
+      process_content_object(content, opts).to_s
     end
 
-    def process_content content=nil, opts={}
+    def process_content_object content=nil, opts={}
       return content unless card
       content = card.content if content.blank?
 
@@ -208,7 +217,7 @@ module Wagn
 
       card.update_references( obj_content, true ) if card.references_expired # I thik we need this genralized
 
-      obj_content.process_content do |opts|
+      obj_content.process_content_object do |opts|
         expand_inclusion(opts) { yield }
       end
     end
@@ -338,14 +347,14 @@ module Wagn
 
       opts[:home_view] = [:closed, :edit].member?(view) ? :open : view
       # FIXME: special views should be represented in view definitions
-      
+
       view = case
       when @mode == :edit       ; @@perms[view]==:none || tcard.hard_template ? :blank : :edit_in_form
       when @@perms[view]==:none ; view
       when @mode == :closed     ; !tcard.known?  ? :closed_missing : :closed_content
       when @mode == :template   ; :template_rule
       else                      ; view
-      end  
+      end
 
       result = sub.render(view, opts)
       Renderer.current_slot = oldrenderer

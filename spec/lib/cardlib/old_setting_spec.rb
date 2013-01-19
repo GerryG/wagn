@@ -58,8 +58,9 @@ describe Card do
     before do
       @pointer_settings =  [ :options, :options_label, :input ]
     end
+
     it "returns universal setting names for non-pointer set" do
-      pending "Different api, we should just put the tests in a new spec for that"
+      #pending "Different api, we should just put the tests in a new spec for that"
       snbg = Card.fetch('*star').setting_codes_by_group
       #warn "snbg #{snbg.class} #{snbg.inspect}"
       snbg.keys.length.should == 4

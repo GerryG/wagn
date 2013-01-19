@@ -1,19 +1,9 @@
 # -*- encoding : utf-8 -*-
 require 'xmlscan/processor'
-
-require_dependency 'wagn/sets'
-require_dependency 'card'
+require_dependency 'cardlib'
 
 class CardController < ApplicationController
-  # This is often needed for the controllers to work right
-  # FIXME: figure out when/why this is needed and why the tests don't fail
-  Card::Reference
-  Card
-end
-
-  #include Wagn::Sets::CardControllerMethods
-
-class CardController
+  include Wagn::Sets::CardActions
 
   helper :wagn
 
@@ -21,7 +11,6 @@ class CardController
 
   before_filter :load_card
   before_filter :refresh_card, :only=> [ :create, :update, :delete, :comment, :rollback ]
-  before_filter :read_ok,      :only=> [ :read_file ]
 
   # rest XML put/post
   def read_xml(io)
@@ -74,8 +63,6 @@ Done"
 =end
 
   attr_reader :card
-  cattr_reader :subset_actions
-  @@subset_actions = {}
 
   METHODS = {
     'POST'   => :create,  # C
@@ -106,16 +93,11 @@ Done"
   def create
     #warn "create #{params.inspect}, #{card.inspect} if #{card && !card.new_card?}, nc:#{card.new_card?}"
 
-    card.errors.add(:name, "must be unique; '#{card.name}' already exists.") unless card.new_card?
-    render_errors || card.save || render_errors || success
-
+    perform_create
   end
 
   def read
-    render_errors || begin
-      save_location # should be an event!
-      show
-    end
+    perform_read
   end
 
 =begin FIXME move to action events
@@ -142,19 +124,17 @@ Done"
 =end
 
   def update
+    perform_update
+  end
+
+  def delete
+    perform_delete
     case
     when card.new_card?                          ;  create
     when card.update_attributes( params[:card] ) ;  success
     else                                             render_errors
     end
   end
-
-  def delete
-    card.destroy
-    discard_locations_for card #should be an event
-    success 'REDIRECT: *previous'
-  end
-
 
   def index
     read
@@ -170,6 +150,9 @@ Done"
   end #FIXME!  move into renderer
 
 
+  def action_error *a
+    warn "action_error #{a.inspect}"
+  end
 
 
   ## the following methods need to be merged into #update
@@ -301,20 +284,22 @@ Done"
       when /^\~(\d+)$/   ; Card.fetch $1.to_i
       when /^\:(\w+)$/   ; Card.fetch $1.to_sym
       else
-        opts = params[:card] ? params[:card].clone : (obj = params[:object]) ? obj : {}
+
+        opts = if opts = params[:card]  ; opts.clone
+            elsif opts = params[:object]; opts
+            else                        {}
+            end
+
         opts[:type] ||= params[:type] # for /new/:type shortcut.  we should fix and deprecate this.
-        #Rails.logger.warn "load params: #{params.inspect}, #{opts.inspect}"
         name = params[:id] || opts[:name]
         
         if @action == 'create'
           # FIXME we currently need a "new" card to catch duplicates (otherwise #save will just act like a normal update)
           # I think we may need to create a "#create" instance method that handles this checking.
           # that would let us get rid of this...
-          #Rails.logger.warn "load create card #{name.inspect}, #{opts.inspect}"
           opts[:name] ||= name
           Card.new opts
         else
-          #Rails.logger.warn "load card fetch :new #{name.inspect}, #{opts.inspect}"
           Card.fetch name, :new=>opts
         end
       end
@@ -330,6 +315,7 @@ Done"
 
 
   def success default_target='_self'
+    #warn "success #{default_target}, #{card.inspect}"
     target = params[:success] || default_target
     redirect = !ajax?
     new_params = {}
@@ -359,6 +345,7 @@ Done"
       @card = target
       show new_params[:view]
     end
+    true
   end
 
 

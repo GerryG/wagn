@@ -3,7 +3,7 @@ class Wql
 
   ATTRIBUTES = {
 
-    :basic      =>  %w{ name type type_id content id key updater_id trunk_id left_id tag_id right_id creator_id updater_id codename },
+    :basic      =>  %w{ name type type_id content id key updater_id left_id right_id creator_id updater_id codename },
     :custom     =>  %w{ edited_by editor_of edited last_editor_of extension_type
        last_edited_by creator_of created_by member_of member role found_by sort
        part left right plus left_plus right_plus or match complete not and },
@@ -256,7 +256,7 @@ class Wql
     end
 
     def found_by(val)
-      cards = (String===val ? [ Card.fetch( absolute_name(val), :new=>{} ) ] : Wql.new(val).run)
+      cards = ( String===val ? [ Card.fetch( absolute_name(val), :new=>{} ) ] : Wql.new(val).run )
       cards.each do |c|
         raise %{"found_by" value needs to be valid Search card #{c.inspect}} unless c && [Card::SearchTypeID,Card::SetID].include?(c.type_id)
         found_by_spec = CardSpec.new(c.get_spec).rawspec

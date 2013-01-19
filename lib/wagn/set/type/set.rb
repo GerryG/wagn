@@ -1,6 +1,7 @@
 
 module Wagn
-  module Set::Type::Set
+  module Set::Type
+   module Set
     include Sets
 
     format :base
@@ -31,7 +32,7 @@ module Wagn
 
 
     module Model
-      include Set::Type::SearchType::Model
+      include SearchType::Model
 
       def inheritable?
         return true if junction_only?
@@ -82,5 +83,6 @@ module Wagn
         Card.fetch opts[:name], :new=>opts
       end
     end
+   end
   end
 end

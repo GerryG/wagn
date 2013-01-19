@@ -63,7 +63,7 @@ describe CardController, "account functions" do
     end
 
     it "should create an account request" do
-      c = Carc['Joe New'].should be
+      c = Card['Joe New'].should be
       c.type_id.should == Card::AccountRequestID
       c.to_user.blocked?.should be_true
     end
@@ -87,6 +87,14 @@ describe CardController, "account functions" do
       @msgs.size.should == 2
     end
   end
+
+end
+
+describe AccountController, "account tests" do
+  # Be sure to include AuthenticatedTestHelper in test/test_helper.rb instead
+  # Then, you can remove it from this and the units test.
+
+  include AuthenticatedTestHelper
 
   describe "#forgot_password" do
     before do
@@ -341,7 +349,7 @@ class AccountCreationTest < ActionController::TestCase
     end
   end
 
-  def test_should_require_email
+  it "should test_should_require_email" do
     assert_no_new_account do
       #assert_raises(ActiveRecord::RecordInvalid) do
         post_invite :user=>{ :email => nil }
@@ -351,14 +359,14 @@ class AccountCreationTest < ActionController::TestCase
     end
   end
 
-  def test_should_require_unique_email
+  it "should test_should_require_unique_email" do
     post_invite :user=>{ :email=>'duplor@user.com' }
     assert_no_new_account do
       post_invite :user=>{ :email=>'duplor@user.com' }
     end
   end
 
-  def test_should_create_account_from_existing_user
+  it "should test_should_create_account_from_existing_user" do
     assert_difference ::User, :count do
       assert_no_difference Card.where(:type_id=>Card::UserID), :count do
         post_invite :card=>{ :name=>"No Count" }, :user=>{ :email=>"no@count.com" }
@@ -387,18 +395,9 @@ class AccountRequestTest < ActionController::TestCase
     end
   end
 
-  def test_should_redirect_to_account_request_landing_card
-    post :action, :user=>{:email=>"jamaster@jay.net"}, :card=>{
-      :type=>"Account Request",
-      :name=>"Word Third",
-      :content=>"Let me in!"
-    }
-    assert_response 302
-    #assert_redirected_to @controller.url_for_page(::Setting.find_by_codename('account_request_landing').card.name)
-  end
-
-  def test_should_create_account_request
-    post :action, :user=>{:email=>"jamaster@jay.net"}, :card=>{
+  it "should test_should_redirect_to_account_request_landing_card" do
+    #post :action, :user=>{:email=>"jamaster@jay.net"}, :card=>{
+    post :create, :user=>{:email=>"jamaster@jay.net"}, :card=>{
       :type=>"Account Request",
       :name=>"Word Third",
       :content=>"Let me in!"
@@ -409,6 +408,8 @@ class AccountRequestTest < ActionController::TestCase
 
     assert_equal @card.typecode, :account_request
 
+    assert_response 302
+
     # this now happens only when created via account controller
 
     #assert_instance_of ::User, @user
@@ -417,12 +418,33 @@ class AccountRequestTest < ActionController::TestCase
 
   end
 
-  def test_should_destroy_and_block_user
+  it "should test_should_destroy_and_block_user" do
     login_as 'joe_admin'
     # FIXME: should test agains mocks here, instead of re-testing the model...
-    delete :action, :id=>"~#{Card.fetch('Ron Request').id}"
+    #delete :action, :id=>"~#{Card.fetch('Ron Request').id}"
+    delete :delete, :id=>"~#{Card.fetch('Ron Request').id}"
     assert_equal nil, Card.fetch('Ron Request')
     assert_equal 'blocked', User.find_by_email('ron@request.com').status
+  end
+
+end
+
+
+
+class AccountTest < ActionController::IntegrationTest
+  include LocationHelper
+
+  it "should test_return_to_home_page_after_login" do
+    #post '/Session', :login=>'joe@user.com', :password=>'joe_pass'
+    post '/account/signin', :login=>'joe@user.com', :password=>'joe_pass'
+    assert_redirected_to '/'
+  end
+
+  it "should test_return_to_special_url_when_logging_in_after_visit" do
+    get '/recent'
+    #post '/Session', :login=>'joe@user.com', :password=>'joe_pass'
+    post '/account/signin', :login=>'joe@user.com', :password=>'joe_pass'
+    assert_redirected_to '/*recent'
   end
 
 end

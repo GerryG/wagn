@@ -69,7 +69,7 @@ describe Card do
         a.should be_instance_of(Card)
 
         # expires the saved card
-        mock(Card.cache).delete('a').at_least(1)
+        mock(Card.cache).delete('a')
         mock(Card.cache).delete(/~\d+/).at_least(12)
 
         # expires plus cards
@@ -147,7 +147,7 @@ describe Card do
     end
   end
 
-  describe "#fetch :new=> ..." do
+  describe "#fetch :new=>{ ... }" do
     it "returns a new card if it doesn't find one" do
       new_card = Card.fetch "Never Seen Me Before", :new=>{}
       new_card.should be_instance_of(Card)

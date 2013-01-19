@@ -18,17 +18,16 @@ Wagn::Application.routes.draw do
   get '/:id(.:format)' => 'card#read'
 
   match '(/wagn)/:id(.:format)' => 'card#read'
-
   match '/files/(*id)' => 'card#read_file'
 
   match 'new/:type' => 'card#read', :view => 'new'
 
-  match 'card/:view(/:id(.:format)(/:attribute))' => 'card#read',
-    :constraints => { :view=> /new|changes|options|related|edit/ }
+  match 'card/:view(/:id(.:format)(/:attribute))' => 'card#read', :constraints =>
+    { :view=> /new|changes|options|related|edit/ }
 
-  #match ':controller/:action(/:id(.:format)(/:attribute))' => "card#read"
+  match ':controller/:action(/:id(.:format)(/:attribute))'
 
-  match '*id' => 'card#action', :view => 'bad_address'
+  match '*id' => 'card#read', :view => 'bad_address'
 
 end
 

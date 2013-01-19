@@ -6,43 +6,41 @@ module Wagn
     ### --- Core actions -----
 
     action :create do |*a|
-      if @card.save
-        success
-      else
-        errors!
-      end
+      #card.errors.add(:name, "must be unique; '#{card.name}' already exists.") unless card.new_card?
+      card.save
+      re=render_errors
+      re || success
     end
 
     action :read do |*a|
-      return false if @card.errors.any?
-
-      save_location # should be an event!
-      show
+      #warn "read action #{@card.inspect}, #{@card.errors.map(&:to_s)*', '}"
+      render_errors || begin
+    #warn "save and show #{@card.inspect}"
+        save_location # should be an event!
+        show
+      end
     end
 
     action :update do |*a|
-      case
-      when @card.new_card?
-        action_create
-      when @card.update_attributes( params[:card] )
-        @card.save
+      if card.new_card?; process_create
+      elsif card.update_attributes params[:card]
+        #warn "update #{card.inspect}, #{params[:card].inspect}"
+        #card.save
+        render_errors || success
+
+      elsif render_errors
+      else  success
       end
     end
 
     action :delete do |*a|
-      if @card.destroy
-        warn "destroyed? #{@card.inspect}"
-
-        discard_locations_for @card
-        success 'REDIRECT: *previous'
-      else
-        warn "destroyed? false #{@card.inspect}"
-        false
-      end
+      card.destroy
+      discard_locations_for card #should be an event
+      success 'REDIRECT: *previous'
     end
 
-    alias_action :index,     {}, :read
-    alias_action :read_file, {}, :show_file
+    alias_action :read,     {}, :index
+    alias_action :show_file, {}, :read_file
 
 
 
@@ -52,18 +50,12 @@ module Wagn
 
     ### ---- Core renders --- Keep these on top for dependencies
 
-    # update_references based on _render_refs, which is the same as
-    # _render_raw, except that you don't need to alias :refs as often
-    # speeding up the process when there can't be any reference changes
-    # (builtins, etc.) (moved update_references to a card model module, so this isn't needed now)
-    #define_view :refs     do |args|  card.respond_to?('references_expired') ? card.raw_content : ''   end
-
     define_view :show, :perms=>:none  do |args|
       render( args[:view] || :core )
     end
 
     define_view :raw      do |args|  card ? card.raw_content : _render_blank                          end
-    define_view :core     do |args|  process_content_s _render_raw                                    end
+    define_view :core     do |args|  process_content _render_raw                                    end
     define_view :content  do |args|  _render_core                                                     end
       # this should be done as an alias, but you can't make an alias with an unknown view,
       # and base renderer doesn't know "content" at this point

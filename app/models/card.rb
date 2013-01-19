@@ -1,17 +1,13 @@
 # -*- encoding : utf-8 -*-
 
+require_dependency 'smart_name'
+
 class Card < ActiveRecord::Base
-  require_dependency 'card/revision'
-  require_dependency 'card/reference'
-end
 
-require 'smart_name'
-SmartName.codes= Wagn::Codename
-SmartName.params= Wagn::Conf
-SmartName.lookup= Card
-SmartName.session= proc { Account.user_card.name }
-
-class Card
+  SmartName.codes= Wagn::Codename
+  SmartName.params= Wagn::Conf
+  SmartName.lookup= Card
+  SmartName.session= proc { Account.user_card.name }
 
   has_many :revisions, :order => :id #, :foreign_key=>'card_id'
   belongs_to :card, :class_name => 'Card', :foreign_key => :creator_id
@@ -33,7 +29,6 @@ class Card
   #~~~~~~  CLASS METHODS ~~~~~~~~~~~~~~~~~~~~~
 
   class << self
-    # are all these used?  missing for example?
     JUNK_INIT_ARGS = %w{ missing skip_virtual id }
 
     def cache()          Wagn::Cache[Card]                           end
@@ -45,13 +40,13 @@ class Card
       args.delete('content') if args['attach'] # should not be handled here!
 
       if name = args['name'] and !name.blank?
-        if  Card.cache                                       and
-            cc = Card.cache.read_local(name.to_name.key)     and
-            cc.type_args                                     and
-            args['type']          == cc.type_args[:type]     and
-            args['typecode']      == cc.type_args[:typecode] and
-            args['type_id']       == cc.type_args[:type_id]  and
-            args['loaded_left']   == cc.loaded_left
+        if  Card.cache                                        and
+            cc = Card.cache.read_local(name.to_name.key)  and
+            cc.type_args                                      and
+            args['type']          == cc.type_args[:type]      and
+            args['typecode']      == cc.type_args[:typecode]  and
+            args['type_id']       == cc.type_args[:type_id]   and
+            args['loaded_left']  == cc.loaded_left
 
           args['type_id'] = cc.type_id
           return cc.send( :initialize, args )
@@ -121,45 +116,41 @@ class Card
 
     super args # ActiveRecord #initialize
 
-    init_sets skip_modules
-
-    self
-  end
-
-  def init_sets skip_modules=false
-    #Rails.logger.warn "init_sets[#{skip_modules}, #{inspect}, #{@type_args.inspect}"
-
-    if type_id.nil? && @type_args.nil?
-      raise "no type or type args"
-    elsif @type_args
-
-      type_id = case
-        when @type_args[:type_id]
-          include_set_modules unless skip_modules
-           return   # type_id was set explicitly.  no need to set again.
-
-        when typecode = @type_args[:typecode]; Wagn::Codename[typecode]
-
-        when typearg  = @type_args[:type]    ; Card.fetch_id typearg
-
-        else
-          if name && tmpl=template
-            reset_patterns #still necessary even with new template handling?
-            tmpl.type_id
-          #else if we get here we have no *all+*default -- let's address that!
-          # test for *all+*default indestructable added somewhere now, but double check it.
-          end
-        end
-
-      if type_id
-        self.type_id_without_tracking = type_id
-      else
-        @broken_type = @type_args[:type] || @type_args[:typecode]
-        errors.add :type, "#{broken_type} is not a known type."
-      end
+    if tid = get_type_id(@type_args)
+      self.type_id_without_tracking = tid
     end
 
     include_set_modules unless skip_modules
+    self
+  end
+
+  def get_type_id args={}
+    return if args[:type_id] # type_id was set explicitly.  no need to set again.
+
+    type_id = case
+      when args[:typecode] ;  code=args[:typecode] and (
+                              Wagn::Codename[code] || (c=Card[code] and c.id))
+      when args[:type]     ;  Card.fetch_id args[:type]
+      else :noop
+      end
+
+
+    case type_id
+    when :noop 
+    when false, nil
+      @broken_type = args[:type] || args[:typecode]
+      errors.add :type, "#{broken_type} is not a known type."
+    else
+      return type_id
+    end
+
+    if name && t=template
+      reset_patterns #still necessary even with new template handling?
+      t.type_id
+    else
+      # if we get here we have no *all+*default -- let's address that!
+      DefaultTypeID
+    end
   end
 
   def include_set_modules
@@ -250,6 +241,7 @@ class Card
     @virtual    = false
     @from_trash = false
     Wagn::Hook.call :after_create, self if @was_new_card
+    Rails.logger.warn "base after save #{inspect}, #{caller*"\n"}"
     send_notifications
     true
   rescue Exception=>e
@@ -428,7 +420,9 @@ class Card
   end
 
   def type_name
-    card = Card.fetch( type_id, :skip_modules=>true, :skip_virtual=>true ) and card.name
+    return if type_id.nil?
+    card = Card.fetch type_id, :skip_modules=>true, :skip_virtual=>true
+    card and card.name
   end
 
   def type= type_name
@@ -535,12 +529,16 @@ class Card
 
   def all_roles
     if @all_roles.nil?
-      @all_roles = (id==AnonID ? [] : [AuthID])
-      Account.as_bot do
-        rcard=fetch(:trait=>:roles) and
-          items = rcard.item_cards(:limit=>0).map(&:id) and
-          @all_roles += items
-      end
+      @all_roles = if id == AnonID; []
+        else
+          Account.as_bot do
+            if get_roles = fetch(:trait=>:roles) and
+                ( get_roles = get_roles.item_cards(:limit=>0) ).any?
+              [AuthID] + get_roles.map(&:id)
+            else [AuthID]
+            end
+          end
+        end
     end
     #warn "aroles #{inspect}, #{@all_roles.inspect}"
     @all_roles
@@ -567,7 +565,7 @@ class Card
   # MISCELLANEOUS
 
   #def debug_type() type_id end
-  def debug_type() "#{typecode}:#{type_id.to_i<0 ? "*BOGUS#{type_id}*" : type_id}" end
+  def debug_type() "#{typecode||'no code'}:#{type_id}" end
   #def debug_type() "#{typename}:#{type_id}" end # this can cause infinite recursion
 
   def to_s
@@ -576,8 +574,11 @@ class Card
 
   def inspect
     "#<#{self.class.name}" + "##{id}" +
-    #"###{object_id}" + "lf:#{tag_id}rt:#{tag_id}" +
+    "###{object_id}" + #"l#{left_id}r#{right_id}" +
     "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
+    #(errors.any? ? '*Errors*' : 'noE') +
+    (errors.any? ? "<E*#{errors.full_messages*', '}*>" : '') +
+    #"{#{references_expired==1 ? 'Exp' : "noEx"}:" +
     "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{frozen? ? 'Fz' : readonly? ? 'RdO' : ''}" +
     "#{@virtual &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }:#{references_expired.inspect}}" +
     #" Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}" +

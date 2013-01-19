@@ -17,18 +17,19 @@ module Wagn
       #Universal Edit Button
       if root.card
         if !root.card.new_record? && root.card.ok?(:update)
-          bits << %{<link rel="alternate" type="application/x-wiki" title="Edit this page!" href="#{ root.path :edit }"/>}
+          bits << %{<link rel="alternate" type="application/x-wiki" title="Edit this page!" href="#{ root.path :view=>:edit }"/>}
         end
 
         # RSS # move to packs!
         if root.card.type_id == Card::SearchTypeID
           opts = { :format => :rss }
           root.search_params[:vars].each { |key, val| opts["_#{key}"] = val }
-          rss_href = url_for_page root.card.name, opts
+          rss_href = path_for_page root.card.name, opts
           bits << %{<link rel="alternate" type="application/rss+xml" title="RSS" href=#{rss_href} />}
        end
       end
 
+      bits << %{<meta name="viewport" content="width=device-width, initial-scale=0.8">}
       # CSS
 #      bits << stylesheet_link_tag('http://code.jquery.com/ui/1.9.1/themes/base/jquery-ui.css')
       bits << stylesheet_link_tag('application-all')

@@ -1,5 +1,8 @@
 # -*- encoding : utf-8 -*-
 
+require_dependency 'wagn/sets'
+require_dependency 'card'
+
 
 class CardController < ApplicationController
   # This is often needed for the controllers to work right
@@ -60,17 +63,33 @@ class CardController < ApplicationController
   end
 
   def update
-    if card.new_card?; create
-    elsif               render_errors
-    else                success
+    case
+    when card.new_card?                          ;  create
+    when card.update_attributes( params[:card] ) ;  success
+    else                                             render_errors
     end
   end
 
   def delete
     card.destroy
-    discard_locations_for card
+    discard_locations_for card #should be an event
     success 'REDIRECT: *previous'
   end
+
+
+  def index
+    read
+  end # handle in load card?
+
+
+  def read_file
+    if card.ok? :read
+      show_file
+    else
+      show :denial
+    end
+  end #FIXME!  move into renderer
+
 
 
 
@@ -193,6 +212,7 @@ class CardController < ApplicationController
   end
 
 
+  # FIXME: make me an event
   def load_card
     @card = case params[:id]
       when '*previous'   ; return wagn_redirect( previous_location )
@@ -201,16 +221,19 @@ class CardController < ApplicationController
       else
         opts = params[:card] ? params[:card].clone : {}
         opts[:type] ||= params[:type] # for /new/:type shortcut.  we should fix and deprecate this.
+        #Rails.logger.warn "load params: #{params.inspect}, #{opts.inspect}"
         name = params[:id] || opts[:name]
         
         if @action == 'create'
           # FIXME we currently need a "new" card to catch duplicates (otherwise #save will just act like a normal update)
           # I think we may need to create a "#create" instance method that handles this checking.
           # that would let us get rid of this...
+          #Rails.logger.warn "load create card #{name.inspect}, #{opts.inspect}"
           opts[:name] ||= name
           Card.new opts
         else
-          Card.fetch_or_new name, opts
+          #Rails.logger.warn "load card fetch :new #{name.inspect}, #{opts.inspect}"
+          Card.fetch name, :new=>opts
         end
       end
 
@@ -218,6 +241,7 @@ class CardController < ApplicationController
     true
   end
 
+  # FIXME: event
   def refresh_card
     @card = card.refresh
   end
@@ -243,11 +267,11 @@ class CardController < ApplicationController
       when '_self  '       ;  card #could do as _self
       when /^(http|\/)/    ;  target
       when /^TEXT:\s*(.+)/ ;  $1
-      else                 ;  Card.fetch_or_new target.to_name.to_absolute(card.cardname)
+      else                 ;  Card.fetch target.to_name.to_absolute(card.cardname), :new=>{}
       end
 
     case
-    when  redirect        ; wagn_redirect ( Card===target ? url_for_page(target.cardname, new_params) : target )
+    when  redirect        ; wagn_redirect ( Card===target ? path_for_page( target.cardname, new_params ) : target )
     when  String===target ; render :text => target
     else
       @card = target

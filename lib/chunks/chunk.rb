@@ -1,3 +1,13 @@
+
+class Chunks::Abstract
+end
+
+require_dependency 'chunks/uri'
+require_dependency 'chunks/literal'
+require_dependency 'chunks/reference'
+require_dependency 'chunks/link'
+require_dependency 'chunks/include'
+
 require 'uri/common'
 
 # A chunk is a pattern of text that can be protected
@@ -6,7 +16,7 @@ require 'uri/common'
 # Chunks are initalized by passing in the result of a
 # match by its pattern.
 
-module Chunk
+module Chunks
   class Abstract
     # the class name part of the mask strings
     def self.mask_string
@@ -33,7 +43,7 @@ module Chunk
     end
 
     def inspect
-      "#<#{self.class}##{object_id} Txu:#{@unmask_text} t:#{@text}: C:#{@content.gsub("\n", '\\n')[0,40]}:#{@unmask_mode}:Card:#{@card.inspect} #{@cardname.nil? ? '' : " :ref:#{@cardname}::#{@ref_text}"}>"
+      "#<#{self.class}##{object_id} Txu:#{@unmask_text} t:#{@text}: C:#{@content.gsub("\n", '\\n')[0,40]}:#{@unmask_mode}:Card:#{@card.inspect} #{@cardname.nil? ? '' : " :ref:#{@cardname}::#{@link_text}"}>"
     end
 
     # Find all the chunks of the given type in content

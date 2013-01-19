@@ -37,7 +37,7 @@ module Cardlib::Fetch
         #Rails.logger.warn "fetch #{mark.inspect}, #{opts.inspect}"
         # Symbol (codename) handling
         if Symbol===mark
-          mark = Wagn::Codename[mark] || raise("Missing codename for #{mark.inspect}")
+          mark = Wagn::Codename[mark] or raise Wagn::NotFound, "Missing codename for #{mark.inspect}"
         end
 
         cache_key, method, val = if Integer===mark
@@ -65,8 +65,7 @@ module Cardlib::Fetch
       opts[:skip_virtual] = true if opts[:loaded_left]
 
       if Integer===mark
-        raise "fetch of missing card_id #{mark}" if card.nil? || card.trash
-        raise "fetch of missing card_id #{mark}" if card.nil?
+        raise Wagn::NotFound, "fetch of missing card_id #{mark}" if card.nil?
       else
         return card.fetch_new opts if card && opts[:skip_virtual] && card.new_card?
 
@@ -115,7 +114,7 @@ module Cardlib::Fetch
         Card.cache.delete key
         Card.cache.delete "~#{card.id}" if card.id
       end
-      Rails.logger.warn "expiring #{name}, #{card.inspect}"
+      #Rails.logger.warn "expiring #{name}, #{card.inspect}"
     end
 
     # set_names reverse map (cached)
@@ -177,7 +176,7 @@ module Cardlib::Fetch
   end
 
   def expire
-    Rails.logger.warn "expiring i:#{id}, #{inspect}"
+    #Rails.logger.warn "expiring i:#{id}, #{inspect}"
     Card.cache.delete key
     Card.cache.delete "~#{id}" if id
   end

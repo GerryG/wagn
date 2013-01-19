@@ -12,7 +12,6 @@ class CardController < ApplicationController
 
   before_filter :load_card
   before_filter :refresh_card, :only=> [ :create, :update, :delete, :comment, :rollback ]
-  before_filter :read_ok,      :only=> [ :read_file ]
 
   # rest XML put/post
   def read_xml(io)
@@ -52,7 +51,7 @@ Done"
       #return render(:action=>"missing", :format=>:xml)  unless params[:card]
       if card_create = read_xml(request.body)
         begin
-          @card = Card.new card_create
+          card = Card.new card_create
         #warn "POST creates are  #{card_create.inspect}"
         rescue Exception => e
           Rails.logger.warn "except #{e.inspect}, #{e.backtrace*"\n"}"
@@ -78,8 +77,9 @@ Done"
   def action
     @action = METHODS[request.method]
     Rails.logger.warn "action #{request.method}, #{@action} #{params.inspect}"
-    #warn "action method #{request.method}, #{@action} #{params.inspect}"
-    send "process_#{@action}"
+    warn "action #{request.method}, #{@action} #{params.inspect}"
+    send "perform_#{@action}"
+    render_errors || success
   end
 
   def action_method event
@@ -92,13 +92,21 @@ Done"
   end
 
   def create
+    if card.save
+      success
+    else
+      render_errors
+    end
+  end
+
+  def create
     #warn "create #{params.inspect}, #{card.inspect} if #{card && !card.new_card?}, nc:#{card.new_card?}"
 
-    process_create
+    perform_create
   end
 
   def read
-    process_read
+    perform_read
   end
 
 =begin FIXME move to action events
@@ -108,7 +116,7 @@ Done"
       #return render(:action=>"missing", :format=>:xml)  unless params[:card]
       if main_card = read_xml(request.body)
         begin
-          @card = Card.new card_create
+          card = Card.new card_create
         #warn "POST creates are  #{card_create.inspect}"
         rescue Exception => e
           Rails.logger.warn "except #{e.inspect}, #{e.backtrace*"\n"}"
@@ -117,19 +125,24 @@ Done"
 
       Rails.logger.warn "create card #{request.body.inspect}"
     end
-    @card = @card.refresh if @card.frozen? # put in model
+    card = card.refresh if card.frozen? # put in model
     case
-    when @card.new_card?                          ;  create
-    when @card.update_attributes( params[:card] ) ;  success
+    when card.new_card?                          ;  create
+    when card.update_attributes( params[:card] ) ;  success
     else                                             render_errors
 =end
 
   def update
-    process_update
+    perform_update
   end
 
   def delete
-    process_delete
+    perform_delete
+    case
+    when card.new_card?                          ;  create
+    when card.update_attributes( params[:card] ) ;  success
+    else                                             render_errors
+    end
   end
 
 
@@ -165,7 +178,7 @@ Done"
               "#{session[:comment_author] = params[:card][:comment_author]} (Not signed in)"
     comment = params[:card][:comment].split(/\n/).map(&to_html) * "\n"
 
-    @card.comment = %{<hr>#{ comment }<p><em>&nbsp;&nbsp;--#{ author }.....#{Time.now}</em></p>}
+    card.comment = %{<hr>#{ comment }<p><em>&nbsp;&nbsp;--#{ author }.....#{Time.now}</em></p>}
 
     if card.save
       show
@@ -199,22 +212,22 @@ Done"
   #-------- ( ACCOUNT METHODS )
 
   def update_account
-    #Rails.logger.warn "updating account #{params[:account].inspect}, #{@card.fetch(:trait => :account).account}"
+    #Rails.logger.warn "updating account #{params[:account].inspect}, #{card.fetch(:trait => :account).account}"
     if account_args = params[:account] and
-        acct_cd = @card.fetch(:trait=>:account) and
+        acct_cd = card.fetch(:trait=>:account) and
         acct = acct_cd.account
 
       my_card = Account.authorized.id == acct_cd.id
       my_card and !account_args[:blocked] and
       Account.authorized.id == acct_cd.id and !account_args[:blocked] and
-        @card.ok! :update
+        card.ok! :update
 
-      if params[:save_roles] and my_card || roles_card = @card.fetch(:trait=>:roles, :new=>{}) and roles_card.ok?(:create)
+      if params[:save_roles] and my_card || roles_card = card.fetch(:trait=>:roles, :new=>{}) and roles_card.ok?(:create)
         roles = (params[:user_roles]||{}).keys.map(&:to_i)
         roles_card = roles_card.refresh
         roles_card.items= roles
         roles_card.save
-        roles_card.errors.each {|f,e| @card.errors.add f, e } if roles_card.errors.any?
+        roles_card.errors.each {|f,e| card.errors.add f, e } if roles_card.errors.any?
       end
 
       acct.update_attributes account_args if request.put? or request.post?
@@ -230,16 +243,16 @@ Done"
   # FIXME: make this part of create
   def create_account
     card.ok! :create, :new=>{}, :trait=>:account
-    @account = @card.account = Account.new( params[:account] ).active
+    @account = card.account = Account.new( params[:account] ).active
 
-    Rails.logger.info "create_account 1 #{@account.inspect}, #{@card.inspect}"
-    if @card.save
+    Rails.logger.info "create_account 1 #{@account.inspect}, #{card.inspect}"
+    if card.save
       email_args = { :password => @account.password,
                      :subject  => "Your new #{Card.setting :title} account.",   #ENGLISH
                      :message  => "Welcome!  You now have an account on #{Card.setting :title}." } #ENGLISH
 
       Rails.logger.info "create_account #{params.inspect}, #{email_args.inspect}"
-      @card.send_account_info email_args
+      card.send_account_info email_args
     end
 
     Rails.logger.warn "create_account error: #{@account.errors.map{|k,v|"#{k} -> #{v}"}*', '}" if @account.errors.any?
@@ -283,7 +296,7 @@ Done"
     # do content type processing, if it is an object, json or xml, parse that now and
     # params[:object] = parsed_object
     # looking into json parsing (apparently it is deep in rails: params_parser.rb)
-    @card = case params[:id]
+    card = case params[:id]
       when '*previous'   ; return wagn_redirect( previous_location )
       when /^\~(\d+)$/   ; Card.fetch $1.to_i
       when /^\:(\w+)$/   ; Card.fetch $1.to_sym
@@ -314,7 +327,7 @@ Done"
 
   # FIXME: event
   def refresh_card
-    @card = card.refresh
+    card = card.refresh
   end
 
   #-------( REDIRECTION )
@@ -347,7 +360,7 @@ Done"
     when  redirect        ; wagn_redirect ( Card===target ? path_for_page( target.cardname, new_params ) : target )
     when  String===target ; render :text => target
     else
-      @card = target
+      card = target
       show new_params[:view]
     end
     true

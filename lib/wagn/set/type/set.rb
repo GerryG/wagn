@@ -1,36 +1,21 @@
 
 module Wagn
-  module Set::Type::Set
+  module Set::Type
+   module Set
     include Sets
 
     format :base
 
-    # make these into traits of Setting cards:
-    # *content+*group => [[:code]]
-    # where below are the codenames and the cardnames (in Wagn seed DB)
-    #@@setting_group_title = {
-    #  :perms   => 'Permission',
-    #  :look    => 'Look and Feel',
-    #  :com     => 'Communication',
-    #  :other   => 'Other',
-    #  :pointer_group => 'Pointer'
-    #}
-    # should construct this from a search:
-    # to  model/settings: Card class method
-    def setting_groups
-      [:perms, :look, :com, :pointer_group, :other]
-    end
-
     define_view :core , :type=>:set do |args|
-      body = card.setting_cards_by_group.map do |group, data|
-        next if group.nil? || data.nil?
+      body = card.setting_codes_by_group.map do |group_name, data|
+        next if group_name.nil? || data.nil?
         content_tag(:tr, :class=>"rule-group") do
-          (["#{Card[group].name} Settings"]+%w{Content Type}).map do |heading|
+          (["#{group_name} Settings"]+%w{Content Type}).map do |heading|
             content_tag(:th, :class=>'rule-heading') { heading }
           end * "\n"
         end +
-        raw( data.map do |setting_card|
-          rule_card = card.fetch(:trait=>setting_card.codename, :new=>{})
+        raw( data.map do |setting_code|
+          rule_card = card.fetch(:trait=>setting_code, :new=>{})
           process_inclusion rule_card, :view=>:closed_rule
         end * "\n" )
       end.compact * ''
@@ -47,7 +32,7 @@ module Wagn
 
 
     module Model
-      include Wagn::Set::Type::SearchType::Model
+      include SearchType::Model
 
       def inheritable?
         return true if junction_only?
@@ -80,10 +65,17 @@ module Wagn
         end
       end
 
-      def setting_cards_by_group
-        test = Card::PointerID != ( templt = templt = fetch(:trait=>:content) || fetch(:trait=>:default) and
-                 templt.type_id or (right_id == Card::TypeID ? left_id : trunk.type_id) )
-        Card.setting_cards_by_group.reject {|k,v| test && k == :pointer_group }
+      def setting_codes_by_group
+        is_pointer = Card::PointerID == (
+          if templt = fetch(:trait=>:content) || fetch(:trait=>:default)
+            templt.type_id
+          elsif right_id == Card::TypeID
+            left_id
+          else
+            trunk(:new=>{}).type_id
+          end
+        )
+        Setting::SETTING_GROUPS.reject { |k,v| !is_pointer && k == Setting::POINTER_KEY }
       end
 
       def prototype
@@ -91,5 +83,6 @@ module Wagn
         Card.fetch opts[:name], :new=>opts
       end
     end
+   end
   end
 end

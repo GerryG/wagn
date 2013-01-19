@@ -35,12 +35,8 @@ module Wagn
 
     action :delete do |*a|
       card.destroy
-      render_errors || begin
-        #warn "destroyed? #{card.inspect}"
-
-        discard_locations_for card
-        success 'REDIRECT: *previous'
-      end
+      discard_locations_for card #should be an event
+      success 'REDIRECT: *previous'
     end
 
     alias_action :read,     {}, :index
@@ -59,7 +55,7 @@ module Wagn
     end
 
     define_view :raw      do |args|  card ? card.raw_content : _render_blank                          end
-    define_view :core     do |args|  process_content_s _render_raw                                    end
+    define_view :core     do |args|  process_content _render_raw                                    end
     define_view :content  do |args|  _render_core                                                     end
       # this should be done as an alias, but you can't make an alias with an unknown view,
       # and base renderer doesn't know "content" at this point
@@ -99,7 +95,7 @@ module Wagn
     define_view :blank, :perms=>:none do |args| "" end
 
     define_view :not_found, :perms=>:none, :error_code=>404 do |args|
-      %{ There's no card named "#{card.name}" }
+      %{ Could not find #{card.name.present? ? %{"#{card.name}"} : 'the card requested'}. }
     end
 
     define_view :server_error, :perms=>:none do |args|

@@ -7,7 +7,7 @@ class Card < ActiveRecord::Base
   SmartName.codes= Wagn::Codename
   SmartName.params= Wagn::Conf
   SmartName.lookup= Card
-  SmartName.session= proc { Account.authorized.name }
+  SmartName.session= proc { Account.user_card.name }
 
   has_many :revisions, :order => :id #, :foreign_key=>'card_id'
   belongs_to :card, :class_name => 'Card', :foreign_key => :creator_id
@@ -76,11 +76,8 @@ class Card < ActiveRecord::Base
       else
         super
       end
-    rescue NameError=>e
-      # this shouldn't happen now, we cut it off above now
-      Rails.logger.warn "Card not defined, return self" if const.to_sym == :Card
-      warn "ne: const_miss #{e.inspect}, #{const}"
-      nil
+    rescue NameError
+      warn "ne: const_miss #{e.inspect}, #{const}" if const.to_sym==:Card
     end
 
     def setting name
@@ -381,13 +378,6 @@ class Card < ActiveRecord::Base
     left args or Card.new args.merge(:name=>cardname.left)
   end
 
-  # fixing the attributes internally
-  def right_id()        read_attribute :tag_id              end
-  def left_id()         read_attribute :trunk_id            end
-  # but the db field is still wrong, so AR will use these, can't remove these yet
-  #def tag_id()         raise "Deprecated, use right_id"     end
-  #def trunk_id()       raise "Deprecated, use left_id"      end
-
   def dependents
     return [] if new_card?
 
@@ -656,7 +646,7 @@ class Card < ActiveRecord::Base
 
   def inspect
     "#<#{self.class.name}" + "##{id}" +
-    "###{object_id}" + #"k#{left_id}g#{right_id}" +
+    "###{object_id}" + #"l#{left_id}r#{right_id}" +
     "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
     (no_account? ? '' : "Usr[#{@account}]") +
     #(errors.any? ? '*Errors*' : 'noE') +

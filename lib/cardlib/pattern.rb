@@ -67,7 +67,7 @@ module Cardlib
   module Patterns
     class BasePattern
 
-      @@ruby19 = !!(RUBY_VERSION =~ /^1\.9/)
+      RUBY19 = !!(RUBY_VERSION =~ /^1\.9/)
       MODULES={}
 
       class << self
@@ -84,7 +84,7 @@ module Cardlib
             if MODULES.has_key?(key)
               MODULES[key]
             else
-              args = @@ruby19 ? [part, false] : [part]
+              args = RUBY19 ? [part, false] : [part]
               MODULES[key] = base.const_defined?(*args) ? base.const_get(*args) : nil
             end
           end
@@ -238,7 +238,6 @@ module Cardlib
         end
         def trunk_name card
           left = card.loaded_left || card.left
-          #Rails.logger.warn "trunk_name #{card.inspect}, #{left.inspect}"
           type_name = (left && left.type_name) || Card[ Card::DefaultTypeID ].name
           "#{type_name}+#{card.cardname.tag}"
         end
@@ -250,10 +249,6 @@ module Cardlib
       def self.label(name)              %{The card "#{name}"}      end
       def self.prototype_args(base)     { :name=>base }            end
       def self.trunk_name(card)         card.name                  end
-    end
-
-    class BasePattern
-      include Wagn::Sets::AllSets
     end
   end
 end

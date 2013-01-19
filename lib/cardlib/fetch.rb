@@ -37,7 +37,8 @@ module Cardlib::Fetch
         #Rails.logger.warn "fetch #{mark.inspect}, #{opts.inspect}"
         # Symbol (codename) handling
         if Symbol===mark
-          mark = Wagn::Codename[mark] or raise Wagn::NotFound, "Missing codename for #{mark.inspect}"
+          mk=mark
+          mark = Wagn::Codename[mark] or raise Wagn::NotFound, "Missing codename for #{mk.inspect}"
         end
 
         cache_key, method, val = if Integer===mark

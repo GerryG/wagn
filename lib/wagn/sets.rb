@@ -190,7 +190,7 @@ module Wagn
       def action event, opts={}, &final_action
         action_key = get_set_key event, opts
 
-        CardAction.class_eval {
+        CardActions.class_eval {
         #warn "define action[#{self}] e:#{event.inspect}, ak:_final_#{action_key}, O:#{opts.inspect}" if event == :read
           define_method "_final_#{action_key}", &final_action }
 

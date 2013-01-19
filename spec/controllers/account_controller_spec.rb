@@ -90,7 +90,7 @@ describe CardController, "account functions" do
 
 end
 
-describe AccountController, "account tests" do
+describe CardController, "account tests" do
   # Be sure to include AuthenticatedTestHelper in test/test_helper.rb instead
   # Then, you can remove it from this and the units test.
 

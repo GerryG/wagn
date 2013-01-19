@@ -31,7 +31,7 @@ class Card < ActiveRecord::Base
   class << self
     JUNK_INIT_ARGS = %w{ missing skip_virtual id }
 
-    def cache()          Wagn::Cache[Card]                           end
+    def cache()          Wagn::Cache[self]                           end
 
     def new args={}, options={}
       args = (args || {}).stringify_keys
@@ -237,11 +237,11 @@ class Card < ActiveRecord::Base
   end
 
   def base_after_save
+    Rails.logger.warn "base asv #{inspect}"
     save_subcards
     @virtual    = false
     @from_trash = false
     Wagn::Hook.call :after_create, self if @was_new_card
-    Rails.logger.warn "base after save #{inspect}, #{caller*"\n"}"
     send_notifications
     true
   rescue Exception=>e

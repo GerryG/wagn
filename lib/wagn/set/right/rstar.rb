@@ -76,15 +76,6 @@ module Wagn
         # the narrowest rule should be the one attached to the set being viewed.  So, eg, if you're looking at the "*all plus" set, you shouldn't
         # have the option to create rules based on arbitrary narrower sets, though narrower sets will always apply to whatever prototype we create
       end
-
-      %{
-        <tr class="card-slot open-rule">
-          <td class="rule-cell" colspan="3">
-            #{subrenderer( current_rule )._render_edit_rule opts }
-          </td>
-        </tr>
-      }
-
     end
 
     define_view :edit_rule, :rstar=>true, :tags=>:unknown_ok do |args|
@@ -126,22 +117,14 @@ module Wagn
           end.join)
         else
           %{
-          <label>applies to:</label>
-          <span class="set-label current-set-label">
-            #{current_set_key ? Card.fetch(current_set_key).label : 'No Current Rule' }
-          </span>
-          }.html_safe
-        end +
+            <tr class="card-slot open-rule">
+              <td class="rule-cell" colspan="3">
+                #{subrenderer( current_rule )._render_edit_rule opts }
+              </td>
+            </tr>
+          }
 
-
-        %{  </ul>
-          </div>
-
-          <div class="rule-column-2">
-            <div class="instruction rule-instruction">
-              #{ raw process_content( "{{#{setting_name}+*right+*edit help}}" ).html_safe  }
-            </div>
-            <div class="type-editor"> }+
+        end
 
         if edit_mode
           %{<label>type:</label>}+
@@ -190,10 +173,10 @@ module Wagn
 
       end.html_safe
     end
-
   end
 
-  class Renderer::Html
+
+  class Renderer::HtmlRenderer
     private
 
     def find_current_rule_card

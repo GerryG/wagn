@@ -21,8 +21,8 @@ module Wagn
 
       layout_content = get_layout_content args
 
-      args[:params] = params # this is to pass params to inclusions.  let's find a cleaner way!
-      process_content layout_content, args
+      args[:params] = params # EXPLAIN why this is needed -- try without it
+      process_content_s layout_content, args
     end
   
     define_view :content do |args|
@@ -634,7 +634,6 @@ module Wagn
     end
     
   end  
-end  
   
 class Wagn::Renderer::Html
   def watching_type_cards

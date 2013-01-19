@@ -1,7 +1,6 @@
 
 module Wagn
-  module Set::Type
-   module Set
+  module Set::Type::Set
     include Sets
 
     format :base
@@ -32,7 +31,7 @@ module Wagn
 
 
     module Model
-      include SearchType::Model
+      include Set::Type::SearchType::Model
 
       def inheritable?
         return true if junction_only?
@@ -82,8 +81,6 @@ module Wagn
         opts = subclass_for_set.prototype_args(self.cardname.trunk_name)
         Card.fetch opts[:name], :new=>opts
       end
-
     end
-   end
   end
 end

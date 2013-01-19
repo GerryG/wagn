@@ -92,13 +92,12 @@ module Wagn
 
     attr_reader :local
 
-    def initialize(opts={})
+    def initialize opts={}
       #warn "new cache #{opts.inspect}"
       @klass = opts[:class]
       @store = opts[:store]
       @local = Hash.new
       self.system_prefix = opts[:prefix] || self.class.system_prefix(opts[:class])
-      #Rails.logger.warn "nil class for cache #{caller*"\n"}" if klass.nil?
       cache_by_class[klass] = self
       prepopulate klass if prepopulating[klass]
     end
@@ -110,7 +109,8 @@ module Wagn
       frozen[klass] = Marshal.dump Cache[klass]
     end
 
-    def store
+    def system_prefix= system_prefix
+      @system_prefix = system_prefix
       if @store.nil?
         @store = @use_rails_cache || Cache.use_rails_cache? ? Rails.cache : NilCache.new
       end

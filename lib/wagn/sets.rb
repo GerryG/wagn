@@ -186,69 +186,69 @@ module Wagn
           end
         end
       end
-    end
 
-    # FIXME: the definition stuff is pretty much exactly parallel, DRY, fold them together
+      # FIXME: the definition stuff is pretty much exactly parallel, DRY, fold them together
 
-    def action event, opts={}, &final_action
-      action_key = get_set_key event, opts
+      def action event, opts={}, &final_action
+        action_key = get_set_key event, opts
 
-      CardController.class_eval {
-      warn "define action[#{self}] e:#{event.inspect}, ak:_final_#{action_key}, O:#{opts.inspect}" if event == :read
-        define_method "_final_#{action_key}", &final_action }
+        CardController.class_eval {
+        warn "define action[#{self}] e:#{event.inspect}, ak:_final_#{action_key}, O:#{opts.inspect}" if event == :read
+          define_method "_final_#{action_key}", &final_action }
 
-      CardController.subset_actions[event] = true if !opts.empty?
+        CardController.subset_actions[event] = true if !opts.empty?
 
-      if !method_defined? "process_#{event}"
-        CardController.class_eval do
+        if !method_defined? "process_#{event}"
+          CardController.class_eval do
 
-          warn "defining method[#{to_s}] _process_#{event}" if event == :read
-          define_method( "_process_#{event}" ) do |*a|
-            a = [{}] if a.empty?
-            if final_method = action_method(event)
-              #warn "final action #{final_method}"
-              #with_inclusion_mode event do
-                send final_method, *a
-              #end
-            else
-              raise "<strong>unsupported event: <em>#{event}</em></strong>"
+            warn "defining method[#{to_s}] _process_#{event}" if event == :read
+            define_method( "_process_#{event}" ) do |*a|
+              a = [{}] if a.empty?
+              if final_method = action_method(event)
+                #warn "final action #{final_method}"
+                #with_inclusion_mode event do
+                  send final_method, *a
+                #end
+              else
+                raise "<strong>unsupported event: <em>#{event}</em></strong>"
+              end
             end
-          end
 
-          warn "define action[#{self}] process_#{event}" if event == :read
-          define_method( "process_#{event}" ) do |*a|
-            begin
+            warn "define action[#{self}] process_#{event}" if event == :read
+            define_method( "process_#{event}" ) do |*a|
+              begin
 
-              warn "send _process_#{event}" if event.to_sym == :read
-              send "_process_#{event}", *a
+                warn "send _process_#{event}" if event.to_sym == :read
+                send "_process_#{event}", *a
 
-            rescue Exception=>e
-              controller.send :notify_airbrake, e if Airbrake.configuration.api_key
-              warn "Card Action Error: #{e.class} : #{e.message}"
-              Rails.logger.info "\nCard Action Error: #{e.class} : #{e.message}"
-              Rails.logger.debug "  #{e.backtrace*"\n  "}"
-              rendering_error e, (card && card.name.present? ? card.name : 'unknown card')
+              rescue Exception=>e
+                controller.send :notify_airbrake, e if Airbrake.configuration.api_key
+                warn "Card Action Error: #{e.class} : #{e.message}"
+                Rails.logger.info "\nCard Action Error: #{e.class} : #{e.message}"
+                Rails.logger.debug "  #{e.backtrace*"\n  "}"
+                rendering_error e, (card && card.name.present? ? card.name : 'unknown card')
+              end
             end
           end
         end
       end
-    end
 
-    def alias_action event, opts={}, *aliases
-      event_key = get_set_key(event, opts)
-      Renderer.subset_actions[event] = true if !opts.empty?
-      aliases.each do |alias_event|
-        alias_event_key = case alias_event
-          when String; alias_event
-          when Symbol; event_key==event ? alias_event.to_sym : event_key.to_s.sub(/_#{event}$/, "_#{alias_event}").to_sym
-          when Hash;   get_set_key alias_event[:event] || event, alias_event
-          else; raise "Bad event #{alias_event.inspect}"
-          end
+      def alias_action event, opts={}, *aliases
+        event_key = get_set_key(event, opts)
+        Renderer.subset_actions[event] = true if !opts.empty?
+        aliases.each do |alias_event|
+          alias_event_key = case alias_event
+            when String; alias_event
+            when Symbol; event_key==event ? alias_event.to_sym : event_key.to_s.sub(/_#{event}$/, "_#{alias_event}").to_sym
+            when Hash;   get_set_key alias_event[:event] || event, alias_event
+            else; raise "Bad event #{alias_event.inspect}"
+            end
 
-        warn "def final_alias action #{alias_event_key}, #{event_key}"
-        @@renderer.class_eval { define_method( "_final_#{alias_event_key}".to_sym ) do |*a|
-          send "_final_#{event_key}", *a
-        end }
+          warn "def final_alias action #{alias_event_key}, #{event_key}"
+          Renderer.renderer.class_eval { define_method( "_final_#{alias_event_key}".to_sym ) do |*a|
+            send "_final_#{event_key}", *a
+          end }
+        end
       end
     end
 

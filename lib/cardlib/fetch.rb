@@ -39,7 +39,6 @@ module Cardlib::Fetch
           mark = Wagn::Codename[mark] or raise Wagn::NotFound, "Missing codename for #{mark.inspect}"
         end
 
-
         cache_key, method, val = if Integer===mark
           [ "~#{mark}", :find_by_id_and_trash, mark ]
         else
@@ -113,6 +112,7 @@ module Cardlib::Fetch
         Card.cache.delete key
         Card.cache.delete "~#{card.id}" if card.id
       end
+      Rails.logger.warn "expiring #{name}, #{card.inspect}"
     end
 
     # set_names reverse map (cached)
@@ -174,6 +174,7 @@ module Cardlib::Fetch
   end
 
   def expire
+    Rails.logger.warn "expiring i:#{id}, #{inspect}"
     Card.cache.delete key
     Card.cache.delete "~#{id}" if id
   end

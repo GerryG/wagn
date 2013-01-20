@@ -17,7 +17,7 @@ class Card < ActiveRecord::Base
     :update_referencers, :allow_type_change, # seems like wrong mechanisms for this
     :cards, :loaded_left, :nested_edit, # should be possible to merge these concepts
     :error_view, :error_status #yuck
-      
+
   attr_writer :update_read_rule_list
   attr_reader :type_args, :broken_type
 
@@ -345,7 +345,7 @@ class Card < ActiveRecord::Base
       Card.fetch cardname.left, *args
     end
   end
-  
+
   def right *args
     Card.fetch cardname.right, *args
   end
@@ -526,8 +526,20 @@ class Card < ActiveRecord::Base
   end
 
   def all_roles
-    ids = Account.as_bot { fetch(:new=>{}, :trait=>:roles).item_cards(:limit=>0).map(&:id) }
-    @all_roles ||= (id==Card::AnonID ? [] : [Card::AuthID] + ids)
+    if @all_roles.nil?
+      @all_roles = if id == AnonID; []
+        else
+          Account.as_bot do
+            if get_roles = fetch(:trait=>:roles) and
+                ( get_roles = get_roles.item_cards(:limit=>0) ).any?
+              [AuthID] + get_roles.map(&:id)
+            else [AuthID]
+            end
+          end
+        end
+    end
+    #warn "aroles #{inspect}, #{@all_roles.inspect}"
+    @all_roles
   end
 
   def to_user
@@ -563,7 +575,7 @@ class Card < ActiveRecord::Base
     "###{object_id}" + #"l#{left_id}r#{right_id}" +
     "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
     "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{frozen? ? 'Fz' : readonly? ? 'RdO' : ''}" +
-    "#{@virtual &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }}" +
+    "#{@virtual &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }:#{references_expired.inspect}}" +
     #" Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}" +
     '>'
   end

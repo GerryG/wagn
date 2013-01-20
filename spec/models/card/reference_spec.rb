@@ -23,7 +23,8 @@ describe "Card::Reference" do
       c = Card["Form1"]
       c.references_expired.should be_nil
       Card.create! :name=>"SpecialForm+*type+*content", :content=>"{{+bar}}"
-      Card["Form1"].references_expired.should be_true
+      c = Card["Form1"]
+      c.references_expired.should be_true
       Wagn::Renderer.new(Card["Form1"]).render(:core)
       c = Card["Form1"]
       c.references_expired.should be_nil

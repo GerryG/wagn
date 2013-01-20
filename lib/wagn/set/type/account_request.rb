@@ -1,4 +1,3 @@
-
 module Wagn
   module Set::Type::AccountRequest
     include Sets
@@ -32,7 +31,7 @@ module Wagn
       private
 
       def block_user
-        account = User.where(:card_id=>self.id).first
+        account = ::User.where(:card_id=>self.id).first
         #Rails.logger.warn "areq #{inspect} #{account.inspect}"
         if account
           account.update_attributes :status=>'blocked'

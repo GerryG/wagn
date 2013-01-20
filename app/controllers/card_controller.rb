@@ -347,29 +347,5 @@ Done"
     end
     true
   end
-
-
-  def password_authentication(login, password)
-    if self.session_user = User.authenticate( params[:login], params[:password] )
-      flash[:notice] = "Successfully signed in"
-      #warn Rails.logger.info("to prev #{previous_location}")
-      redirect_to previous_location
-    else
-      usr=User.where(:email=>params[:login].strip.downcase).first
-      failed_login(
-        case
-        when usr.nil?     ; "Unrecognized email."
-        when usr.blocked? ; "Sorry, that account is blocked."
-        else              ; "Wrong password"
-        end
-      )
-    end
-  end
-
-  def failed_login(message)
-    flash[:notice] = "Oops: #{message}"
-    render :action=>'signin', :status=>403
-  end
-
 end
 

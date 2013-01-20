@@ -22,7 +22,7 @@ module Wagn
     end
 
     action :update do |*a|
-      if card.new_card?; process_create
+      if card.new_card?; perform_create
       elsif card.update_attributes params[:card]
         #warn "update #{card.inspect}, #{params[:card].inspect}"
         #card.save

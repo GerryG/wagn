@@ -194,7 +194,7 @@ class Card < ActiveRecord::Base
   end
 
   def set_stamper
-    self.updater_id = Account.user_id
+    self.updater_id = Account.user_card_id
     self.creator_id = self.updater_id if new_card?
   end
 

@@ -3,17 +3,9 @@
 
 module WagnTestHelper
 
-#  include CardBuilderMethods
-
   def setup_default_user
     user_card = Card['joe user']
-    user_card = Card[:wagn_bot]
-    Account.user= user_card.id
-    @user = Account.user
-
-    @user.update_column 'crypted_password', '610bb7b564d468ad896e0fe4c3c5c919ea5cf16c'
-
-    Account.user = 'joe_user'
+    Account.user_card_id = user_card.id
     nil
   end
 
@@ -36,6 +28,7 @@ module WagnTestHelper
 
   def assert_difference(object, method = nil, difference = 1)
     initial_value = object.send(method)
+    Rails.logger.warn "assert diff #{difference}, #{initial_value}"
     yield
     assert_equal initial_value + difference, object.send(method), "#{object}##{method}"
   end

@@ -50,9 +50,12 @@ describe CardController, "account functions" do
         mock(m).deliver
       end
 
+      warn "logout??"
+      Rails.logger.warn "logout ????"
       delete :delete, :id=>'Session'
 
-      Account.user_id.should == Card::AnonID
+      warn "card id #{Account.user_card_id}"
+      Account.user_card_id.should == Card::AnonID
       post :create, :id=>'*account', :card => {:name => "Joe New"}, :account=>{:email=>"joe_new@user.org", :password=>'new_pass', :password_confirmation=>'new_pass'}
     end
 
@@ -81,7 +84,7 @@ describe CardController, "account functions" do
       put :update, :id=>"Joe New", :account=>{:status=>'active'}
 
       @user_card = Card['Joe New'].should be
-      @new_user = @user_user.to_user.should be
+      @new_user = @user_card_user.should be
       @new_user.card_id.should == @user_card.id
       @user_card.type_id.should == Card::UserID
       @msgs.size.should == 2

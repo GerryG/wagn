@@ -11,7 +11,8 @@ module Wagn
 
     action :delete, :name=>:session do |*a|
       warn "signout #{params.inspect}"
-      self.session_user = nil
+      Account.user_card_id = Card::AnonID
+      self.session_card_id = nil
       flash[:notice] = "Successfully signed out"
       redirect_to Card.path_setting('/')  # previous_location here can cause infinite loop.  ##  Really?  Shouldn't.  -efm
     end

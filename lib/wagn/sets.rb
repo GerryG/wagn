@@ -71,7 +71,7 @@ module Wagn
       end
     end
 
-    # this module also get the action definitions
+    # this module also gets the action definitions
     module CardActions
       @@subset_actions = {}
 
@@ -191,7 +191,7 @@ module Wagn
         action_key = get_set_key event, opts
 
         CardActions.class_eval {
-        Rails.logger.warn "define action[#{self}] e:#{event.inspect}, ak:_final_#{action_key}, O:#{opts.inspect}" if event == :read
+        #warn "define action[#{self}] e:#{event.inspect}, ak:_final_#{action_key}, O:#{opts.inspect}" if event == :read
           define_method "_final_#{action_key}", &final_action }
 
         CardActions.subset_actions[event] = true if !opts.empty?
@@ -251,14 +251,11 @@ module Wagn
     end
 
     def self.included base
-
       base.extend SharedMethods
       base.extend ClassMethods
 
       super
-
     end
-
   end
 end
 

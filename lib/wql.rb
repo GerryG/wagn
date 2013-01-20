@@ -461,6 +461,7 @@ class Wql
         when Array;     spec
         when String;    ['=', spec]
         when Integer;   ['=', spec]
+        when Symbol;    ['=', Wagn::Codename[spec]]
         else raise("Invalid Condition Spec #{spec.inspect}")
       end
 

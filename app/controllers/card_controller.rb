@@ -7,7 +7,6 @@ class CardController < ApplicationController
 
   helper :wagn
 
-  before_filter :index_preload, :only=> [ :index ]
   before_filter :read_file_preload, :only=> [ :read_file ]
 
   before_filter :load_card
@@ -77,7 +76,7 @@ Done"
   def action
     @action = METHODS[request.method]
     Rails.logger.warn "action #{request.method}, #{@action} #{params.inspect}"
-    warn "action #{request.method}, #{@action} #{params.inspect}"
+    #warn "action #{request.method}, #{@action} #{params.inspect}"
     send "perform_#{@action}"
     render_errors || success
   end
@@ -88,14 +87,6 @@ Done"
       meth = "_final_"+(method_key.blank? ? "#{event}" : "#{method_key}_#{event}")
       #warn "looking up #{method_key}, M:#{meth} for #{card.name}"
       return meth if respond_to?(meth.to_sym)
-    end
-  end
-
-  def create
-    if card.save
-      success
-    else
-      render_errors
     end
   end
 
@@ -138,11 +129,6 @@ Done"
 
   def delete
     perform_delete
-    case
-    when card.new_card?                          ;  create
-    when card.update_attributes( params[:card] ) ;  success
-    else                                             render_errors
-    end
   end
 
   def index
@@ -180,7 +166,7 @@ Done"
     # if we enforce RESTful http methods, we should do it consistently,
     # and error should be 405 Method Not Allowed
 
-    author = Account.user_id == Card::AnonID ?
+    author = Account.user_card_id == Card::AnonID ?
         "#{session[:comment_author] = params[:card][:comment_author]} (Not signed in)" : "[[#{Account.user.card.name}]]"
     comment = params[:card][:comment].split(/\n/).map{|c| "<p>#{c.strip.empty? ? '&nbsp;' : c}</p>"} * "\n"
     card.comment = "<hr>#{comment}<p><em>&nbsp;&nbsp;--#{author}.....#{Time.now}</em></p>"
@@ -203,12 +189,10 @@ Done"
   def watch
     watchers = card.fetch :trait=>:watchers, :new=>{}
     watchers = watchers.refresh
-    myname = Card[Account.user_id].name
+    myname = Card[Account.user_card_id].name
     watchers.send((params[:toggle]=='on' ? :add_item : :drop_item), myname)
     ajax? ? show(:watch) : read
   end
-
-
 
 
 
@@ -274,10 +258,14 @@ Done"
     end
   end
 
-  def index_preload
-    Account.no_logins? ?
-      redirect_to( Card.path_setting '/admin/setup' ) :
-      params[:id] = (Card.setting(:home) || 'Home').to_name.url_key
+  #before_filter :index_preload, :only=> [ :index ]
+  action :before => :index do
+    if Account.first_login?
+      home_name = Card.setting(:home) || 'Home'
+      params[:id] = home_name.to_name.url_key
+    else
+      redirect_to Card.path_setting '/admin/setup'
+    end
   end
 
 
@@ -354,6 +342,5 @@ Done"
     end
     true
   end
-
 end
 

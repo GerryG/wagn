@@ -22,9 +22,9 @@ class User < ActiveRecord::Base
   class << self
     def admin()          User.where(:card_id=>Card::WagnBotID).first end
     def as_user()        User.where(:card_id=>Account.as_id).first   end
-    def user()           User.where(:card_id=>Account.user_id).first end
+    def user()           User.where(:card_id=>Account.user_card_id).first end
     def from_id(card_id) User.where(:card_id=>card_id).first         end
-    def cache()          Wagn::Cache[User]                           end
+    #def cache()          Wagn::Cache[self]                           end
 
     # FIXME: args=params.  should be less coupled..
     def create_with_card user_args, card_args, email_args={}

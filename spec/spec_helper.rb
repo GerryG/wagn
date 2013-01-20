@@ -16,6 +16,9 @@ end
 Spork.prefork do
   require File.expand_path File.dirname(__FILE__) + "/../config/environment"
   require File.expand_path File.dirname(__FILE__) + "/../lib/authenticated_test_helper.rb"
+
+  #require File.expand_path File.dirname(__FILE__) + "/custom_matchers.rb"
+  #require File.expand_path File.dirname(__FILE__) + "/controller_macros.rb"
   require 'rspec/rails'
 
   require_dependency 'chunks/chunk'
@@ -96,7 +99,6 @@ end
   }
 
   def integration_login_as(user, functional=nil)
-    User.cache.reset
 
     raise "Don't know email & password for #{user}" unless uc=Card[user] and
         u=User.where(:card_id=>uc.id).first and

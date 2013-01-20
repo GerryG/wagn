@@ -1,0 +1,3 @@
+[submodule "lib/omniauth"]
+	path = lib/omniauth
+	url = git@github.com:intridea/omniauth.git

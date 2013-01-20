@@ -3,19 +3,9 @@
 
 module WagnTestHelper
 
-#  include CardBuilderMethods
-
   def setup_default_user
-    User.cache.reset
-
     user_card = Card['joe user']
-    user_card = Card[:wagn_bot]
-    Account.user= user_card.id
-    @user = Account.user
-
-    @user.update_column 'crypted_password', '610bb7b564d468ad896e0fe4c3c5c919ea5cf16c'
-
-    Account.user = 'joe_user'
+    Account.user_card_id = user_card.id
     nil
   end
 
@@ -38,6 +28,7 @@ module WagnTestHelper
 
   def assert_difference(object, method = nil, difference = 1)
     initial_value = object.send(method)
+    Rails.logger.warn "assert diff #{difference}, #{initial_value}"
     yield
     assert_equal initial_value + difference, object.send(method), "#{object}##{method}"
   end
@@ -57,30 +48,27 @@ module WagnTestHelper
 
     raise "Don't know email & password for #{user}" unless uc=Card[user] and
         u=User.where(:card_id=>uc.id).first and
-        email = u.email and pass = USERS[email]
+        email = u.email and pass = USERS[login]
 
     if functional
-      #warn "functional login #{email}, #{pass}"
-      #post :action, :id=>'Session', :login=>email, :password=>pass, :controller=>:card
-      post :signin, :id=>'Session', :login=>email, :password=>pass, :controller=>:account
+      #warn "functional login #{login}, #{pass}"
+      post :action, :id=>'Session', :login=>login, :password=>pass, :controller=>:card
     else
-      #warn "integration login #{email}, #{pass}"
-      #post '/Session', :login=>email, :password=>pass, :controller=>:card
-      post 'account/signin', :login=>email, :password=>pass, :controller=>:account
+      #warn "integration login #{login}, #{pass}"
+      post '/Session', :login=>login, :password=>pass, :controller=>:card
     end
     assert_response :redirect
 
     if block_given?
       yield
-      #delete :action, :id=>'/Session',:controller=>:card
-      post 'account/signout',:controller=>'account'
+      delete :action, :id=>'/Session',:controller=>:card
     end
   end
 
   def post_invite(options = {})
     action = options[:action] || :invite
     Rails.logger.warn "post invite #{options.inspect}"
-    post action,  #:id=>"*account+*invite",
+    post :action, :id=>"*account+*invite",
       :user => { :email => 'new@user.com' }.merge(options[:user]||{}),
       :card => { :name => "New User" }.merge(options[:card]||{}),
       :email => { :subject => "mailit",  :message => "baby"  }

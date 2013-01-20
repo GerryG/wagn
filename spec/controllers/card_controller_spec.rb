@@ -12,11 +12,11 @@ describe CardController do
 #    end
 
     it "should recognize type" do
-      { :get => "/new/Phrase" }.should route_to( :controller => 'card', :action=>'read', :type=>'Phrase', :view=>'new' )
+      { :get => "/new/Phrase" }.should route_to( :controller => 'card', :action=>'action', :type=>'Phrase', :view=>'new' )
     end
 
     it "should recognize .rss on /recent" do
-      {:get => "/recent.rss"}.should route_to(:controller=>"card", :view=>"content", :action=>"read",
+      {:get => "/recent.rss"}.should route_to(:controller=>"card", :view=>"content", :action=>"action",
         :id=>"*recent", :format=>"rss"
       )
     end
@@ -25,13 +25,13 @@ describe CardController do
       describe "routes prefixed with '#{prefix}'" do
         it "should recognize .rss format" do
           {:get => "#{prefix}/*recent.rss"}.should route_to(
-            :controller=>"card", :action=>"read", :id=>"*recent", :format=>"rss"
+            :controller=>"card", :action=>"action", :id=>"*recent", :format=>"rss"
           )
         end
 
         it "should recognize .xml format" do
           {:get => "#{prefix}/*recent.xml"}.should route_to(
-            :controller=>"card", :action=>"read", :id=>"*recent", :format=>"xml"
+            :controller=>"card", :action=>"action", :id=>"*recent", :format=>"xml"
           )
         end
 
@@ -43,7 +43,7 @@ describe CardController do
 
         it "should accept cards without dots" do
           {:get => "#{prefix}/random"}.should route_to(
-            :controller=>"card",:action=>"read",:id=>"random"
+            :controller=>"card",:action=>"action",:id=>"random"
           )
         end
       end
@@ -120,26 +120,26 @@ describe CardController do
     end
 
     it "renders errors if create fails" do
-      post :create, "card"=>{"name"=>"Joe User"}
+      post :action, "card"=>{"name"=>"Joe User"}
       assert_response 422
     end
 
     it "redirects to thanks if present" do
       login_as 'joe_admin'
-      xhr :post, :create, :success => 'REDIRECT: /thank_you', :card => { "name" => "Wombly" }
+      xhr :post, :action, :success => 'REDIRECT: /thank_you', :card => { "name" => "Wombly" }
       assert_response 303, "/thank_you"
     end
 
     it "redirects to card if thanks is blank" do
       login_as 'joe_admin'
-      post :create, :success => 'REDIRECT: _self', "card" => { "name" => "Joe+boop" }
+      post :action, :success => 'REDIRECT: _self', "card" => { "name" => "Joe+boop" }
       assert_redirected_to "/Joe+boop"
     end
 
     it "redirects to previous" do
       # Fruits (from shared_data) are anon creatable but not readable
       login_as :anonymous
-      post :create, { :success=>'REDIRECT: *previous', "card" => { "type"=>"Fruit", :name=>"papaya" } }, :history=>['/blam']
+      post :action, { :success=>'REDIRECT: *previous', "card" => { "type"=>"Fruit", :name=>"papaya" } }, :history=>['/blam']
       assert_redirected_to "/blam"
     end
   end
@@ -151,12 +151,12 @@ describe CardController do
 
     it "new should work for creatable nonviewable cardtype" do
       login_as(:anonymous)
-      get :read, :type=>"Fruit", :view=>'new'
+      get :action, :type=>"Fruit", :view=>'new'
       assert_response :success
     end
 
     it "new with existing card" do
-      get :read, :card=>{:name=>"A"}, :view=>'new'
+      get :action, :card=>{:name=>"A"}, :view=>'new'
       assert_response :success, "response should succeed"
     end
   end
@@ -176,14 +176,14 @@ describe CardController do
     end
 
     it "new with name" do
-      post :read, :card=>{:name=>"BananaBread"}, :view=>'new'
+      post :action, :card=>{:name=>"BananaBread"}, :view=>'new'
       assert_response :success, "response should succeed"
       assert_equal 'BananaBread', assigns['card'].name, "@card.name should == BananaBread"
     end
 
     describe "#read" do
       it "works for basic request" do
-        get :read, {:id=>'Sample_Basic'}
+        get :action, {:id=>'Sample_Basic'}
         response.body.match(/\<body[^>]*\>/im).should be_true
         # have_selector broke in commit 8d3bf2380eb8197410e962304c5e640fced684b9, presumably because of a gem (like capybara?)
         #response.should have_selector('body')
@@ -192,13 +192,13 @@ describe CardController do
       end
 
       it "handles nonexistent card" do
-        get :read, {:id=>'Sample_Fako'}
+        get :action, {:id=>'Sample_Fako'}
         assert_response :success
       end
 
       it "handles nonexistent card without create permissions" do
         login_as :anonymous
-        get :read, {:id=>'Sample_Fako'}
+        get :action, {:id=>'Sample_Fako'}
         assert_response 404
       end
 
@@ -219,20 +219,20 @@ describe CardController do
     end
 
     it "new without typecode" do
-      post :read, :view=>'new'
+      post :action, :view=>'new'
       assert_response :success, "response should succeed"
       assert_equal Card::BasicID, assigns['card'].type_id, "@card type should == Basic"
     end
 
     it "new with typecode" do
-      get :read, :card => {:type=>'Date'}, :view=>'new'
+      get :action, :card => {:type=>'Date'}, :view=>'new'
       assert_response :success, "response should succeed"
       assert_equal Card::DateID, assigns['card'].type_id, "@card type should == Date"
     end
 
     it "delete" do
       c = Card.create( :name=>"Boo", :content=>"booya")
-      delete :delete, :id=>"~#{c.id}"
+      delete :action, :id=>"~#{c.id}"
       assert_response :redirect
       Card["Boo"].should == nil
     end

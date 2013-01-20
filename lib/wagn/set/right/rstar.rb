@@ -1,6 +1,6 @@
 module Wagn
   module Set::Right::Rstar
-include Sets
+    include Sets
 
     format :html
 

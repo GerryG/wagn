@@ -250,7 +250,6 @@ module Cardlib::Permissions
       # (though maybe not as a tracked_attribute for performance reasons?)
       # AND need to make sure @changed gets wiped after save (probably last in the sequence)
 
-      User.cache.reset
       Card.cache.reset # maybe be more surgical, just Account.user related
       expire #probably shouldn't be necessary,
       # but was sometimes getting cached version when card should be in the trash.

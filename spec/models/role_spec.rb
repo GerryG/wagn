@@ -48,7 +48,6 @@ end
 describe User, 'Joe User' do
   before do
     Account.user= :joe_user
-    User.cache.delete 'joe_user'
     @ju = Account.user
     @jucard = Account.user_card
     @r1 = Card['r1']

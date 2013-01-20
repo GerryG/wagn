@@ -6,8 +6,6 @@ module WagnTestHelper
 #  include CardBuilderMethods
 
   def setup_default_user
-    User.cache.reset
-
     user_card = Card['joe user']
     user_card = Card[:wagn_bot]
     Account.user= user_card.id

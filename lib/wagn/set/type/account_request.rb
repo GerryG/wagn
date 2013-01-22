@@ -28,7 +28,7 @@ module Wagn
         block_user
       end
 
-      private
+    private
 
       def block_user
         account = ::User.where(:card_id=>self.id).first

@@ -17,6 +17,9 @@ gem 'xmlscan',      '~> 0.3'
 gem "rubyzip",      "~> 0.9" # only required in module.  should be separated out.
 gem "airbrake",     "~> 3.1"
 
+# AUTH
+
+gem 'omniauth-twitter'
 
 # DATABASE
 

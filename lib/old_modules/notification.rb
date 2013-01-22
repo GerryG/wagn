@@ -26,7 +26,7 @@ module Notification
       #Rails.logger.warn "send notice #{action}, #{inspect} TW:#{@trunk_watchers.inspect}"
 
       watcher_watched_pairs.reject {|p| @trunk_watchers.include?(p.first) }.each do |watcher, watched|
-        #warn "wtch: Mailer.change_notice( #{watcher.inspect}, #{self.inspect}, #{action.inspect}, #{watched.inspect}, #{nested_notifications.inspect}"
+        Rails.logger.warn "wtch: Mailer.change_notice( #{watcher.inspect}, #{self.inspect}, #{action.inspect}, #{watched.inspect}, #{nested_notifications.inspect}"
         watcher and mail = Mailer.change_notice( watcher, self, action,
                         watched.to_s, nested_notifications ) and mail.deliver
       end
@@ -60,8 +60,8 @@ module Notification
       []
     end
 
-    def watching_type?; watcher_pairs(false, :type).member? Account.user_id end
-    def watching?;      watcher_pairs(false).       member? Account.user_id end
+    def watching_type?; watcher_pairs(false, :type).member? Account.user_card_id end
+    def watching?;      watcher_pairs(false).       member? Account.user_card_id end
     def watchers;       watcher_watched_pairs false                         end
     def watcher_watched_pairs pairs=true
       watcher_pairs pairs, :name, whash = {}
@@ -69,7 +69,7 @@ module Notification
     end
 
     def watcher_pairs pairs=true, kind=:name, hash={}
-      #warn "wp #{inspect} P:#{pairs}, k:#{kind}, uid:#{Account.user_id} #{hash.inspect}, OI:#{hash.object_id}"
+      #warn "wp #{inspect} P:#{pairs}, k:#{kind}, uid:#{Account.user_card_id} #{hash.inspect}, OI:#{hash.object_id}"
 
       wname, rc = (kind == :type) ?
            [ self.type_name, self.type_card.fetch(:trait=>:watchers) ] :
@@ -80,14 +80,13 @@ module Notification
       if hash.any?
         #warn "wp #{pairs}, #{kind}, #{hash.inspect}"
         if pairs
-          hash.each.reject {|i,wname| i == Account.user_id }.map {|i,wname| [ i, wname ] }
+          hash.each.reject {|i,wname| i == Account.user_card_id }.map {|i,wname| [ i, wname ] }
         else
           hash.keys
         end
 
       else [] 
       end
-      #warn "wp r:#{r}"; r
     end
   end
 

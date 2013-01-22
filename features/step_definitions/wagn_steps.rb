@@ -6,7 +6,7 @@ Given /^I log in as (.+)$/ do |user_card_name|
   # FIXME: define a faster simulate method ("I am logged in as")
   @session_card_id = ucid = Card[user_card_name].id
   user_object = User.where(:card_id=>ucid).first
-  visit "/account/signin"
+  visit "/Session"
   fill_in("login", :with=> user_object.email )
   fill_in("password", :with=> user_object.login.split("_")[0]+"_pass")
   click_button("Sign me in")

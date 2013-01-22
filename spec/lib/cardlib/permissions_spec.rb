@@ -111,7 +111,7 @@ describe "reader rules" do
   end
 
   it "should get updated when relative settings change" do
-    all_plus = Card.fetch '*all plus+*read', :new=>{:content=>'_left'}
+    all_plus = Card.fetch '*all plus+*read', :new => { :content=>'_left' }
     all_plus.save
     c = Card.new(:name=>'Home+Heart')
     c.who_can(:read).should == [Card::AnyoneID]
@@ -130,7 +130,7 @@ describe "reader rules" do
 
   it "should insure that class overrides work with relative settings" do
     Account.as_bot do
-      all_plus = Card.fetch '*all plus+*read', :new=>{:content=>'_left'}
+      all_plus = Card.fetch '*all plus+*read', :new => { :content=>'_left' }
       all_plus.save
       Account.as_bot { @perm_card.save! }
       c = Card.create(:name=>'Home+Heart')
@@ -152,7 +152,6 @@ end
 describe "Permission", ActiveSupport::TestCase do
   before do
     Account.as_bot do
-      User.cache.reset
       @u1, @u2, @u3, @r1, @r2, @r3, @c1, @c2, @c3 =
         %w( u1 u2 u3 r1 r2 r3 c1 c2 c3 ).map do |x| Card[x] end
     end
@@ -333,7 +332,7 @@ describe "Permission", ActiveSupport::TestCase do
     Account.as(@u1) do
       Card.search(:content=>'WeirdWord').map(&:name).sort.should == %w( c1 c2 c3 )
     end
-    Account.user=nil # for Account.as to be effective, you can't have a logged in user
+    Account.user_card_id=Card::AnonID # for Account.as to be effective, you can't have a logged in user
     Account.as(@u2) do
       Card.search(:content=>'WeirdWord').map(&:name).sort.should == %w( c2 c3 )
     end

@@ -1,6 +1,6 @@
 module Wagn
   module Set::Right::Rstar
-include Sets
+    include Sets
 
     format :html
 
@@ -192,7 +192,7 @@ include Sets
   end
 
 
-  class Renderer::Html
+  class Renderer::HtmlRenderer
     private
 
     def find_current_rule_card

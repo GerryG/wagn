@@ -31,7 +31,7 @@ class Card < ActiveRecord::Base
   class << self
     JUNK_INIT_ARGS = %w{ missing skip_virtual id }
 
-    def cache()          Wagn::Cache[Card]                           end
+    def cache()          Wagn::Cache[self]                           end
 
     def new args={}, options={}
       args = (args || {}).stringify_keys
@@ -134,6 +134,7 @@ class Card < ActiveRecord::Base
       else :noop
       end
 
+
     case type_id
     when :noop 
     when false, nil
@@ -193,7 +194,7 @@ class Card < ActiveRecord::Base
   end
 
   def set_stamper
-    self.updater_id = Account.user_id
+    self.updater_id = Account.user_card_id
     self.creator_id = self.updater_id if new_card?
   end
 
@@ -236,6 +237,7 @@ class Card < ActiveRecord::Base
   end
 
   def base_after_save
+    Rails.logger.warn "base asv #{inspect}"
     save_subcards
     @virtual    = false
     @from_trash = false
@@ -574,6 +576,9 @@ class Card < ActiveRecord::Base
     "#<#{self.class.name}" + "##{id}" +
     "###{object_id}" + #"l#{left_id}r#{right_id}" +
     "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
+    #(errors.any? ? '*Errors*' : 'noE') +
+    (errors.any? ? "<E*#{errors.full_messages*', '}*>" : '') +
+    #"{#{references_expired==1 ? 'Exp' : "noEx"}:" +
     "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{frozen? ? 'Fz' : readonly? ? 'RdO' : ''}" +
     "#{@virtual &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }:#{references_expired.inspect}}" +
     #" Rules:#{ @rule_cards.nil? ? 'nil' : @rule_cards.map{|k,v| "#{k} >> #{v.nil? ? 'nil' : v.name}"}*", "}" +

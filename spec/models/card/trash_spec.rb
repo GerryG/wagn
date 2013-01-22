@@ -13,7 +13,7 @@ describe Card, "deleted card" do
   it "should come out of the trash when a plus card is created" do
     Account.as_bot do
       Card.create(:name=>'A+*acct')
-      c = Card['A']
+      c = Card.fetch 'A', :new=>{}
       c.trash.should be_false
     end
   end
@@ -196,7 +196,7 @@ end
 describe "remove tests" do
 
   before do
-    Account.user = 'joe_user'
+    Account.user_card_id = Card['joe_user'].id
     @a = Card["A"]
   end
 

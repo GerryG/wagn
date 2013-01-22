@@ -17,7 +17,7 @@ end
 =begin
 describe User, "Anonymous User" do
   before do
-    Account.user= Card::AnonID
+    Account.user_card_id= Card::AnonID
   end
 
   it "should ok anon role" do Wagn.role_ok?(Role['anon'].id).should be_true end
@@ -26,7 +26,7 @@ end
 
 describe User, "Authenticated User" do
   before do
-    Account.user= 'joe_user'
+    Account.user_card_id= 'joe_user'
   end
   it "should ok anon role" do Wagn.role_ok?(Role['anon'].id).should be_true end
   it "should ok auth role" do Wagn.role_ok?(Role['auth'].id).should be_true end
@@ -35,7 +35,7 @@ end
 
 describe User, "Admin User" do
   before do
-    Account.user= Card::WagnBotID
+    Account.user_card_id= Card::WagnBotID
   end
 #  it "should ok admin role" do Wagn.role_ok?(Role['admin'].id).should be_true end
 
@@ -47,8 +47,7 @@ end
 
 describe User, 'Joe User' do
   before do
-    Account.user= :joe_user
-    User.cache.delete 'joe_user'
+    Account.user_card_id= Card['joe_user'].id
     @ju = Account.user
     @jucard = Account.user_card
     @r1 = Card['r1']
@@ -62,7 +61,9 @@ describe User, 'Joe User' do
     @roles_card.item_names.length.should==0
   end
   it "should immediately set new roles and return auth, anon, and the new one" do
-    Account.as_bot { @roles_card << @r1 }
+    Account.as_bot do
+      @roles_card << @r1
+    end
     @roles_card.item_names.length.should==1
   end
   it "should save new roles and reload correctly" do

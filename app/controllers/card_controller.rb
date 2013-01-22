@@ -1,13 +1,12 @@
 # -*- encoding : utf-8 -*-
 require 'xmlscan/processor'
-
 require_dependency 'cardlib'
 
 class CardController < ApplicationController
+  include Wagn::Sets::CardActions
 
   helper :wagn
 
-  before_filter :index_preload, :only=> [ :index ]
   before_filter :read_file_preload, :only=> [ :read_file ]
 
   before_filter :load_card
@@ -64,8 +63,6 @@ Done"
 =end
 
   attr_reader :card
-  cattr_reader :subset_actions
-  @@subset_actions = {}
 
   METHODS = {
     'POST'   => :create,  # C
@@ -79,7 +76,7 @@ Done"
   def action
     @action = METHODS[request.method]
     Rails.logger.warn "action #{request.method}, #{@action} #{params.inspect}"
-    warn "action #{request.method}, #{@action} #{params.inspect}"
+    #warn "action #{request.method}, #{@action} #{params.inspect}"
     send "perform_#{@action}"
     render_errors || success
   end
@@ -94,20 +91,13 @@ Done"
   end
 
   def create
-    if card.save
-      success
-    else
-      render_errors
-    end
+    #warn "create #{params.inspect}, #{card.inspect} if #{card && !card.new_card?}, nc:#{card.new_card?}"
+
+    perform_create
   end
 
   def read
-    if card.errors.any?
-      render_errors
-    else
-      save_location # should be an event!
-      show
-    end
+    perform_read
   end
 
 =begin FIXME move to action events
@@ -134,20 +124,12 @@ Done"
 =end
 
   def update
-    case
-    when card.new_card?                          ;  create
-    when card.update_attributes( params[:card] ) ;  success
-    else                                             render_errors
-    end
+    perform_update
   end
 
   def delete
-    
-    card.destroy
-    discard_locations_for card #should be an event
-    success 'REDIRECT: *previous'
+    perform_delete
   end
-
 
   def index
     read
@@ -163,6 +145,9 @@ Done"
   end #FIXME!  move into renderer
 
 
+  def action_error *a
+    warn "action_error #{a.inspect}"
+  end
 
 
   ## the following methods need to be merged into #update
@@ -181,7 +166,7 @@ Done"
     # if we enforce RESTful http methods, we should do it consistently,
     # and error should be 405 Method Not Allowed
 
-    author = Account.user_id == Card::AnonID ?
+    author = Account.user_card_id == Card::AnonID ?
         "#{session[:comment_author] = params[:card][:comment_author]} (Not signed in)" : "[[#{Account.user.card.name}]]"
     comment = params[:card][:comment].split(/\n/).map{|c| "<p>#{c.strip.empty? ? '&nbsp;' : c}</p>"} * "\n"
     card.comment = "<hr>#{comment}<p><em>&nbsp;&nbsp;--#{author}.....#{Time.now}</em></p>"
@@ -204,12 +189,10 @@ Done"
   def watch
     watchers = card.fetch :trait=>:watchers, :new=>{}
     watchers = watchers.refresh
-    myname = Card[Account.user_id].name
+    myname = Card[Account.user_card_id].name
     watchers.send((params[:toggle]=='on' ? :add_item : :drop_item), myname)
     ajax? ? show(:watch) : read
   end
-
-
 
 
 
@@ -249,7 +232,7 @@ Done"
     card.ok!(:create, :new=>{}, :trait=>:account)
     email_args = { :subject => "Your new #{Card.setting :title} account.",   #ENGLISH
                    :message => "Welcome!  You now have an account on #{Card.setting :title}." } #ENGLISH
-    @user, @card = User.create_with_card(params[:user],card, email_args)
+    @user, @card = User.create_with_card(params[:user], card, email_args)
     raise ActiveRecord::RecordInvalid.new(@user) if !@user.errors.empty?
     #@account = User.new(:email=>@user.email)
 #    flash[:notice] ||= "Done.  A password has been sent to that email." #ENGLISH
@@ -275,15 +258,22 @@ Done"
     end
   end
 
-  def index_preload
-    Account.no_logins? ?
-      redirect_to( Card.path_setting '/admin/setup' ) :
-      params[:id] = (Card.setting(:home) || 'Home').to_name.url_key
+  #before_filter :index_preload, :only=> [ :index ]
+  action :before => :index do
+    if Account.first_login?
+      home_name = Card.setting(:home) || 'Home'
+      params[:id] = home_name.to_name.url_key
+    else
+      redirect_to Card.path_setting '/admin/setup'
+    end
   end
 
 
   # FIXME: make me an event
   def load_card
+    # do content type processing, if it is an object, json or xml, parse that now and
+    # params[:object] = parsed_object
+    # looking into json parsing (apparently it is deep in rails: params_parser.rb)
     @card = case params[:id]
       when '*previous'   ; return wagn_redirect( previous_location )
       when /^\~(\d+)$/   ; Card.fetch $1.to_i
@@ -319,6 +309,7 @@ Done"
 
 
   def success default_target='_self'
+    #warn "success #{default_target}, #{card.inspect}"
     target = params[:success] || default_target
     redirect = !ajax?
     new_params = {}
@@ -348,7 +339,7 @@ Done"
       @card = target
       show new_params[:view]
     end
+    true
   end
-
 end
 

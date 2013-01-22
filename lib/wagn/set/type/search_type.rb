@@ -119,26 +119,25 @@ module Wagn
 
 %{<h1 class="page-header">Recent Changes</h1>
 <div class="card-frame recent-changes">
-      <div class="card-body">
-        #{ paging }
-      } +
-          cards_by_day.keys.sort.reverse.map do |day|
+          <div class="card-body">
+            #{ paging }
+          } +
+              cards_by_day.keys.sort.reverse.map do |day|
 
 %{  <h2>#{format_date(day, include_time = false) }</h2>
-        <div class="search-result-list">} +
-             cards_by_day[day].map do |card| %{
-          <div class="search-result-item item-#{ @item_view }">
-               #{process_inclusion(card, :view=>@item_view) }
-          </div>}
-             end.join(' ') + %{
-        </div>
-        } end.join("\n") + %{
-          #{ paging }
-      </div>
+            <div class="search-result-list">} +
+                 cards_by_day[day].map do |card| %{
+              <div class="search-result-item item-#{ @item_view }">
+                   #{process_inclusion(card, :view=>@item_view) }
+              </div>}
+                 end.join(' ') + %{
+            </div>
+            } end.join("\n") + %{
+              #{ paging }
+          </div>
 </div>
 }
     end
-
 
 
     define_view :paging, :type=>:search_type do |args|
@@ -193,46 +192,47 @@ module Wagn
     end
 
 
-    format :json
+        format :json
 
-    define_view :card_list, :type=>:search_type do |args|
-      @item_view ||= card.spec[:view] || :name
+        define_view :card_list, :type=>:search_type do |args|
+          @item_view ||= card.spec[:view] || :name
 
-      if args[:results].empty?
-        'no results'
-      else
-        # simpler version gives [{'card':{the card stuff}, {'card' ...} vs.
-        #  args[:results].map do |c|  process_inclusion c, :view=>@item_view end
-        # This which converts to {'cards':[{the card suff}, {another card stuff} ...]} we may want to support both ...
-        {:cards => args[:results].map do |c|
-            inc = process_inclusion c, :view=>@item_view
-            (!(String===inc) and inc.has_key?(:card)) ? inc[:card] : inc
+          if args[:results].empty?
+            'no results'
+          else
+            # simpler version gives [{'card':{the card stuff}, {'card' ...} vs.
+            #  args[:results].map do |c|  process_inclusion c, :view=>@item_view end
+            # This which converts to {'cards':[{the card suff}, {another card stuff} ...]} we may want to support both ...
+            {:cards => args[:results].map do |c|
+                inc = process_inclusion c, :view=>@item_view
+                (!(String===inc) and inc.has_key?(:card)) ? inc[:card] : inc
+              end
+            }
           end
-        }
-      end
-    end
+        end
 
 
-    module Model
-      def collection?
-        true
-      end
+        module Model
+          def collection?
+            true
+          end
 
-      def item_cards params={}
-        s = spec(params)
-        raise("OH NO.. no limit") unless s[:limit]
-        # forces explicit limiting
-        # can be 0 or less to force no limit
-        #Rails.logger.debug "search item_cards #{params.inspect}"
-        Card.search( s )
-      end
+          def item_cards params={}
+            s = spec(params)
+            raise("OH NO.. no limit") unless s[:limit]
+            # forces explicit limiting
+            # can be 0 or less to force no limit
+            #Rails.logger.debug "search item_cards #{params.inspect}"
+            Card.search( s )
+          end
 
-      def item_names params={}
-        ## FIXME - this should just alter the spec to have it return name rather than instantiating all the cards!!
-        ## (but need to handle prepend/append)
-        #Rails.logger.debug "search item_names #{params.inspect}"
-        Card.search(spec(params)).map(&:cardname)
-      end
+
+          def item_names params={}
+            ## FIXME - this should just alter the spec to have it return name rather than instantiating all the cards!!
+            ## (but need to handle prepend/append)
+            #Rails.logger.debug "search item_names #{params.inspect}"
+            Card.search(spec(params)).map(&:cardname)
+          end
 
       def item_type
         spec[:type]
@@ -264,7 +264,7 @@ module Wagn
     end
   end
 
-  class Renderer::Html < Renderer
+  class Renderer::HtmlRenderer < Renderer
     def page_link text, page
       @paging_path_args[:offset] = page * @paging_limit
       " #{link_to raw(text), path(@paging_path_args), :class=>'card-paging-link slotter', :remote => true} "

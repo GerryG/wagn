@@ -32,7 +32,7 @@ module Cardlib::Permissions
   #      to fetch and the test is perfomed on the fetched card, therefore:
   #
   #      :trait=>:account         would fetch this card plus a tag codenamed :account
-  #      :trait=>:roles, :new=>{} would be a fetch_or_new_trait
+  #      :trait=>:roles, :new=>{} would create a new card with default ({}) options.
 
   def ok_with_fetch? operation, opts={}
     card = opts[:trait].nil? ? self : fetch(opts)
@@ -57,11 +57,12 @@ module Cardlib::Permissions
   end
   
   def update_account_ok? #FIXME - temporary API
-    to_user and Account.as_id==id || fetch(:trait=>:account, :new=>{}).ok?( :update )
+    #warn "up acct ok? #{inspect}, tu:#{to_user} as:#{Account.as_id} acct up ok: #{ok?(:update, :trait=>:account, :new=>{})}"
+    to_user and Account.as_id==id || ok?(:update, :trait=>:account, :new=>{})
   end
 
   def who_can operation
-    #warn "who_can[#{name}] #{(prc=permission_rule_card(operation)).inspect}, #{prc.first.item_cards.map(&:name)}" #if operation == :update
+    #warn "who_can[#{name}] #{(prc=permission_rule_card(operation)).inspect}, #{prc.first.item_cards.map(&:name)}" if operation == :update
     permission_rule_card(operation).first.item_cards.map(&:id)
   end
 
@@ -249,7 +250,6 @@ module Cardlib::Permissions
       # (though maybe not as a tracked_attribute for performance reasons?)
       # AND need to make sure @changed gets wiped after save (probably last in the sequence)
 
-      User.cache.reset
       Card.cache.reset # maybe be more surgical, just Account.user related
       expire #probably shouldn't be necessary,
       # but was sometimes getting cached version when card should be in the trash.

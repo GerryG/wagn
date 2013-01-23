@@ -13,7 +13,7 @@ describe Card, "deleted card" do
   it "should come out of the trash when a plus card is created" do
     Account.as_bot do
       Card.create(:name=>'A+*acct')
-      c = Card['A']
+      c = Card.fetch 'A', :new=>{}
       c.trash.should be_false
     end
   end
@@ -40,12 +40,10 @@ end
 
 describe User, "without revisions" do
   before do
-    Account.as_bot do
-      @c = Card.create! :name=>'User Must Die', :type=>'User'
-    end
+    Account.as_bot { @c = Card.create! :name=>'User Must Die', :type=>'User' }
   end
   it "should be removable" do
-    @c.destroy!.should be_true
+    Account.as_bot { @c.destroy!.should be_true }
   end
 end
 
@@ -55,19 +53,22 @@ end
 #NOT WORKING, BUT IT SHOULD
 #describe Card, "a part of an unremovable card" do
 #  before do
-#     Account.as(Card::WagnBotID)
+#    Account.as_bot do
 #     # this ugly setup makes it so A+Admin is the actual user with edits..
 #     Card["Wagn Bot"].update_attributes! :name=>"A+Wagn Bot"
+#    end
 #  end
 #  it "should not be removable" do
+#    Account.as_bot do
 #    @a = Card['A']
 #    @a.destroy.should_not be_true
+#    end
 #  end
 #end
 
 describe Card, "dependent removal" do
   before do
-    Account.as :joe_user
+    Account.as 'joe_user'
     @a = Card['A']
     @a.destroy!
     @c = Card.find_by_key "A+B+C".to_name.key
@@ -154,7 +155,7 @@ end
 
 describe Card, "recreate trashed card via new" do
 #  before do
-#    Account.as(Card::WagnBotID)
+#    Account.as_bot
 #    @c = Card.create! :type=>'Basic', :name=>"BasicMe"
 #  end
 
@@ -190,6 +191,21 @@ describe Card, "junction revival" do
 
   it "should have a new revision" do
     @c.content.should == 'revived content'
+  end
+end
+
+#
+# code should be prevented from damaging the system by removing critical cards.
+#
+ 
+describe Card, "indestructables" do
+  it "should not destroy" do
+    Account.as_bot do
+      [:all, :default, '*all+*default'].each do |key|
+        card = Card[key] and card.destroy
+        Card[key].should be
+      end
+    end
   end
 end
 

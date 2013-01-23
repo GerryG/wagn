@@ -8,7 +8,7 @@ module AuthenticatedSystem
   def session_card_id
     @session_card_id ||= session[:user]
   rescue Exception => e
-    #warn "except #{e.inspect}, #{e.backtrace*"\n"}"
+    Rails.logger.warn "except #{e.inspect}, #{e.backtrace*"\n"}"
     session[:user] = nil
     raise e
   end

@@ -4,10 +4,9 @@ module Wagn
 
     format :base
 
-    define_view  :raw, :right=>'email'  do |args|
-      account=User.where(:card_id=>card.left.id).first
-      account ? account.send('email') : ''
+    define_view  :raw, :right=>:email, :denial=>:blank, :perms => :read do |args|
+      acct=card.trunk.account and acct.email
     end
-    alias_view :raw, {:right=>'email'}, :core
+    alias_view :raw, {:right=>:email}, :core
   end
 end

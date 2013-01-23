@@ -13,8 +13,9 @@ describe Card do
 
   describe "module inclusion" do
     before do
-      Account.as :joe_user
-      @c = Card.new :type=>'Search', :name=>'Module Inclusion Test Card'
+      Account.as 'joe_user' do
+        @c = Card.new :type=>'Search', :name=>'Module Inclusion Test Card'
+      end
     end
 
     it "gets needed methods after new" do
@@ -22,8 +23,10 @@ describe Card do
     end
 
     it "gets needed methods after save" do
-      @c.save!
-      @c.respond_to?( :get_spec ).should be_true
+      Account.as 'joe_user' do
+        @c.save!
+        @c.respond_to?( :get_spec ).should be_true
+      end
     end
 
 #    it "gets needed methods after find" do
@@ -33,9 +36,11 @@ describe Card do
 #    end
 
     it "gets needed methods after fetch" do
-      @c.save!
-      c = Card.fetch(@c.name)
-      c.respond_to?( :get_spec ).should be_true
+      Account.as 'joe_user' do
+        @c.save!
+        c = Card.fetch(@c.name)
+        c.respond_to?( :get_spec ).should be_true
+      end
     end
   end
 
@@ -62,9 +67,12 @@ describe Card do
       #[:before_save, :before_create, :after_save, :after_create].each do |hookname|
       pending "mock rr seems to be broken, maybe 'call' collides with internal methode"
       mock(Wagn::Hook).call(:after_create, instance_of(Card))
-      Account.as_bot do
+      c=Account.as_bot do
         Card.create :name => "testit"
       end
+      c.left_id.should be_nil
+      c.right_id.should be_nil
+
     end
   end
 
@@ -141,11 +149,13 @@ describe Card do
     end
   end
 
+=begin
   describe "attribute tracking for existing card" do
     before(:each) do
       @c = Card["Joe User"]
     end
   end
+=end
 
   describe "content change should create new revision" do
     before do
@@ -215,27 +225,30 @@ describe "basic card tests" do
   end
 
   it 'should remove cards' do
-    forba = Card.create! :name=>"Forba"
-    torga = Card.create! :name=>"TorgA"
-    torgb = Card.create! :name=>"TorgB"
-    torgc = Card.create! :name=>"TorgC"
+    Account.as 'joe user' do
+      warn "as_id #{Account.as_card_id} #{Account.authorized.inspect}"
+      forba = Card.create! :name=>"Forba"
+      torga = Card.create! :name=>"TorgA"
+      torgb = Card.create! :name=>"TorgB"
+      torgc = Card.create! :name=>"TorgC"
 
-    forba_torga = Card.create! :name=>"Forba+TorgA";
-    torgb_forba = Card.create! :name=>"TorgB+Forba";
-    forba_torga_torgc = Card.create! :name=>"Forba+TorgA+TorgC";
+      forba_torga = Card.create! :name=>"Forba+TorgA";
+      torgb_forba = Card.create! :name=>"TorgB+Forba";
+      forba_torga_torgc = Card.create! :name=>"Forba+TorgA+TorgC";
 
-    Card['Forba'].destroy!
+      Card['Forba'].destroy!
 
-    Card["Forba"].should be_nil
-    Card["Forba+TorgA"].should be_nil
-    Card["TorgB+Forba"].should be_nil
-    Card["Forba+TorgA+TorgC"].should be_nil
+      Card["Forba"].should be_nil
+      Card["Forba+TorgA"].should be_nil
+      Card["TorgB+Forba"].should be_nil
+      Card["Forba+TorgA+TorgC"].should be_nil
 
     # FIXME: this is a pretty dumb test and it takes a loooooooong time
     #while card = Card.find(:first,:conditions=>["type not in (?,?,?) and trash=?", 'AccountRequest','User','Cardtype',false] )
     #  card.destroy!
     #end
     #assert_equal 0, Card.find_all_by_trash(false).size
+    end
   end
 
   #test test_attribute_card
@@ -246,11 +259,13 @@ describe "basic card tests" do
   #end
 
   it 'should create cards' do
-    alpha = Card.new :name=>'alpha', :content=>'alpha'
-    alpha.content.should == 'alpha'
-    alpha.save
-    alpha.name.should == 'alpha'
-    assert_stable alpha
+    Account.as 'joe user' do
+      alpha = Card.new :name=>'alpha', :content=>'alpha'
+      alpha.content.should == 'alpha'
+      alpha.save
+      alpha.name.should == 'alpha'
+      assert_stable alpha
+    end
   end
 
 
@@ -262,7 +277,9 @@ describe "basic card tests" do
   end
 
   it 'should find_by_name' do
-    card = Card.create( :name=>"ThisMyCard", :content=>"Contentification is cool" )
+    Account.as 'joe_user' do
+      card = Card.create( :name=>"ThisMyCard", :content=>"Contentification is cool" )
+    end
     Card["ThisMyCard"].should == card
   end
 
@@ -274,7 +291,7 @@ describe "basic card tests" do
 
 
   it 'update_should_create_subcards' do
-    Account.user = 'joe_user'
+    Account.session_id = Card['joe_user'].id
     Account.as 'joe_user' do
       banana = Card.create! :name=>'Banana'
       Card.update banana.id, :cards=>{ "+peel" => { :content => "yellow" }}
@@ -286,8 +303,8 @@ describe "basic card tests" do
   end
 
   it 'update_should_create_subcards_as_wagn_bot_if_missing_subcard_permissions' do
-    Card.create :name=>'peel'
-    Account.user = :anonymous
+    Account.as 'joe user' do Card.create :name=>'peel' end
+    Account.session_id = Card::AnonID
 
     Card['Banana'].should_not be
     Card['Basic'].ok?(:create).should be_false, "anon can't creat"
@@ -302,7 +319,7 @@ describe "basic card tests" do
 
   it 'update_should_not_create_subcards_if_missing_main_card_permissions' do
     b = nil
-    Account.as(:joe_user) do
+    Account.as('joe_user') do
       b = Card.create!( :name=>'Banana' )
       #warn "created #{b.inspect}"
     end

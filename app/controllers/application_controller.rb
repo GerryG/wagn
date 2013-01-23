@@ -12,8 +12,7 @@ class ApplicationController < ActionController::Base
   before_filter :per_request_setup, :except=>[:fast_404]
   layout :wagn_layout, :except=>[:fast_404]
 
-  attr_reader :card
-  attr_accessor :recaptcha_count
+  attr_accessor :recaptcha_count, :card
 
   def fast_404
     message = "<h1>404 Page Not Found</h1>"
@@ -37,9 +36,9 @@ class ApplicationController < ActionController::Base
 
       Wagn::Cache.renew
 
-      #warn "set curent_user (app-cont) #{self.session_card_id}, U.cu:#{Account.user_id}"
-      Account.user = self.session_card_id || Card::AnonID
-      #warn "set curent_user a #{session_card_id}, U.cu:#{Account.user_id}"
+      #warn "set curent_account (app-cont) #{self.session_account}, U.cu:#{Account.session}"
+      Account.session_id = self.session_card_id || Card::AnonID
+      #warn "set curent_account a #{session_account}, U.cu:#{Account.session}"
 
       # RECAPTCHA HACKS
       Wagn::Conf[:recaptcha_on] = !Account.logged_in? &&     # this too
@@ -96,9 +95,11 @@ class ApplicationController < ActionController::Base
 
     case
     when known                # renderers can handle it
+      obj_sym = [:json, :xml].member?( ext = ext.to_sym ) ? ext : :text
       renderer = Wagn::Renderer.new card, :format=>ext, :controller=>self
-      render_text = renderer.render_show :view => view || params[:view]
-      render :text=>render_text, :status=> renderer.error_status || status
+
+      render_obj = renderer.render_show :view => view || params[:view]
+      render obj_sym => render_obj, :status=> renderer.error_status || status
 
     when show_file            # send_file can handle it
     else                      # dunno how to handle it

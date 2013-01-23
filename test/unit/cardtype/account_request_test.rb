@@ -1,12 +1,12 @@
 require File.expand_path('../../test_helper', File.dirname(__FILE__))
-class Wagn::Set::Type::AccountRequestTest < ActiveSupport::TestCase
+class AccountRequestTest < ActiveSupport::TestCase
 
 
   def setup
     super
-    setup_default_user
+    setup_default_account
     # make sure all this stuff works as anonymous user
-    Account.user = Card::AnonID
+    Account.session_id = nil
   end
 
 
@@ -23,13 +23,13 @@ class Wagn::Set::Type::AccountRequestTest < ActiveSupport::TestCase
   end
 
 
-  def test_should_block_user
+  def test_should_block_account
     c=Card.fetch('Ron Request')
     Account.as 'joe_admin' do c.destroy!  end
-    #warn "destroyed card (#{c.inspect}) #{User.where(:email=>'ron@request.com').first.inspect}"
 
     assert_equal nil, Card.fetch('Ron Request')
-    assert_equal 'blocked', User.where(:email=>'ron@request.com').first.status
+    Rails.logger.warn "acct #{Card['RonRequest'].inspect}, U#{Account.find_by_email('ron@request.com').inspect}"
+    assert_equal 'blocked', Account.find_by_email('ron@request.com').status
   end
 
 

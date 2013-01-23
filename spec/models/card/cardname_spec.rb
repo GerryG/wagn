@@ -29,7 +29,7 @@ end
 
 describe Card, "Case Variant" do
   before do
-    Account.as :joe_user
+    Account.as 'joe_user'
     @c = Card.create! :name=>'chump'
   end
 
@@ -53,15 +53,16 @@ end
 
 describe SmartName, "changing from plus card to simple" do
   before do
-    Account.as :joe_user
+    Account.as 'joe_user'
     @c = Card.create! :name=>'four+five'
     @c.name = 'nine'
     @c.save
   end
 
   it "should erase left and right ids" do
-    @c.left_id.should== nil
-    @c.right_id.should== nil
+    @c = Card['nine']
+    @c.left_id.should be_nil
+    @c.right_id.should be_nil
   end
 
   it "test fetch with new when present" do

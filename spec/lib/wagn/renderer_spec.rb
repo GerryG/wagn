@@ -4,7 +4,7 @@ require File.expand_path('../../packs/pack_spec_helper', File.dirname(__FILE__))
 
 describe Wagn::Renderer, "" do
   before do
-    Account.user= :joe_user
+    Account.session_id = Card['joe_user'].id
     Wagn::Renderer.current_slot = nil
     Wagn::Renderer.ajax_call = false
   end
@@ -66,7 +66,7 @@ describe Wagn::Renderer, "" do
         Card.create(:name=>'Joe no see me', :type=>'Html', :content=>'secret')
         Card.create(:name=>'Joe no see me+*self+*read', :type=>'Pointer', :content=>'[[Administrator]]')
       end
-      Account.as :joe_user do
+      Account.as 'joe_user' do
         assert_view_select Wagn::Renderer.new(Card.fetch('Joe no see me')).render(:core), 'span[class="denied"]'
       end
     end
@@ -168,7 +168,7 @@ describe Wagn::Renderer, "" do
       before do
         Account.as_bot do
           card = Card['A+B']
-          @simple_page = Wagn::Renderer::Html.new(card).render(:layout)
+          @simple_page = Wagn::Renderer::HtmlRenderer.new(card).render(:layout)
           #warn "render sp: #{card.inspect} :: #{@simple_page}"
         end
       end
@@ -312,7 +312,7 @@ describe Wagn::Renderer, "" do
     end
 
     it "is used in new card forms when soft" do
-      Account.as :joe_admin do
+      Account.as 'joe_admin' do
         content_card = Card["Cardtype E+*type+*default"]
         content_card.content= "{{+Yoruba}}"
         content_card.save!
@@ -320,14 +320,14 @@ describe Wagn::Renderer, "" do
         help_card    = Card.create!(:name=>"Cardtype E+*type+*add help", :content=>"Help me dude" )
         card = Card.new(:type=>'Cardtype E')
 
-        assert_view_select Wagn::Renderer::Html.new(card).render_new, 'div[class~="content-editor"]' do
+        assert_view_select Wagn::Renderer::HtmlRenderer.new(card).render_new, 'div[class~="content-editor"]' do
           assert_select 'textarea[class="tinymce-textarea card-content"]', :text => '{{+Yoruba}}'
         end
       end
     end
 
     it "is used in new card forms when hard" do
-      Account.as :joe_admin do
+      Account.as 'joe_admin' do
         content_card = Card.create!(:name=>"Cardtype E+*type+*content",  :content=>"{{+Yoruba}}" )
         help_card    = Card.create!(:name=>"Cardtype E+*type+*add help", :content=>"Help me dude" )
         card = Card.new(:type=>'Cardtype E')
@@ -336,7 +336,7 @@ describe Wagn::Renderer, "" do
         mock(card).rule_card(:autoname).returns(nil)
         mock(card).rule_card(:default,  {:skip_modules=>true}   ).returns(Card['*all+*default'])
         mock(card).rule_card(:add_help, {:fallback=>:edit_help} ).returns(help_card)
-        rendered = Wagn::Renderer::Html.new(card).render_new
+        rendered = Wagn::Renderer::HtmlRenderer.new(card).render_new
         #warn "rendered = #{rendered}"
         assert_view_select rendered, 'fieldset' do
           assert_select 'textarea[name=?][class="tinymce-textarea card-content"]', "card[cards][~plus~Yoruba][content]"
@@ -361,7 +361,7 @@ describe Wagn::Renderer, "" do
         Card.create(:name=>'Book+author+*type plus right+*default', :type=>'Phrase', :content=>'Zamma Flamma')
       end
       c = Card.new :name=>'Yo Buddddy', :type=>'Book'
-      result = Wagn::Renderer::Html.new(c).render( :edit )
+      result = Wagn::Renderer::HtmlRenderer.new(c).render( :edit )
       assert_view_select result, 'fieldset' do
         assert_select 'input[name=?][type="text"][value="Zamma Flamma"]', 'card[cards][~plus~author][content]'
         assert_select %{input[name=?][type="hidden"][value="#{Card::PhraseID}"]},     'card[cards][~plus~author][type_id]'
@@ -401,7 +401,7 @@ describe Wagn::Renderer, "" do
 
     context "HTML" do
       before do
-        Account.user= Card::WagnBotID
+        Account.session_id = Card::WagnBotID
       end
 
       it "should have special editor" do
@@ -502,7 +502,7 @@ describe Wagn::Renderer, "" do
 
     context "*account link" do
       it "should have a 'my card' link" do
-        Account.as :joe_user do
+        Account.as 'joe_user' do
           assert_view_select render_card(:raw, :name=>'*account links'), 'span[id="logging"]' do
             assert_select 'a[id="my-card-link"]', :text => 'Joe User'
           end
@@ -560,7 +560,6 @@ describe Wagn::Renderer, "" do
   def slot_link card, format=:html
     renderer = Wagn::Renderer.new card, :format=>format
     renderer.add_name_context
-    #Rails.logger.warn "slat lk #{card.name},#{renderer}, #{format}"
     result = renderer.render :content
     m = result.match(/<(cardlink|link|a) class.*<\/(cardlink|link|a)>/)
     (m.to_s != "") ? m.to_s : result

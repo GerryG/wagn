@@ -6,12 +6,16 @@ class AdminController < CardController
   layout 'application'
 
   def setup
-    raise(Wagn::Oops, "Already setup") unless Account.no_logins? && !User[:first]
+    raise(Wagn::Oops, "Already setup") if Account.first_login?
     Wagn::Conf[:recaptcha_on] = false
     if request.post?
-      #Card::User  # wtf - trigger loading of Card::User, otherwise it tries to use U
       Account.as_bot do
-        @account, @card = User.create_with_card( params[:account].merge({:login=>'first'}), params[:card] )
+        @card = Card.new params[:card]
+        aparams = params[:account]
+        aparams[:name] = @card.name
+        acct = Account.new( aparams ).active
+        #warn "acct setup #{acct.inspect}, #{@card.account}"
+        @account = @card.account = Account.new( aparams ).active
         set_default_request_recipient
 
         #warn "ext id = #{@account.id}"
@@ -29,15 +33,17 @@ class AdminController < CardController
         end
       end
     else
-      @card = Card.new( params[:card] || {} ) #should prolly skip defaults
-      @account = User.new( params[:user] || {} )
+      @card = Card.new params[:card] #should prolly skip defaults
+      aparams = params[:user] || {}
+      aparams[:name] = @card.name
+      @account = Account.new aparams
     end
   end
 
   def show_cache
     key = params[:id].to_name.key
-    @cache_card = Card.fetch(key)
-    @db_card = Card.find_by_key(key)
+    @cache_card = Card.fetch key
+    @db_card = Card.find_by_key key
   end
 
   def clear_cache

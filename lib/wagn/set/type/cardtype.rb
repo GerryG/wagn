@@ -19,7 +19,7 @@ module Wagn
     end
 
     module Model
-      include Wagn::Set::Type::Basic::Model
+      include Set::Type::Basic::Model
 
       def on_type_change
         custom_validate_destroy

@@ -16,6 +16,7 @@ module Chunks
 
     def reference_card
       @refcard ||= refcardname && Card.fetch(refcardname)
+      Rails.logger.warn "refcard #{refcardname.inspect}, #{@refcard.inspect}"; @refcard
     end
 
     def reference_id

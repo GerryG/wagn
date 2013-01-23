@@ -3,6 +3,49 @@ module Wagn
   module Set::All::Base
     include Sets
 
+    ### --- Core actions -----
+
+    action :create do |*a|
+      #card.errors.add(:name, "must be unique; '#{card.name}' already exists.") unless card.new_card?
+      card.save
+      re=render_errors
+      re || success
+    end
+
+    action :read do |*a|
+      #warn "read action #{@card.inspect}, #{@card.errors.map(&:to_s)*', '}"
+      render_errors || begin
+    #warn "save and show #{@card.inspect}"
+        save_location # should be an event!
+        show
+      end
+    end
+
+    action :update do |*a|
+      if card.new_card?; process_create
+      elsif card.update_attributes params[:card]
+        #warn "update #{card.inspect}, #{params[:card].inspect}"
+        #card.save
+        render_errors || success
+
+      elsif render_errors
+      else  success
+      end
+    end
+
+    action :delete do |*a|
+      card.destroy
+      discard_locations_for card #should be an event
+      success 'REDIRECT: *previous'
+    end
+
+    alias_action :read,     {}, :index
+    alias_action :show_file, {}, :read_file
+
+
+
+    # ------- Views ------------
+
     format :base
 
     ### ---- Core renders --- Keep these on top for dependencies
@@ -77,6 +120,7 @@ module Wagn
     end
 
     # The below have HTML!?  should not be any html in the base renderer
+    # Is the one change to '' correct?  Should the rest be same and originals in rich_html?
 
 
     define_view :closed_missing, :perms=>:none do |args|
@@ -91,4 +135,6 @@ module Wagn
       %{<span class="too-slow">Timed out! #{ showname } took too long to load.</span>}
     end
   end
+
 end
+

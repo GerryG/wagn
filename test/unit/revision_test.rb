@@ -3,25 +3,27 @@ class RevisionTest < ActiveSupport::TestCase
 
   def setup
     super
-    setup_default_user
+    setup_default_account
   end
 
   def test_revise
-    author1 = User.find_by_email('joe@user.com')
-    author2 = User.find_by_email('sara@user.com')
+    author1 = Account.find_by_email('joe@user.com')
+    author2 = Account.find_by_email('sara@user.com')
     author_cd1 = Card[author1.card_id]
     author_cd2 = Card[author2.card_id]
-    #author1, author2 = User.find(:all, :limit=>2)
-    Account.user = Card::WagnBotID
-    rc1=author_cd1.fetch(:new=>{}, :trait=>:roles)
-    rc1 << Card::AdminID
-    rc2 = author_cd2.fetch(:new=>{}, :trait=>:roles)
-    rc2 << Card::AdminID
-    author_cd1.save
-    author_cd2.save
-    Account.user = author1
-    card = Card.create! :name=>'alpha', :content=>'stuff'
-    Account.user = author2
+    Account.as_bot {
+      rc1=author_cd1.fetch(:new=>{}, :trait=>:roles)
+      rc1 << Card::AdminID
+      rc2 = author_cd2.fetch(:new=>{}, :trait=>:roles)
+      #author1, author2 = User.find(:all, :limit=>2)
+      rc1 << Card::AdminID
+      rc2 << Card::AdminID
+      author_cd1.save
+      author_cd2.save
+    }
+    Account.session_id = author_cd1
+    card = newcard( 'alpha', 'stuff')
+    Account.session_id = author_cd2
     card.content = 'boogy'
     card.save
     card.reload
@@ -49,7 +51,7 @@ class RevisionTest < ActiveSupport::TestCase
 =begin #FIXME - don't think this is used by any controller. we'll see what breaks
   def test_rollback
     @card = newcard("alhpa", "some test content")
-    @user = User.where(:card_id=>Card['quentin'].id).first
+    @user = Card['quentin'].account
     @card.content = "spot two"; @card.save
     @card.content = "spot three"; @card.save
     assert_equal 3, @card.revisions(true).length, "Should have three revisions"

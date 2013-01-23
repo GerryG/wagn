@@ -35,7 +35,7 @@ describe CardController, "captcha_required?" do
   end
 
   it "is false for joe user" do
-    login_as :joe_user
+    login_as 'joe_user'
     @controller.send(:captcha_required?).should be_false
   end
 
@@ -83,7 +83,7 @@ describe CardController, "with captcha enabled requires captcha on" do
   require_captcha_on :comment, :id=>"A", :card=>{:content=>"Yeah"}
 end
 
-describe AccountController, "with captcha enabled" do
+describe CardController, "with captcha enabled" do
   before do
     Account.as_bot do
       Card["*all+*captcha"].update_attributes! :content=>"1"

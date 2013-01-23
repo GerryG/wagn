@@ -71,6 +71,13 @@ module Wagn
       end
     end
 
+    # this module also get the action definitions
+    module CardActions
+      @@subset_actions = {}
+
+      mattr_reader :subset_actions
+    end
+
     # View definitions
     #
     #   When you declare:
@@ -98,7 +105,7 @@ module Wagn
       #
 
       def format fmt=nil
-        Renderer.renderer = if fmt.nil? || fmt == :base then Renderer else Renderer.get_renderer fmt end
+        Renderer.renderer= fmt
       end
 
       def define_view view, opts={}, &final
@@ -144,7 +151,7 @@ module Wagn
           end
         end
       end
-      
+
 
 
       def alias_view view, opts={}, *aliases
@@ -172,6 +179,73 @@ module Wagn
               send "_final_#{view_key}", *a
             end
           end
+        end
+      end
+
+
+      #
+      # ~~~~~~~~~~~~~~~~~~  ACTION DEFINITION ~~~~~~~~~~~~~~~~~~~
+      #
+
+      def action event, opts={}, &final_action
+        action_key = get_set_key event, opts
+
+        CardActions.class_eval {
+        Rails.logger.warn "define action[#{self}] e:#{event.inspect}, ak:_final_#{action_key}, O:#{opts.inspect}" if event == :read
+          define_method "_final_#{action_key}", &final_action }
+
+        CardActions.subset_actions[event] = true if !opts.empty?
+
+        if !method_defined? "perform_#{event}"
+          CardActions.class_eval do
+
+            Rails.logger.warn "defining method[#{to_s}] _perform_#{event}" if event == :read
+            define_method( "_perform_#{event}" ) do |*a|
+              a = [{}] if a.empty?
+              if final_method = action_method(event)
+                Rails.logger.warn "final action #{final_method}"
+                #with_inclusion_mode event do
+                  send final_method, *a
+                #end
+              else
+                raise "<strong>unsupported event: <em>#{event}</em></strong>"
+              end
+            end
+
+            Rails.logger.warn "define action[#{self}] perform_#{event}" if event == :read
+            define_method( "perform_#{event}" ) do |*a|
+              begin
+
+                Rails.logger.warn "send _perform_#{event}" if event.to_sym == :read
+                send "_perform_#{event}", *a
+
+              rescue Exception=>e
+                controller.send :notify_airbrake, e if Airbrake.configuration.api_key
+                warn "Card Action Error: #{e.class} : #{e.message}"
+                Rails.logger.info "\nCard Action Error: #{e.class} : #{e.message}"
+                Rails.logger.debug "  #{e.backtrace*"\n  "}"
+                action_error e, (card && card.name.present? ? card.name : 'unknown card')
+              end
+            end
+          end
+        end
+      end
+
+      def alias_action event, opts={}, *aliases
+        event_key = get_set_key(event, opts)
+        CardActions.subset_actions[event] = true if !opts.empty?
+        aliases.each do |alias_event|
+          alias_event_key = case alias_event
+            when String; alias_event
+            when Symbol; event_key==event ? alias_event.to_sym : event_key.to_s.sub(/_#{event}$/, "_#{alias_event}").to_sym
+            when Hash;   get_set_key alias_event[:event] || event, alias_event
+            else; raise "Bad event #{alias_event.inspect}"
+            end
+
+          Rails.logger.warn "def final_alias action #{alias_event_key}, #{event_key}"
+          CardActions.class_eval { define_method( "_final_#{alias_event_key}".to_sym ) do |*a|
+            send "_final_#{event_key}", *a
+          end }
         end
       end
     end

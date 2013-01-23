@@ -4,11 +4,14 @@ require File.expand_path(File.join(File.dirname(__FILE__), "..", "support", "pat
 
 Given /^I log in as (.+)$/ do |user_card_name|
   # FIXME: define a faster simulate method ("I am logged in as")
-  @session_card_id = ucid = Card[user_card_name].id
-  user_object = User.where(:card_id=>ucid).first
+  user_card=Card[user_card_name]
+  @session_card_id = user_card.id
+  account=user_card.fetch :trait => :account
+  user = account.account
+  email = user.email
   visit "/account/signin"
-  fill_in("login", :with=> user_object.email )
-  fill_in("password", :with=> user_object.login.split("_")[0]+"_pass")
+  fill_in("login", :with=> email )
+  fill_in("password", :with=> user.login.split("_")[0]+"_pass")
   click_button("Sign me in")
   page.should have_content(user_card_name)
 end
@@ -123,7 +126,7 @@ def logged_in_as(username)
   end
   yield
   unless sameuser
-    step( @saved_user ? "I log in as #{Card[@saved_user].name}" : "I log out" )
+    step( @saved_account ? "I log in as #{Card[@saved_account].name}" : "I log out" )
   end
 end
 

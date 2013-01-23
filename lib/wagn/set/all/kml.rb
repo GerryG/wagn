@@ -9,7 +9,6 @@ module Wagn
       render( args[:view] || :search)
     end
 
-    # FIXME: integrate this with common XML features when it is added
     define_view :search do |args|
       xml = Builder::XmlMarkup.new
       xml.instruct! :xml, :version => "1.0"
@@ -33,6 +32,7 @@ module Wagn
             if geocard && geocard.ok?(:read)
               xml.Placemark do
                 xml.name cardname
+                # FIXME: should have codenames
                 if desc_card = Card.fetch("#{cardname}+*geodescription") and desc_card.ok? :read
                   xml.description Wagn::Renderer.new(desc_card).render_core
                 end

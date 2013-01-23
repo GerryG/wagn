@@ -9,7 +9,7 @@ end
 describe "Card (Cardtype)" do
 
   before do
-    Account.as :joe_user
+    Account.as 'joe_user'
   end
 
   it "should not allow cardtype remove when instances present" do
@@ -37,7 +37,8 @@ describe "Card (Cardtype)" do
     assert_instance_of Card, c=Card.fetch("BananaPudding")
 
     # you have to have a module to include or it's just a Basic (typecode fielde excepted)
-    assert Card.create(:typecode=>'banana_pudding',:name=>"figgy" ).type_name == 'BananaPudding'
+    cd = Card.create(:type=>'banana_pudding',:name=>"figgy" )
+    assert cd.type_name == 'BananaPudding'
     assert Card.find_by_type_id(c.id)
   end
 
@@ -69,7 +70,7 @@ end
 
 describe Card, "created without permission" do
   before do
-    Account.user= Card::AnonID
+    Account.session_id = Card::AnonID
   end
 
   # FIXME:  this one should pass.  unfortunately when I tried to fix it it started looking like the clean solution
@@ -166,9 +167,9 @@ describe User, "Joe User" do
       Card.create :name=>'Cardtype F+*type+*create', :type=>'Pointer', :content=>'[[r3]]'
     end
 
-    Account.as :joe_user
-    @user = User.user
-    @ucard = Card[@user.card_id]
+    Account.as 'joe_user'
+    @user = Card[Account.as_card_id].account
+    @ucard = Card[@user.account_id]
     @type_names = Account.createable_types
   end
 
@@ -193,6 +194,7 @@ describe Card, "Cardtype with Existing Cards" do
     @ct = Card['Cardtype F']
   end
   it "should have existing cards of that type" do
+    Card.search(:type=>@ct.id).should_not be_empty
     Card.search(:type=>@ct.name).should_not be_empty
   end
 

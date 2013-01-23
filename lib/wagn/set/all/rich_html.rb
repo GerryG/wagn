@@ -635,7 +635,7 @@ module Wagn
     
   end  
   
-  class Renderer::Html < Renderer
+  class Renderer::HtmlRenderer < Renderer
     def watching_type_cards
       %{<div class="faint">(following)</div>} #yuck
     end

@@ -1,9 +1,8 @@
 # -*- encoding : utf-8 -*-
-require 'xmlscan/processor'
-
 require_dependency 'cardlib'
 
 class CardController < ApplicationController
+  include Wagn::Sets::CardActions
 
   helper :wagn
 
@@ -13,59 +12,7 @@ class CardController < ApplicationController
   before_filter :load_card
   before_filter :refresh_card, :only=> [ :create, :update, :delete, :comment, :rollback ]
 
-  # rest XML put/post
-  def read_xml(io)
-    pairs = XMLScan::XMLProcessor.process(io, {:key=>:name, :element=>:card,
-                      :substitute=>":include|{{:name}}", :extras=>[:type]})
-    return if pairs.empty?
-
-    main = pairs.shift
-    #warn "main#{main.inspect}, #{pairs.empty?}"
-    main, content, type = main[0], main[1][0]*'', main[1][2]
-
-    data = { :name=>main }
-    data[:cards] = pairs.inject({}) { |hash,p| k,v = p
-         h = {:content => v[0]*''}
-         h[:type] = v[2] if v[2]
-         hash[k.to_cardname.to_absolute(v[1])] = h
-         hash } unless pairs.empty?
-    data[:content] = content unless content.blank?
-    data[:type] = type if type
-    data
-  end
-
-  def dump_pairs(pairs)
-    warn "Result
-#{    pairs.map do |p| n,o,c,t = p
-      "#{c&&c.size>0&&"#{c}::"||''}#{n}#{t&&"[#{t}]"}=>#{o*''}"
-    end * "\n"}
-Done"
-  end
-  # Need to split off envelope code somehome
-
-=begin FIXME move to events
-  def create
-    Rails.logger.warn "create card #{params.inspect}"
-    if request.parameters['format'] == 'xml'
-      Rails.logger.warn (Rails.logger.debug "POST(rest)[#{params.inspect}] #{request.format}")
-      #return render(:action=>"missing", :format=>:xml)  unless params[:card]
-      if card_create = read_xml(request.body)
-        begin
-          @card = Card.new card_create
-        #warn "POST creates are  #{card_create.inspect}"
-        rescue Exception => e
-          Rails.logger.warn "except #{e.inspect}, #{e.backtrace*"\n"}"
-        end
-      end
-
-      Rails.logger.warn "create card #{request.body.inspect}"
-    end
-
-=end
-
   attr_reader :card
-  cattr_reader :subset_actions
-  @@subset_actions = {}
 
   METHODS = {
     'POST'   => :create,  # C
@@ -79,7 +26,7 @@ Done"
   def action
     @action = METHODS[request.method]
     Rails.logger.warn "action #{request.method}, #{@action} #{params.inspect}"
-    warn "action #{request.method}, #{@action} #{params.inspect}"
+    #warn "action #{request.method}, #{@action} #{params.inspect}"
     send "perform_#{@action}"
     render_errors || success
   end
@@ -93,66 +40,11 @@ Done"
     end
   end
 
-  def create
-    if card.save
-      success
-    else
-      render_errors
-    end
-  end
-
-  def read
-    if card.errors.any?
-      render_errors
-    else
-      save_location # should be an event!
-      show
-    end
-  end
-
-=begin FIXME move to action events
-    Rails.logger.warn "update card #{params.inspect}"
-    if request.parameters['format'] == 'xml'
-      Rails.logger.warn (Rails.logger.debug "POST(rest)[#{params.inspect}] #{request.format}")
-      #return render(:action=>"missing", :format=>:xml)  unless params[:card]
-      if main_card = read_xml(request.body)
-        begin
-          @card = Card.new card_create
-        #warn "POST creates are  #{card_create.inspect}"
-        rescue Exception => e
-          Rails.logger.warn "except #{e.inspect}, #{e.backtrace*"\n"}"
-        end
-      end
-
-      Rails.logger.warn "create card #{request.body.inspect}"
-    end
-    @card = @card.refresh if @card.frozen? # put in model
-    case
-    when @card.new_card?                          ;  create
-    when @card.update_attributes( params[:card] ) ;  success
-    else                                             render_errors
-=end
-
-  def update
-    case
-    when card.new_card?                          ;  create
-    when card.update_attributes( params[:card] ) ;  success
-    else                                             render_errors
-    end
-  end
-
-  def delete
-    
-    card.destroy
-    discard_locations_for card #should be an event
-    success 'REDIRECT: *previous'
-  end
-
-
-  def index
-    read
-  end # handle in load card?
-
+  def create; perform_create end
+  def read  ; perform_read   end
+  def update; perform_update end
+  def delete; perform_delete end
+  def index ; read           end # handle in load card?
 
   def read_file
     if card.ok? :read
@@ -163,6 +55,9 @@ Done"
   end #FIXME!  move into renderer
 
 
+  def action_error *a
+    warn "action_error #{a.inspect}"
+  end
 
 
   ## the following methods need to be merged into #update
@@ -249,7 +144,7 @@ Done"
     card.ok!(:create, :new=>{}, :trait=>:account)
     email_args = { :subject => "Your new #{Card.setting :title} account.",   #ENGLISH
                    :message => "Welcome!  You now have an account on #{Card.setting :title}." } #ENGLISH
-    @user, @card = User.create_with_card(params[:user],card, email_args)
+    @user, @card = User.create_with_card(params[:user], card, email_args)
     raise ActiveRecord::RecordInvalid.new(@user) if !@user.errors.empty?
     #@account = User.new(:email=>@user.email)
 #    flash[:notice] ||= "Done.  A password has been sent to that email." #ENGLISH
@@ -297,6 +192,7 @@ Done"
         opts[:type] ||= params[:type] # for /new/:type shortcut.  we should fix and deprecate this.
         name = params[:id] || opts[:name]
         
+        #warn "load card #{@action.inspect}, p:#{params.inspect} :: #{name.inspect} #{opts.inspect}"
         if @action == 'create'
           # FIXME we currently need a "new" card to catch duplicates (otherwise #save will just act like a normal update)
           # I think we may need to create a "#create" instance method that handles this checking.
@@ -308,6 +204,7 @@ Done"
         end
       end
 
+    #warn "load_card #{card.inspect}"
     Wagn::Conf[:main_name] = params[:main] || (card && card.name) || ''
     true
   end
@@ -319,6 +216,7 @@ Done"
 
 
   def success default_target='_self'
+    #warn "success #{default_target}, #{card.inspect}"
     target = params[:success] || default_target
     redirect = !ajax?
     new_params = {}
@@ -348,6 +246,7 @@ Done"
       @card = target
       show new_params[:view]
     end
+    true
   end
 
 end

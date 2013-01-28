@@ -226,7 +226,7 @@ describe "basic card tests" do
 
   it 'should remove cards' do
     Account.as 'joe user' do
-      warn "as_id #{Account.as_card_id} #{Account.authorized.inspect}"
+      warn "as_id #{Account.as_id} #{Account.authorized.inspect}"
       forba = Card.create! :name=>"Forba"
       torga = Card.create! :name=>"TorgA"
       torgb = Card.create! :name=>"TorgB"
@@ -236,7 +236,7 @@ describe "basic card tests" do
       torgb_forba = Card.create! :name=>"TorgB+Forba";
       forba_torga_torgc = Card.create! :name=>"Forba+TorgA+TorgC";
 
-      Card['Forba'].destroy!
+      Card['Forba'].delete!
 
       Card["Forba"].should be_nil
       Card["Forba+TorgA"].should be_nil
@@ -245,7 +245,7 @@ describe "basic card tests" do
 
     # FIXME: this is a pretty dumb test and it takes a loooooooong time
     #while card = Card.find(:first,:conditions=>["type not in (?,?,?) and trash=?", 'AccountRequest','User','Cardtype',false] )
-    #  card.destroy!
+    #  card.delete!
     #end
     #assert_equal 0, Card.find_all_by_trash(false).size
     end
@@ -291,7 +291,7 @@ describe "basic card tests" do
 
 
   it 'update_should_create_subcards' do
-    Account.session_id = Card['joe_user'].id
+    Account.authorized_id = Card['joe_user'].id
     Account.as 'joe_user' do
       banana = Card.create! :name=>'Banana'
       Card.update banana.id, :cards=>{ "+peel" => { :content => "yellow" }}
@@ -304,7 +304,7 @@ describe "basic card tests" do
 
   it 'update_should_create_subcards_as_wagn_bot_if_missing_subcard_permissions' do
     Account.as 'joe user' do Card.create :name=>'peel' end
-    Account.session_id = Card::AnonID
+    Account.authorized_id = Card::AnonID
 
     Card['Banana'].should_not be
     Card['Basic'].ok?(:create).should be_false, "anon can't creat"

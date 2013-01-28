@@ -7,9 +7,9 @@ class CardController < ApplicationController
 
   helper :wagn
 
-  before_filter :index_preload, :only=> [ :index ]
   before_filter :read_file_preload, :only=> [ :read_file ]
 
+  before_filter :load_id, :only => [ :read ]
   before_filter :load_card
   before_filter :refresh_card, :only=> [ :create, :update, :delete, :comment, :rollback ]
 
@@ -199,7 +199,6 @@ Done"
     watchers = card.fetch :trait=>:watchers, :new=>{}
     watchers = watchers.refresh
     myname = Account.authorized.name
-    #warn "watch (#{myname}) #{watchers.inspect}, #{watchers.item_names.inspect}"
     watchers.send((params[:toggle]=='on' ? :add_item : :drop_item), myname)
     ajax? ? show(:watch) : read
   end
@@ -212,22 +211,19 @@ Done"
   #-------- ( ACCOUNT METHODS )
 
   def update_account
-    #Rails.logger.warn "updating account #{params[:account].inspect}, #{card.fetch(:trait => :account).account}"
-    if account_args = params[:account] and
-        acct_cd = card.fetch(:trait=>:account) and
-        acct = acct_cd.account
+    if params[:save_roles]
+      role_card = card.fetch :trait=>:roles, :new=>{}
+      role_card.ok! :update
 
-      my_card = Account.authorized.id == acct_cd.id
-      my_card and !account_args[:blocked] and
-      Account.authorized.id == acct_cd.id and !account_args[:blocked] and
-        card.ok! :update
+      role_hash = params[:user_roles] || {}
+      role_card = role_card.refresh
+      role_card.items= role_hash.keys.map &:to_i
+    end
 
-      if params[:save_roles] and my_card || roles_card = card.fetch(:trait=>:roles, :new=>{}) and roles_card.ok?(:create)
-        roles = (params[:user_roles]||{}).keys.map(&:to_i)
-        roles_card = roles_card.refresh
-        roles_card.items= roles
-        roles_card.save
-        roles_card.errors.each {|f,e| card.errors.add f, e } if roles_card.errors.any?
+    account = card.account
+    if account and account_args = params[:account]
+      unless Account.as_id == card.id and !account_args[:blocked]
+        card.fetch(:trait=>:account).ok! :update
       end
 
       acct.update_attributes account_args if request.put? or request.post?
@@ -266,7 +262,6 @@ Done"
 
 
 
-
   private
 
   #-------( FILTERS )
@@ -281,17 +276,19 @@ Done"
     end
   end
 
-  def index_preload
-    if Account.first_login?
-      home_name = Card.setting(:home) || 'Home'
-      params[:id] = home_name.to_name.url_key
-    else
-      redirect_to Card.path_setting '/admin/setup'
-    end
+  def load_id
+    params[:id] ||= case
+      when Account.no_logins?
+        return wagn_redirect( '/admin/setup' )
+      when params[:card] && params[:card][:name]
+        params[:card][:name]
+      when Wagn::Renderer.tagged( params[:view], :unknown_ok )
+        ''
+      else  
+        Card.setting(:home) || 'Home'
+      end
   end
 
-
-  # FIXME: make me an event
   def load_card
     # do content type processing, if it is an object, json or xml, parse that now and
     # params[:object] = parsed_object
@@ -301,12 +298,8 @@ Done"
       when /^\~(\d+)$/   ; Card.fetch $1.to_i
       when /^\:(\w+)$/   ; Card.fetch $1.to_sym
       else
-
-        opts = if opts = params[:card]  ; opts.clone
-            elsif opts = params[:object]; opts
-            else                        {}
-            end
-
+        opts = params[:card]
+        opts = opts ? opts.clone : {} #clone so that original params remain unaltered.  need deeper clone?
         opts[:type] ||= params[:type] # for /new/:type shortcut.  we should fix and deprecate this.
         name = params[:id] || opts[:name]
         
@@ -322,6 +315,7 @@ Done"
       end
 
     Wagn::Conf[:main_name] = params[:main] || (card && card.name) || ''
+    render_errors if card.errors.any?
     true
   end
 

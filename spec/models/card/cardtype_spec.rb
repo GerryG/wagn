@@ -19,16 +19,16 @@ describe "Card (Cardtype)" do
     c2=Card.create :name=>'Eugene', :type=>'City'
     assert_equal ['Eugene','Sparta'], Card.search(:type=>'City').map(&:name).sort
     assert_raises Wagn::Oops do
-      city.destroy!
+      city.delete!
     end
-    # make sure it wasn't destroyed / trashed
+    # make sure it wasn't deleted / trashed
     Card['City'].should_not be_nil
   end
 
   it "remove cardtype" do
     Card.create! :name=>'County', :type=>'Cardtype'
     c = Card['County']
-    c.destroy
+    c.delete
   end
 
   it "cardtype creation and dynamic cardtype" do
@@ -70,7 +70,7 @@ end
 
 describe Card, "created without permission" do
   before do
-    Account.session_id = Card::AnonID
+    Account.authorized_id = Card::AnonID
   end
 
   # FIXME:  this one should pass.  unfortunately when I tried to fix it it started looking like the clean solution
@@ -117,7 +117,7 @@ describe Card, "Recreated Card" do
   before do
     Account.as_bot do
     @ct = Card.create! :name=>'Species', :type=>'Cardtype'
-    @ct.destroy!
+    @ct.delete!
     @ct = Card.create! :name=>'Species', :type=>'Cardtype'
     end
   end
@@ -168,7 +168,7 @@ describe User, "Joe User" do
     end
 
     Account.as 'joe_user'
-    @user = Card[Account.as_card_id].account
+    @user = Card[Account.as_id].account
     @ucard = Card[@user.account_id]
     @type_names = Account.createable_types
   end
@@ -200,7 +200,7 @@ describe Card, "Cardtype with Existing Cards" do
 
   it "should raise an error when you try to delete it" do
     Account.as_bot do
-      @ct.destroy
+      @ct.delete
       @ct.errors[:cardtype].should_not be_empty
     end
   end

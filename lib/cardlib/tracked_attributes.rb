@@ -104,8 +104,8 @@ module Cardlib::TrackedAttributes
     new_content ||= (tmpl = template).nil? ? '' : tmpl.content
     new_content = CleanHtml.clean! new_content if clean_html?
     clear_drafts if current_revision_id
-    Rails.logger.warn "set_content #{inspect} CurC:#{content_without_tracking}, N:#{new_content}, #{Account.session}"
-    new_rev = Card::Revision.create :card_id=>self.id, :content=>new_content, :creator_id =>Account.authorized.id
+    #warn Rails.logger.info("set_content #{name} #{Account.authorized_id}, #{new_content}")
+    new_rev = Card::Revision.create :card_id=>self.id, :content=>new_content, :creator_id =>Account.authorized_id
     self.current_revision_id = new_rev.id
     reset_patterns_if_rule unless new_card?
     Rails.logger.warn "finish cont #{new_content}, #{inspect}"

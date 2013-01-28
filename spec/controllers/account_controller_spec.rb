@@ -4,9 +4,8 @@ require 'rr'
 
 describe AccountController, "account functions" do
   before do
-    #@user_card = Account.authorized
-    @user_card = Account.user_card
-    #warn "auth is #{@user_card.inspect}"
+    @authorized = Account.authorized
+    #warn "auth is #{@authorized.inspect}"
   end
 
   it "should signin" do
@@ -34,25 +33,25 @@ describe AccountController, "account functions" do
       #post :invite, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}, :email=> @email_args
       #post :create, :id=>'*account', :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}, :email=> @email_args
 
-      @user_card = Card['Joe New']
-      @user_card.should be
-      @account_card = @user_card.fetch :trait => :account, :new=>{}
+      @authorized = Card['Joe New']
+      @authorized.should be
+      @account_card = @authorized.fetch :trait => :account, :new=>{}
 
     end
 
     it 'should create a user' do
       @account_card.should be
       @account_card.new_card?.should be_false
-      @user_card.type_id.should == Card::UserID
+      @authorized.type_id.should == Card::UserID
       @account_card.type_id.should == Card::BasicID
       @new_account=Account.find_by_email('joe@new.com')
-      #warn "... #{@account_card.inspect}, #{@user_card.inspect} #{@new_account.inspect}"
+      #warn "... #{@account_card.inspect}, #{@authorized.inspect} #{@new_account.inspect}"
       @new_account.should be
       @new_account.account_id.should == @account_card.id
     end
     it "should invite" do
-      @user_card.should be
-      @user_card.id.should be
+      @authorized.should be
+      @authorized.id.should be
     end
 
   end
@@ -75,10 +74,19 @@ describe AccountController, "account functions" do
 
     it 'should signout' do
       delete :delete, :id=>'Session'
+      Account.authorized_id.should == Card::AnonID
+    end
+    
 
-      Account.session.id.should == Card::AnonID
-      #post :create, :id=>'*account', :card => {:name => "Joe New"}, :account=>{:email=>"joe_new@user.org", :password=>'new_pass', :password_confirmation=>'new_pass'}
-      post :signup, :card => {:name => "Joe New"}, :account=>{:email=>"joe_new@user.org", :password=>'new_pass', :password_confirmation=>'new_pass'}
+    it 'should create a user' do
+      #warn "who #{Account.authorized.inspect}"
+      post :signup, :user=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
+      new_user = User.where(:email=>'joe@new.com').first
+      authorized = Card['Joe New']
+      new_user.should be
+      new_user.card_id.should == authorized.id
+      new_user.pending?.should be_true
+      authorized.type_id.should == Card::AccountRequestID
     end
 
     it 'should send email' do
@@ -113,10 +121,10 @@ describe AccountController, "account functions" do
       #put :update, :id=>"Joe New", :account=>{:status=>'active'}
       put :accept, :card=>{:key => "joe_new"}, :account=>{:status=>'active'}
 
-      @user_card = Card['Joe New'].should be
+      @authorized = Card['Joe New'].should be
       @new_user = @user_user.to_user.should be
-      @new_user.card_id.should == @user_card.id
-      @user_card.type_id.should == Card::UserID
+      @new_user.card_id.should == @authorized.id
+      @authorized.type_id.should == Card::UserID
       @msgs.size.should == 2
     end
   end

@@ -362,7 +362,7 @@ module Wagn
     end
 
     define_view :option_account, :perms=> lambda { |r|
-        Account.as_card_id==r.card.id or r.card.ok?(:update, :trait=>:account)
+        Account.as_id==r.card.id or r.card.ok?(:update, :trait=>:account)
       } do |args|
 
       locals = {:slot=>self, :card=>card, :account=>card.account }
@@ -534,7 +534,7 @@ module Wagn
       load_revisions
       wrap :errors do |args|
         %{<strong>Conflict!</strong><span class="new-current-revision-id">#{@revision.id}</span>
-          <div>#{ link_to_page @revision.creator.card.name } has also been making changes.</div>
+          <div>#{ link_to_page @revision.creator.name } has also been making changes.</div>
           <div>Please examine below, resolve above, and re-submit.</div>
           #{wrap(:conflict) { |args| _render_diff } } }
       end

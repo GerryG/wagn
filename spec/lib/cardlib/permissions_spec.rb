@@ -44,7 +44,7 @@ describe "reader rules" do
   it "should revert to more general rule when more specific (self) rule is deleted" do
     Account.as_bot do
       @perm_card.save!
-      @perm_card.destroy!
+      @perm_card.delete!
     end
     card = Card.fetch('Home')
     card.read_rule_id.should == Card.fetch('*all+*read').id
@@ -59,7 +59,7 @@ describe "reader rules" do
     card = Card.fetch('A+B')
     card.read_rule_id.should == pc.id
     pc = Card.fetch(pc.name) #important to re-fetch to catch issues with detecting change in trash status.
-    Account.as_bot { pc.destroy }
+    Account.as_bot { pc.delete }
     card = Card.fetch('A+B')
     card.read_rule_id.should == Card.fetch('*all+*read').id
   end
@@ -126,7 +126,7 @@ describe "reader rules" do
     c2.who_can(:read).should == [Card::AuthID]
     c2.read_rule_id.should == @perm_card.id
     Card.fetch('Home+Heart').read_rule_id.should == @perm_card.id
-    Account.as_bot{ @perm_card.destroy }
+    Account.as_bot{ @perm_card.delete }
     Card.fetch('Home').read_rule_id.should == Card.fetch('*all+*read').id
     Card.fetch('Home+Heart').read_rule_id.should == Card.fetch('*all+*read').id
   end
@@ -335,7 +335,7 @@ describe "Permission", ActiveSupport::TestCase do
     Account.as(@u1) do
       Card.search(:content=>'WeirdWord').map(&:name).sort.should == %w( c1 c2 c3 )
     end
-    Account.session_id = Card::AnonID # for Account.as to be effective, you can't have a logged in user
+    Account.authorized_id =nil # for Account.as to be effective, you can't have a logged in user
     Account.as(@u2) do
       Card.search(:content=>'WeirdWord').map(&:name).sort.should == %w( c2 c3 )
     end
@@ -367,7 +367,7 @@ end
 
 
 describe Card, "new permissions" do
-  Account.session_id= Card['joe_user'].id
+  Account.authorized_id= Card['joe_user'].id
 
   it "should let joe view new cards" do
     @c = Card.new

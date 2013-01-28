@@ -21,9 +21,11 @@ class RevisionTest < ActiveSupport::TestCase
       author_cd1.save
       author_cd2.save
     }
-    Account.session_id = author_cd1
-    card = newcard( 'alpha', 'stuff')
-    Account.session_id = author_cd2
+    Account.authorized_id = author_cd1.id
+    card = Card.create! :name=>'alpha', :content=>'stuff'
+    assert_equal 1, card.revisions.length, 'Should have first revisions'
+
+    Account.authorized_id = author_cd2.id
     card.content = 'boogy'
     card.save
     card.reload

@@ -22,5 +22,6 @@ module Wagn
         </div>}
       end
     end
+
   end
 end

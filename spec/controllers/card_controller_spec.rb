@@ -82,8 +82,8 @@ describe CardController do
 
     it "pulls deleted cards from trash" do
       @c = Card.create! :name=>"Problem", :content=>"boof"
-      @c.destroy!
-      post :action, :card=>{"name"=>"Problem","type"=>"Phrase","content"=>"noof"}
+      @c.delete!
+      post :create, :card=>{"name"=>"Problem","type"=>"Phrase","content"=>"noof"}
       assert_response 302
       c=Card["Problem"]
       c.typecode.should == :phrase
@@ -150,15 +150,21 @@ describe CardController do
     end
 
     it "new should work for creatable nonviewable cardtype" do
-      login_as(:anonymous)
+      login_as :anonymous
       get :read, :type=>"Fruit", :view=>'new'
       assert_response :success
+    end
+
+    it "should work on index" do
+      get :read, :view=>'new'
+      assigns['card'].name.should == ''
     end
 
     it "new with existing card" do
       get :read, :card=>{:name=>"A"}, :view=>'new'
       assert_response :success, "response should succeed"
     end
+    
   end
 
   describe "unit tests" do
@@ -249,7 +255,7 @@ describe CardController do
 
 
     it "rename without update references should work" do
-      Account.session_id = Card['joe_user'].id
+      Account.authorized_id = Card['joe_user'].id
       f = Card.create! :type=>"Cardtype", :name=>"Apple"
       xhr :post, :update, :id => "~#{f.id}", :card => {
         :name => "Newt",
@@ -261,7 +267,7 @@ describe CardController do
     end
 
     it "update typecode" do
-      Account.session_id = Card['joe user'].id
+      Account.authorized_id = Card['joe user'].id
       xhr :post, :update, :id=>"~#{@simple_card.id}", :card=>{ :type=>"Date" }
       assert_response :success, "changed card type"
       Card['Sample Basic'].typecode.should == :date
@@ -274,7 +280,7 @@ describe CardController do
     #  for now.
     #
     #  def test_update_cardtype_no_stripping
-    #    Account.session_id = Card['joe user'].id
+    #    Account.authorized_id = Card['joe user'].id
     #    post :update, {:id=>@simple_card.id, :card=>{ :type=>"CardtypeA",:content=>"<br/>" } }
     #    #assert_equal "boo", assigns['card'].content
     #    assert_equal "<br/>", assigns['card'].content

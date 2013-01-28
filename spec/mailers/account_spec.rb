@@ -10,6 +10,7 @@ describe Mailer do
   before do
     #FIXME: from addresses are really Account.session, not Account.as based, but
     # these tests are pretty much all using the Account.as, not logging in.
+    Account.authorized_id =nil # this is needed to clear logins from other test run before
     ActionMailer::Base.delivery_method = :test
     ActionMailer::Base.perform_deliveries = true
     ActionMailer::Base.deliveries = []
@@ -22,7 +23,7 @@ describe Mailer do
   context "account info, new password" do # forgot password
     before do
       c=Card['sara']
-      Account.session_id = c.id
+      Account.authorized_id = c.id
       @user = c.account
       @user.generate_password
       @email = Mailer.account_info c, {:to=>@user.email, :password=>@user.password,
@@ -35,7 +36,7 @@ describe Mailer do
       end
 
       it "is from Wag bot email" do  # I think logged in user is right here, so anon ...
-        Account.session_id = Card::AnonID
+        Account.authorized_id = Card::AnonID
         @email.should deliver_from("Wagn Bot <no-reply@wagn.org>")
       end
 

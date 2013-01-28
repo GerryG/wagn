@@ -12,6 +12,7 @@ Wagn::Application.routes.draw do
   match ':asset/:foo' => 'application#fast_404', :constraints =>
     { :asset=>/assets|images?|stylesheets?|javascripts?/, :foo => /.*/ }
 
+  match '/' => 'card#read'
   match 'recent(.:format)' => 'card#read', :id => '*recent', :view => 'content'
 
   resources :card, :path => '/', :except => :show

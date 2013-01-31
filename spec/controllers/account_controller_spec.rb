@@ -3,11 +3,6 @@ include AuthenticatedTestHelper
 require 'rr'
 
 describe AccountController, "account functions" do
-  before do
-    @authorized = Account.authorized
-    #warn "auth is #{@authorized.inspect}"
-  end
-
   it "should signin" do
     #post :create, :id=>'Session', :account => {:email => 'joe@user.org', :password => 'joe_pass' }
     post :signin, :account => {:email => 'joe@user.org', :password => 'joe_pass' }
@@ -33,25 +28,24 @@ describe AccountController, "account functions" do
       #post :invite, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}, :email=> @email_args
       #post :create, :id=>'*account', :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}, :email=> @email_args
 
-      @authorized = Card['Joe New']
-      @authorized.should be
-      @account_card = @authorized.fetch :trait => :account, :new=>{}
+      @auth_card = Card['Joe New']
+      @new_user = User.where(:email=>'joe@new.com').first
 
     end
 
     it 'should create a user' do
-      @account_card.should be
-      @account_card.new_card?.should be_false
-      @authorized.type_id.should == Card::UserID
-      @account_card.type_id.should == Card::BasicID
+      acct_card = @new_user.fetch :trait => :account
+      @auth_card.type_id.should == Card::UserID
+      acct_card.type_id.should == Card::BasicID
       @new_account=Account.find_by_email('joe@new.com')
-      #warn "... #{@account_card.inspect}, #{@authorized.inspect} #{@new_account.inspect}"
+      #warn "... #{acct_card.inspect}, #{@auth_card.inspect} #{@new_account.inspect}"
       @new_account.should be
-      @new_account.account_id.should == @account_card.id
+      @new_account.account_id.should == acct_card.id
     end
+
     it "should invite" do
-      @authorized.should be
-      @authorized.id.should be
+      @auth_card.should be
+      @auth_card.id.should be
     end
 
   end
@@ -82,11 +76,19 @@ describe AccountController, "account functions" do
       #warn "who #{Account.authorized.inspect}"
       post :signup, :user=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
       new_user = User.where(:email=>'joe@new.com').first
+<<<<<<< HEAD
       authorized = Card['Joe New']
       new_user.should be
       new_user.card_id.should == authorized.id
       new_user.pending?.should be_true
       authorized.type_id.should == Card::AccountRequestID
+=======
+      @auth_card = Card['Joe New']
+      new_user.should be
+      new_user.card_id.should == @auth_card.id
+      new_user.pending?.should be_true
+      @auth_card.type_id.should == Card::AccountRequestID
+>>>>>>> simple_stuff
     end
 
     it 'should send email' do
@@ -121,10 +123,10 @@ describe AccountController, "account functions" do
       #put :update, :id=>"Joe New", :account=>{:status=>'active'}
       put :accept, :card=>{:key => "joe_new"}, :account=>{:status=>'active'}
 
-      @authorized = Card['Joe New'].should be
+      (@auth_card = Card['Joe New']).should be
       @new_user = @user_user.to_user.should be
-      @new_user.card_id.should == @authorized.id
-      @authorized.type_id.should == Card::UserID
+      @new_user.card_id.should == @auth_card.id
+      @auth_card.type_id.should == Card::UserID
       @msgs.size.should == 2
     end
   end

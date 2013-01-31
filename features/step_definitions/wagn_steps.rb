@@ -5,7 +5,7 @@ require File.expand_path(File.join(File.dirname(__FILE__), "..", "support", "pat
 Given /^I log in as (.+)$/ do |authorized_name|
   # FIXME: define a faster simulate method ("I am logged in as")
   authorized=Card[authorized_name]
-  @session_card_id = authorized.id
+  @auth_id = authorized.id
   account=authorized.fetch :trait => :account
   user = account.account
   email = user.email
@@ -119,9 +119,9 @@ def create_card(username,cardtype,cardname,content="")
 end
 
 def logged_in_as(username)
-  sameuser = (username == "I" or @session_card_id && Card[@session_card_id].name == username)
+  sameuser = (username == "I" or @auth_id && Card[@auth_id].name == username)
   unless sameuser
-    @saved_user = @session_card_id
+    @saved_user = @auth_id
     step "I log in as #{username}"
   end
   yield

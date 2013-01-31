@@ -50,23 +50,23 @@ class Account
       as_id == Card::WagnBotID
     end
 
-    def authorized_id; @@as_id || @@authorized_id end
     def authorized
       if @@authorized.nil? || @@authorized.id == authorized_id
         @@authorized = Card[authorized_id]
       end
-      warn "authorized #{@@authorized.inspect}"
+      Rails.logger.warn "authorized #{@@authorized.inspect}"
       @@authorized
     end
-    def reset                 ; @@authorized_id = Card::AnonID; @@as_id = nil              end
-    def session               ; Card[@@authorized_id]                                           end
-    def authorized_id= card_id; @@authorized_id = card_id || Card::AnonID    end
-    def as_id                 ; @@as_id || @@authorized_id                              end
+    def authorized_id         ; @@as_id || @@authorized_id                    end
+    def reset                 ; @@authorized_id = Card::AnonID; @@as_id = nil end
+    def session               ; Card[@@authorized_id]                         end
+    def authorized_id= card_id; @@authorized_id = card_id || Card::AnonID     end
+    def as_id                 ; @@as_id || @@authorized_id                    end
 
-    def as_bot &block         ; as Card::WagnBotID, &block                                   end
+    def as_bot &block         ; as Card::WagnBotID, &block                    end
 
-    def among? authzed;    authorized.among? authzed                                    end
-    def logged_in?;        @@authorized_id != Card::AnonID                                 end
+    def among? authzed        ; authorized.among? authzed                     end
+    def logged_in?            ; @@authorized_id != Card::AnonID               end
 
     def as given_account
       save_as_id = @@as_id

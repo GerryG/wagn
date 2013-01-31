@@ -10,11 +10,11 @@ describe AccountController, "account functions" do
 
   it "should signout" do
     login_as 'joe_user'
-    Account.user.id.should == Card['joe user'].id
+    Account.authorized.account.card_id.should == Card['joe user'].id
     
-    signout
-    Account.user.id.should == Card::AnonID
-    Card[:session].should be
+    #signout
+    post :signout
+    Account.authorized_id.should == Card::AnonID
   end
 
   describe "invite: POST *account" do
@@ -76,19 +76,11 @@ describe AccountController, "account functions" do
       #warn "who #{Account.authorized.inspect}"
       post :signup, :user=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
       new_user = User.where(:email=>'joe@new.com').first
-<<<<<<< HEAD
-      authorized = Card['Joe New']
-      new_user.should be
-      new_user.card_id.should == authorized.id
-      new_user.pending?.should be_true
-      authorized.type_id.should == Card::AccountRequestID
-=======
       @auth_card = Card['Joe New']
       new_user.should be
       new_user.card_id.should == @auth_card.id
       new_user.pending?.should be_true
       @auth_card.type_id.should == Card::AccountRequestID
->>>>>>> simple_stuff
     end
 
     it 'should send email' do

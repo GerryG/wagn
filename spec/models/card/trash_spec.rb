@@ -21,7 +21,7 @@ end
 
 describe Card, "in trash" do
   it "should be retrieved by fetch with new" do
-    Account.as :joe_user do
+    Account.as 'joe_user' do
       Card.create(:name=>"Betty").delete
       c=Card.fetch "Betty", :new=>{}
       c.save

@@ -51,7 +51,7 @@ Done"
       #return render(:action=>"missing", :format=>:xml)  unless params[:card]
       if card_create = read_xml(request.body)
         begin
-          card = Card.new card_create
+          @card = Card.new card_create
         #warn "POST creates are  #{card_create.inspect}"
         rescue Exception => e
           Rails.logger.warn "except #{e.inspect}, #{e.backtrace*"\n"}"
@@ -100,8 +100,6 @@ Done"
   end
 
   def create
-    #warn "create #{params.inspect}, #{card.inspect} if #{card && !card.new_card?}, nc:#{card.new_card?}"
-
     perform_create
   end
 
@@ -109,45 +107,17 @@ Done"
     perform_read
   end
 
-=begin FIXME move to action events
-    Rails.logger.warn "update card #{params.inspect}"
-    if request.parameters['format'] == 'xml'
-      Rails.logger.warn (Rails.logger.debug "POST(rest)[#{params.inspect}] #{request.format}")
-      #return render(:action=>"missing", :format=>:xml)  unless params[:card]
-      if main_card = read_xml(request.body)
-        begin
-          card = Card.new card_create
-        #warn "POST creates are  #{card_create.inspect}"
-        rescue Exception => e
-          Rails.logger.warn "except #{e.inspect}, #{e.backtrace*"\n"}"
-        end
-      end
-
-      Rails.logger.warn "create card #{request.body.inspect}"
-    end
-    card = card.refresh if card.frozen? # put in model
-    case
-    when card.new_card?                          ;  create
-    when card.update_attributes( params[:card] ) ;  success
-    else                                             render_errors
-=end
-
   def update
     perform_update
   end
 
   def delete
     perform_delete
-    case
-    when card.new_card?                          ;  create
-    when card.update_attributes( params[:card] ) ;  success
-    else                                             render_errors
-    end
   end
-
 
   alias index read
   def read_file() show_file end
+
 
   def action_error *a
     warn "action_error #{a.inspect}"
@@ -220,8 +190,8 @@ Done"
       role_card.items= role_hash.keys.map &:to_i
     end
 
-    account = card.account
-    if account and account_args = params[:account]
+    acct = card.account
+    if acct and account_args = params[:account]
       unless Account.as_id == card.id and !account_args[:blocked]
         card.fetch(:trait=>:account).ok! :update
       end
@@ -239,11 +209,11 @@ Done"
   # FIXME: make this part of create
   def create_account
     card.ok! :create, :new=>{}, :trait=>:account
-    @account = card.account = Account.new( params[:account] ).active
+    acct = card.account = Account.new( params[:account] ).active
 
-    Rails.logger.info "create_account 1 #{@account.inspect}, #{card.inspect}"
+    Rails.logger.info "create_account 1 #{acct.inspect}, #{card.inspect}"
     if card.save
-      email_args = { :password => @account.password,
+      email_args = { :password => acct.password,
                      :subject  => "Your new #{Card.setting :title} account.",   #ENGLISH
                      :message  => "Welcome!  You now have an account on #{Card.setting :title}." } #ENGLISH
 
@@ -251,9 +221,9 @@ Done"
       card.send_account_info email_args
     end
 
-    Rails.logger.warn "create_account error: #{@account.errors.map{|k,v|"#{k} -> #{v}"}*', '}" if @account.errors.any?
+    Rails.logger.warn "create_account error: #{acct.errors.map{|k,v|"#{k} -> #{v}"}*', '}" if acct.errors.any?
     # FIXME: don't raise, handle it
-    raise ActiveRecord::RecordInvalid.new(@account) if @account.errors.any?
+    raise ActiveRecord::RecordInvalid.new(acct) if acct.errors.any?
 #    flash[:notice] ||= "Done.  A password has been sent to that email." #ENGLISH
     params[:attribute] = :account
 
@@ -321,7 +291,11 @@ Done"
 
   # FIXME: event
   def refresh_card
-    card = card.refresh
+    if card.nil?
+      warn "no card refresh"
+    else
+      @card = card.refresh
+    end
   end
 
   #-------( REDIRECTION )
@@ -354,7 +328,7 @@ Done"
     when  redirect        ; wagn_redirect ( Card===target ? path_for_page( target.cardname, new_params ) : target )
     when  String===target ; render :text => target
     else
-      card = target
+      @card = target
       show new_params[:view]
     end
     true

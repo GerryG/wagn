@@ -2,7 +2,7 @@ require File.expand_path('../../spec_helper', File.dirname(__FILE__))
 
 
 describe Card, "delete without dependents" do
-  before do Account.as(:joe_user); @c = Card["Basic Card"] end
+  before do Account.as 'joe_user' ; @c = Card["Basic Card"] end
 
   it "should succeed" do
     @c.delete.should be_true

@@ -48,7 +48,6 @@ end
 describe User, 'Joe User' do
   before do
     Account.authorized_id = Card['joe_user'].id
-    User.cache.delete 'joe_user'
     @jucard = Account.authorized
     @r1 = Card['r1']
     @roles_card=@jucard.fetch(:new=>{},:trait=>:roles)

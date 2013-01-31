@@ -7,10 +7,6 @@ class AccountController < CardController
   before_filter :login_required, :only => [ :invite, :update ]
   helper :wagn
 
-  INVITE_ID = Card[Card::InviteID].fetch(:trait => :thanks).id
-  REQUEST_ID = Card[Card::RequestID].fetch(:trait => :thanks).id
-  SIGNUP_ID  = Card[Card::SignupID].fetch(:trait => :thanks).id
-
   #ENGLISH many messages throughout this file
 
   def signup
@@ -34,7 +30,7 @@ class AccountController < CardController
       @card.account= @account
     Rails.logger.warn "signup post #{params.inspect}, #{@card.account.inspect}, #{@card.inspect}"
 
-      redirect_id = SIGNUP_ID 
+      redirect_id = Card::SignupID 
       if @card.ok?(:create, :trait=>:account) 
         @account.active
         @card.save
@@ -61,7 +57,7 @@ class AccountController < CardController
       #warn "errors #{@account.errors.full_messages*", "}"
       Rails.logger.warn "errors? #{@card.inspect}"
 
-      redirect_to target( redirect_id )
+      redirect_to( target redirect_id )
 
     end
   end
@@ -89,7 +85,7 @@ class AccountController < CardController
         eparams = params[:email] || {}
         @card.send_account_info eparams.merge( :password => @account.password, :to => @account.email )
 
-        redirect_to target(INVITE_ID);
+        redirect_to( target Card::InviteID )
       end
     else
 
@@ -115,7 +111,7 @@ class AccountController < CardController
         eparams = params[:email]
         @card.send_account_info eparams.merge( :password => @account.password, :to => @account.email )
 
-        redirect_to target( INVITE_ID )
+        redirect_to( target Card::InviteID )
 
       else
         Rails.logger.warn "errs #{@card.errors.map{|k,v| "#{k} -> #{v}"}*"\n"}"
@@ -145,14 +141,15 @@ class AccountController < CardController
   end
 
   def signout
+    warn "signout ..."
     self.session_card_id = nil
     flash[:notice] = "Successfully signed out"
 
-    redirect_to Card.path_setting('/')  # previous_location here can cause infinite loop.  ##  Really?  Shouldn't.  -efm
+    redirect_to( Card.path_setting '/' )  # previous_location here can cause infinite loop.  ##  Really?  Shouldn't.  -efm
   end
 
   def forgot_password
-    if request.post? and email = params[:email].downcase and 
+    if request.post? and email = params[:email].downcase
       @account = Account.find_by_email email
     end
 
@@ -186,7 +183,7 @@ class AccountController < CardController
   protected
 
   def target target_id
-    card = Card[target_id] and Card.path_setting( Card.setting card.name )
+    card = Card.fetch( target_id, :trait=>:thanks ) and Card.path_setting( Card.setting card.name )
   end
 
   def failed_login! account

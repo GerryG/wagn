@@ -356,7 +356,7 @@ describe CardController, "test/integration card action tests" do
 
   it "should test_newcard_works_with_fuzzy_renamed_cardtype" do
     given_card({:typecode=>:cardtype, :name=>"ZFoo", :content => ""})
-    Account.as(:joe_user) do
+    Account.as 'joe_user' do
       Card["ZFoo"].update_attributes! :name=>"ZFooRenamed", :update_referencers=>true
     end
 

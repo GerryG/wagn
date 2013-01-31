@@ -152,14 +152,15 @@ class AccountController < CardController
   end
 
   def forgot_password
-    return unless request.post? and email = params[:email].downcase
-    @account = Account.find_by_email(email)
-    if @account.nil?
+    if request.post? and email = params[:email].downcase and 
+      @account = Account.find_by_email email
+    end
 
+    case 
+    when @account.nil?
       flash[:notice] = "Unrecognized email."
       render :action=>'signin', :status=>404
-    elsif !@account.active?
-
+    when !@account.active?
       flash[:notice] = "That account is not active."
       render :action=>'signin', :status=>403
     else
@@ -168,11 +169,15 @@ class AccountController < CardController
       @account.generate_password
       Account.as_bot { @card.save! }
 
-      @card.send_account_info({ :password => @account.password, :to => @account.email,
-             :subject=> "Password Reset",
-             :message=> "You have been given a new temporary password.  " +
-                        "Please update your password once you've signed in. " } )
+      email_args = {
+          :password => @account.password,
+          :to => @account.email,
+          :subject=> "Password Reset",
+          :message=> "You have been given a new temporary password.  " +
+                     "Please update your password once you've signed in. "
+      }
 
+      @card.send_account_info email_args
       flash[:notice] = "Check your email for your new temporary password"
       redirect_to previous_location
     end

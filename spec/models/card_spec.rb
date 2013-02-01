@@ -277,8 +277,8 @@ describe "basic card tests" do
   end
 
   it 'should find_by_name' do
-    Account.as 'joe_user' do
-      card = Card.create( :name=>"ThisMyCard", :content=>"Contentification is cool" )
+    card = Account.as 'joe_user' do
+      Card.create( :name=>"ThisMyCard", :content=>"Contentification is cool" )
     end
     Card["ThisMyCard"].should == card
   end

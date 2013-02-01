@@ -9,7 +9,7 @@ describe Card, "admin functions" do
     end
 
     it "should setup" do
-      Account.as 'joe_user'
+      Account.as 'joe_user' do
         post '/:setup', :account => {:email=>'admin@joe'}
       end
     end
@@ -19,7 +19,7 @@ describe Card, "admin functions" do
   end
 
   it "should show cache" do
-    Account.as 'joe_user'
+    Account.as 'joe_user' do
       get '/A/view=show_cache'
     end
   end

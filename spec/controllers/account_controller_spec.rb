@@ -25,7 +25,7 @@ describe AccountController, "account functions" do
         @msgs << m
         mock(m).deliver }
 
-      login_as :joe_admin
+      login_as 'joe admin'
 
       @email_args = {:subject=>'Hey Joe!', :message=>'Come on in.'}
       post :invite, :user=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'},
@@ -91,7 +91,7 @@ describe AccountController, "account functions" do
 
     it 'should send email' do
       post :signup, :user=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
-      login_as :joe_admin
+      login_as 'joe admin'
 
       post :accept, :card=>{:key=>'joe_new'}, :email=>{:subject=>'Hey Joe!', :message=>'Can I Come on in?'}
 

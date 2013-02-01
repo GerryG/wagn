@@ -52,7 +52,7 @@ class AccountController < CardController
         Account.as_bot do
           Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'
         end
-        wagn_redirect Card.setting( redirect_cardname )
+        wagn_redirect Card.setting( redirect_id )
       end
       #warn "errors #{@account.errors.full_messages*", "}"
       Rails.logger.warn "errors? #{@card.inspect}"

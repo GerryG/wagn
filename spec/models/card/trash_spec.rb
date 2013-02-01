@@ -33,7 +33,7 @@ end
 
 describe Card, "plus cards" do
   it "should be deleted when root is" do
-    Account.as :joe_admin do
+    Account.as 'joe admin' do
       c = Card.create! :name=>'zz+top'
       root = Card['zz']
       root.delete

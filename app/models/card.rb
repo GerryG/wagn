@@ -348,7 +348,7 @@ class Card < ActiveRecord::Base
   end
 
   def right *args
-    simple? ? nil : Card.fetch(cardname.right, *args)
+    simple? ? nil : Card.fetch( cardname.right, *args )
   end
 
   def trunk *args
@@ -356,7 +356,7 @@ class Card < ActiveRecord::Base
   end
 
   def tag *args
-    simple? ? self : Card.fetch(cardname.right, *args)
+    simple? ? self : Card.fetch( cardname.right, *args )
   end
 
   def left_or_new args={}

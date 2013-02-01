@@ -163,6 +163,7 @@ end
 
 Then /^In (.*) I should see "([^\"]*)"$/ do |section, text|
   within scope_of(section) do
+warn "page #{page.body}"
     page.should have_content(text)
   end
 end

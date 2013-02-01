@@ -51,10 +51,12 @@ class Account
     end
 
     def authorized
-      if @@authorized_id.nil? || @@authorized.nil? || @@authorized.id != authorized_id
+      if @@authorized_id.nil? || @@authorized.nil? ||
+           @@authorized_id == Card::AnonID || @@authorized.id != authorized_id
         @@authorized = Card[authorized_id]
+        warn "load authorized #{@@authorized_id}, #{@@as_id}, #{@@authorized.inspect}"
       end
-      Rails.logger.warn "authorized #{@@authorized.inspect}"
+      Rails.logger.warn "authorized #{@@authorized_id}, #{@@as_id}, #{@@authorized.inspect}"
       @@authorized
     end
 

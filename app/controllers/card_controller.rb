@@ -63,16 +63,16 @@ class CardController < ApplicationController
 
   def comment
     raise Wagn::BadAddress, "comment without card" unless params[:card]
+    # this previously failed unless request.post?, but it is now (properly) a PUT.
+    # if we enforce RESTful http methods, we should do it consistently,
+    # and error should be 405 Method Not Allowed
 
     # FIXME: need this loaded like an inflector, this can't be the only place that would use this
     # or maybe wrap it with the split, map, join too, and why not strip it in any case?
     to_html = lambda {|line| "<p>#{line.strip.empty? ? '&nbsp;' : line}</p>"}
-
-    # this previously failed unless request.post?, but it is now (properly) a PUT.
-    # if we enforce RESTful http methods, we should do it consistently,
-    # and error should be 405 Method Not Allowed
+  
     author = Account.logged_in? ? "[[#{Account.authorized.name}]]" :
-              "#{session[:comment_author] = params[:card][:comment_author]} (Not signed in)"
+             "#{session[:comment_author] = params[:card][:comment_author]} (Not signed in)"
     comment = params[:card][:comment].split(/\n/).map(&to_html) * "\n"
 
     card.comment = %{<hr>#{ comment }<p><em>&nbsp;&nbsp;--#{ author }.....#{Time.now}</em></p>}
@@ -124,11 +124,9 @@ class CardController < ApplicationController
       end
 
       acct.update_attributes account_args if request.put? or request.post?
-
-      render_errors
-    else
-       success
     end
+
+    render_errors || success
   end
 
   # FIXME: make this part of create
@@ -216,14 +214,10 @@ class CardController < ApplicationController
 
   # FIXME: event
   def refresh_card
-    if card.nil?
-      warn "no card refresh"
-    else
-      @card = card.refresh
-    end
+    @card =  card.refresh
   end
 
-  #-------( REDIRECTION )
+  # ------- REDIRECTION --------
 
   def success default_target='_self'
     #warn "success #{default_target}, #{card.inspect}"

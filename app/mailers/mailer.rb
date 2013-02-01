@@ -25,8 +25,8 @@ class Mailer < ActionMailer::Base
   end
 
 
-  def account_info user_card, args
-    #warn "acc info #{Account.authorized_email}, (#{user_card.account.inspect}) #{user_card.inspect}, #{args.inspect}"
+  def account_info auth_card, args
+    #warn "acc info (#{user_card.account.inspect}) #{user_card.inspect}, #{args.inspect}"
 
     arg_array = EMAIL_FIELDS.map { |f| args[f] }
     return if arg_array.find(&:nil?)
@@ -38,8 +38,12 @@ class Mailer < ActionMailer::Base
     @login_url= wagn_url "/account/signin"
     @message  = @message.clone
 
-    mail_from args, Card.setting('*invite+*from') || "#{Account.authorized.name} <#{Account.authorized_email}>"
     #FIXME - might want different "from" settings for different contexts?
+    unless invite_from = Card.setting( '*invite+*from' )
+      authzd = Account.authorized
+      invite_from = "#{authzd.name} <#{authzd.account.email}>"
+    end
+    mail_from args, invite_from
   end
 
   def signup_alert invite_request

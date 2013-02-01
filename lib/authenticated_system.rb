@@ -16,7 +16,7 @@ module AuthenticatedSystem
   # Store the given user in the session.
   def session_card_id= card_id
     Account.authorized_id = card_id
-    warn "ssn_id #{card_id} -- #{Account.authorized_id}"
+    #warn "ssn_id #{card_id} -- #{Account.authorized_id}"
     @session_card_id = session[:user] = card_id
   end
 

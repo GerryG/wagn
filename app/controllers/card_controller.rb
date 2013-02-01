@@ -145,11 +145,9 @@ class CardController < ApplicationController
 
       acct.update_attributes account_args if request.put? or request.post?
 
-      if acct.errors.any?
-        acct.errors.each do |field, err|
-          card.errors.add field, err
-        end
-      end
+      render_errors
+    else
+       success
     end
   end
 
@@ -160,12 +158,10 @@ class CardController < ApplicationController
 
     Rails.logger.info "create_account 1 #{acct.inspect}, #{card.inspect}"
     if card.save
-      email_args = { :password => acct.password,
-                     :subject  => "Your new #{Card.setting :title} account.",   #ENGLISH
-                     :message  => "Welcome!  You now have an account on #{Card.setting :title}." } #ENGLISH
-
       Rails.logger.info "create_account #{params.inspect}, #{email_args.inspect}"
-      card.send_account_info email_args
+      card.send_account_info :to => acct.email, :password => acct.password,
+             :subject  => "Your new #{Card.setting :title} account.",   #ENGLISH
+             :message  => "Welcome!  You now have an account on #{Card.setting :title}." #ENGLISH
     end
 
     Rails.logger.warn "create_account error: #{acct.errors.map{|k,v|"#{k} -> #{v}"}*', '}" if acct.errors.any?

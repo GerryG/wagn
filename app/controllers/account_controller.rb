@@ -79,11 +79,11 @@ class AccountController < CardController
     if request.post?
       @account = @card.account
       @account.active.generate_password
-      @card.type_id = Card::UserID if @card.type_id == Card::AccountRequestID
+      card.type_id = Card::UserID if @card.type_id == Card::AccountRequestID
 
       if @card.save
         eparams = params[:email] || {}
-        @card.send_account_info eparams.merge( :password => @account.password, :to => @account.email )
+        card.send_account_info eparams.merge( :password => @account.password, :to => @account.email )
 
         redirect_to( target Card::InviteID )
       end
@@ -101,7 +101,7 @@ class AccountController < CardController
       @card = Card.new params[:card]
       acct_params = (params[:account] || {})
       acct_params[:name] = @card.name
-      @account = @card.account = ( Account.new( acct_params ) )
+      @account = card.account = ( Account.new( acct_params ) )
 
       @account.active.generate_password
       #warn "User should be: #{@card.inspect}"
@@ -109,7 +109,7 @@ class AccountController < CardController
         # and @account.valid? should not need this now @card.save should do it
 
         eparams = params[:email]
-        @card.send_account_info eparams.merge( :password => @account.password, :to => @account.email )
+        card.send_account_info eparams.merge( :password => @account.password, :to => @account.email )
 
         redirect_to( target Card::InviteID )
 
@@ -183,7 +183,7 @@ class AccountController < CardController
   protected
 
   def target target_id
-    card = Card.fetch( target_id, :trait=>:thanks ) and Card.path_setting( Card.setting card.name )
+    @card = Card.fetch( target_id, :trait=>:thanks ) and Card.path_setting( Card.setting card.name )
   end
 
   def failed_login! account

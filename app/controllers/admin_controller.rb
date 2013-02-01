@@ -15,7 +15,7 @@ class AdminController < CardController
         aparams[:name] = @card.name
         acct = Account.new( aparams ).active
         #warn "acct setup #{acct.inspect}, #{@card.account}"
-        @account = @card.account = Account.new( aparams ).active
+        @account = card.account = Account.new( aparams ).active
         set_default_request_recipient
 
         #warn "ext id = #{@account.id}"

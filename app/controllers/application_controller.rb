@@ -12,7 +12,8 @@ class ApplicationController < ActionController::Base
   before_filter :per_request_setup, :except=>[:fast_404]
   layout :wagn_layout, :except=>[:fast_404]
 
-  attr_accessor :recaptcha_count, :card
+  attr_reader :card
+  attr_accessor :recaptcha_count
 
   def fast_404
     message = "<h1>404 Page Not Found</h1>"

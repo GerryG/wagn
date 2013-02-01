@@ -501,17 +501,16 @@ class Card < ActiveRecord::Base
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   # ACCOUNT / SESSION
 
-  def no_account?
-    @account.nil?
-  end
-
   def account
     # no id? try using the cardname to find the user Account.get_user_id
-    if no_account? and uid = id || authorized_id = Account.get_user_id(name)
-      @account = Account[uid]
+    if @account.nil? and auth_id = id || Account.get_user_id(name)
+      @account = Account[auth_id]
     end
     @account
   end
+
+  def no_account?  ; account.nil?    end
+  def account= acct; @account = acct end
 
   def save_account
     #Rails.logger.warn "save_account #{inspect} a:#{@account}"

@@ -53,7 +53,7 @@ module Cardlib::Permissions
   end
   
   def update_account_ok? #FIXME - temporary API, I think this is fixed, can we cache any of this for speed, this is accessed for each header
-    card and card.id == Account.authorized_id || card.ok?( :create, :trait=>:account, :new=>{} )
+    id == Account.authorized_id || ok?( :create, :trait=>:account, :new=>{} )
   end
 
   def who_can operation

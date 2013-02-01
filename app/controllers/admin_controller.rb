@@ -24,7 +24,8 @@ class AdminController < CardController
           roles_card = card.fetch :trait=>:roles, :new=>{}
           roles_card.content = "[[#{Card[Card::AdminID].name}]]"
           roles_card.save
-          self.session_card_id = @card.id
+          self.session_card_id = card.id
+          Account.authorized_id = card.id
           Card.cache.delete 'no_logins'
           flash[:notice] = "You're good to go!"
           redirect_to Card.path_setting('/')

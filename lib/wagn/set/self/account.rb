@@ -3,10 +3,6 @@ module Wagn
     # This is where we link in the User model as a card, and soon we will support
     # Warden account modules or similar
 
-    #include Sets
-
-    #format :html
-
     module Model
       def config key=nil
         @configs||={

@@ -71,7 +71,7 @@ describe Card, "created with autoname" do
   before do
     Account.as_bot do
       Card.create! :name=>'Book+*type+*autoname', :content=>'b1'
-      warn "created rule #{Card['Book+*type+*autoname'].inspect}"
+      #warn "created rule #{Card['Book+*type+*autoname'].inspect}"
     end
   end
 

@@ -26,9 +26,9 @@ class Account
     # return the account card
     def authenticate params
       Rails.logger.warn "A.auth? #{params.inspect}"
-      acct = lookup(params) and card_with_acct_id = acct.authenticate(  Card[ acct.card_id ], params )
-      Rails.logger.warn "auth? #{params.inspect}, #{card_with_acct_id.inspect} #{acct}"
-      card_with_acct_id
+      acct = lookup(params) and acct.authenticate(  card_with_acct = Card[ acct.card_id ], params )
+      Rails.logger.warn "auth? #{params.inspect}, #{card_with_acct.inspect} #{acct}"
+      card_with_acct
     end
 
     def lookup params
@@ -51,18 +51,18 @@ class Account
     end
 
     def authorized
-      if @@authorized.nil? || @@authorized.id == authorized_id
+      if @@authorized_id.nil? || @@authorized.nil? || @@authorized.id != authorized_id
         @@authorized = Card[authorized_id]
       end
       Rails.logger.warn "authorized #{@@authorized.inspect}"
       @@authorized
     end
+
     def authorized_id         ; @@as_id || @@authorized_id                    end
     def reset                 ; @@authorized_id = Card::AnonID; @@as_id = nil end
     def session               ; Card[@@authorized_id]                         end
     def authorized_id= card_id; @@authorized_id = card_id || Card::AnonID     end
     def as_id                 ; @@as_id || @@authorized_id                    end
-
     def as_bot &block         ; as Card::WagnBotID, &block                    end
 
     def among? authzed        ; authorized.among? authzed                     end

@@ -35,7 +35,7 @@ class AccountController < CardController
         @account.active
         @card.save
 
-        return if errors!
+        return if render_errors
 
         #Rails.logger.warn "invite: #{@card.inspect} #{@account.inspect}"
         @card.send_account_info( { :password=>@account.password, :to => @account.email,
@@ -47,7 +47,7 @@ class AccountController < CardController
         @account.pending
         Account.as_bot { @card.save }
 
-        return if errors!
+        return if render_errors
 
         Account.as_bot do
           Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'
@@ -129,9 +129,11 @@ class AccountController < CardController
 
       auth_args = { :email=>params[:login], :password=>params[:password] }
       Rails.logger.warn "signin #{auth_args.inspect}"
-      unless failed_login! card_id=Account.authenticate( auth_args )
+      unless failed_login!( auth_card=Account.authenticate(auth_args) )
 
-        self.session_card_id = card_id
+        #warn "authed #{auth_card.id}"
+        self.session_card_id = auth_card.id
+        Account.authorized_id = auth_card.id
 
         flash[:notice] = "Successfully signed in"
 
@@ -141,7 +143,7 @@ class AccountController < CardController
   end
 
   def signout
-    warn "signout ..."
+    #warn "signout ..."
     self.session_card_id = nil
     flash[:notice] = "Successfully signed out"
 
@@ -186,11 +188,11 @@ class AccountController < CardController
     @card = Card.fetch( target_id, :trait=>:thanks ) and Card.path_setting( Card.setting card.name )
   end
 
-  def failed_login! account
-    if account.nil?
+  def failed_login! acct_card
+    if acct_card.nil?
       message = "Email not recognized." 
-    elsif account.errors.any?
-      message = "Login failed: #{account.errors.full_messages*', '}"
+    elsif acct_card.errors.any?
+      message = "Login failed: #{acct_card.errors.full_messages*', '}"
     else
       return
     end

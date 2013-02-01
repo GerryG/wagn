@@ -14,10 +14,6 @@ Wagn::Application.routes.draw do
 
   match '/' => 'card#read'
   match 'recent(.:format)' => 'card#read', :id => '*recent', :view => 'content'
-
-  resources :card, :path => '/', :except => :show
-  get '/:id(.:format)' => 'card#read'
-
   match '(/wagn)/:id(.:format)' => 'card#read'
   match '/files/(*id)' => 'card#read_file'
 

@@ -5,8 +5,8 @@ describe CardController do
 
   describe "- route generation" do
 #  not sure we want this.
-#    it "gets name/id from /new/xxx" do
-#      {:post=> "/new/xxx"}.should route_to(
+#    it "gets name/id from /card/new/xxx" do
+#      {:post=> "/card/new/xxx"}.should route_to(
 #        :controller=>"card", :action=>'new', :id=>"xxx"
 #      )
 #    end
@@ -37,7 +37,7 @@ describe CardController do
 
 #        it "should accept cards with dot sections that don't match extensions" do
 #          {:get => "#{prefix}/random.card"}.should route_to(
-#            :controller=>"card",:action=>"action",:id=>"random.card"
+#            :controller=>"card",:action=>"read",:id=>"random.card"
 #          )
 #        end
 
@@ -60,7 +60,7 @@ describe CardController do
     #  maybe think about refactoring to use mocks etc. to reduce
     #  test dependencies.
     it "creates cards" do
-      post :action, :card => {
+      post :create, :card => {
         :name=>"NewCardFoo",
         :type=>"Basic",
         :content=>"Bananas"
@@ -73,7 +73,7 @@ describe CardController do
 
 
     it "creates cardtype cards" do
-      xhr :post, :action, :card=>{"content"=>"test", :type=>'Cardtype', :name=>"Editor"}
+      xhr :post, :create, :card=>{"content"=>"test", :type=>'Cardtype', :name=>"Editor"}
       assigns['card'].should_not be_nil
       assert_response 200
       c=Card["Editor"]
@@ -91,20 +91,19 @@ describe CardController do
 
     context "multi-create" do
       it "catches missing name error" do
-        post :action, "card"=>{
+        post :create, "card"=>{
             "name"=>"",
             "type"=>"Fruit",
             "cards"=>{"~plus~text"=>{"content"=>"<p>abraid</p>"}}
           }, "view"=>"open"
-        Rails.logger.warn "testing a"
+        assert_response 422
         assigns['card'].errors[:key].first.should == "cannot be blank"
         assigns['card'].errors[:name].first.should == "can't be blank"
-        assert_response 422
       end
 
       it "creates card with subcards" do
         login_as 'joe_admin'
-        xhr :post, :action, :success=>'REDIRECT: /', :card=>{
+        xhr :post, :create, :success=>'REDIRECT: /', :card=>{
           :name  => "Gala",
           :type  => "Fruit",
           :cards => {
@@ -230,14 +229,14 @@ describe CardController do
     end
 
     it "new with typecode" do
-      get :read, :card => {:type=>'Date'}, :view=>'new'
+      post :read, :card => {:type=>'Date'}, :view=>'new'
       assert_response :success, "response should succeed"
       assert_equal Card::DateID, assigns['card'].type_id, "@card type should == Date"
     end
 
     it "delete" do
       c = Card.create( :name=>"Boo", :content=>"booya")
-      delete :delete, :id=>"~#{c.id}"
+      post :delete, :id=>"~#{c.id}"
       assert_response :redirect
       Card["Boo"].should == nil
     end

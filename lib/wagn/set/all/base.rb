@@ -8,39 +8,39 @@ module Wagn
     action :create do |*a|
       #card.errors.add(:name, "must be unique; '#{card.name}' already exists.") unless card.new_card?
       card.save
-      re=render_errors
-      re || success
+      render_errors || success
     end
 
     action :read do |*a|
-      #warn "read action #{@card.inspect}, #{@card.errors.map(&:to_s)*', '}"
-      render_errors || begin
-    #warn "save and show #{@card.inspect}"
-        save_location # should be an event!
-        show
-      end
+      #warn "read action #{@card.inspect}"
+      save_location # should be an event!
+      show
     end
 
     action :update do |*a|
-      if card.new_card?; process_create
-      elsif card.update_attributes params[:card]
-        #warn "update #{card.inspect}, #{params[:card].inspect}"
-        #card.save
-        render_errors || success
-
-      elsif render_errors
-      else  success
+      case
+      when card.new_card?                          ;  perform_create
+      when card.update_attributes( params[:card] ) ;  success
+      else                                            render_errors
       end
     end
 
     action :delete do |*a|
-      card.destroy
-      discard_locations_for card #should be an event
-      success 'REDIRECT: *previous'
+      if card.delete
+        discard_locations_for card #should be an event
+        success 'REDIRECT: *previous'
+      else
+        render_errors
+      end
     end
 
-    alias_action :read,     {}, :index
-    alias_action :show_file, {}, :read_file
+    action :read_file do |*a|
+      if card.ok? :read
+        show_file
+      else
+        show :denial
+      end
+    end 
 
 
 

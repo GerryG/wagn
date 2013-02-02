@@ -142,7 +142,7 @@ class AccountController < CardController
   end
 
   def signout
-    self.current_id = nil
+    self.current_account_id = nil
     flash[:notice] = "Successfully signed out"
 
     redirect_to( Card.path_setting '/' )  # previous_location here can cause infinite loop.  ##  Really?  Shouldn't.  -efm

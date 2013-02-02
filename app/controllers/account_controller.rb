@@ -151,17 +151,16 @@ class AccountController < CardController
   end
 
   def forgot_password
-    if request.post? and email = params[:email].downcase
-      @account = Account.find_by_email email
-    end
+    if request.post? and email = params[:email]
+      @account = Account.find_by_email email.downcase
 
-    case 
-    when @account.nil?
-      flash[:notice] = "Unrecognized email."
-      render :action=>'signin', :status=>404
-    when !@account.active?
-      flash[:notice] = "That account is not active."
-      render :action=>'signin', :status=>403
+      case 
+      when @account.nil?
+        flash[:notice] = "Unrecognized email."
+        render :action=>'signin', :status=>404
+      when !@account.active?
+        flash[:notice] = "That account is not active."
+        render :action=>'signin', :status=>403
     else
       @card=Card[@account.card_id]
 

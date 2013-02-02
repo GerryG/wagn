@@ -291,7 +291,7 @@ describe "basic card tests" do
 
 
   it 'update_should_create_subcards' do
-    Account.authorized_id = Card['joe_user'].id
+    Account.current_id = Card['joe_user'].id
     Account.as 'joe_user' do
       banana = Card.create! :name=>'Banana'
       Card.update banana.id, :cards=>{ "+peel" => { :content => "yellow" }}
@@ -304,7 +304,7 @@ describe "basic card tests" do
 
   it 'update_should_create_subcards_as_wagn_bot_if_missing_subcard_permissions' do
     Account.as 'joe user' do Card.create :name=>'peel' end
-    Account.authorized_id = Card::AnonID
+    Account.current_id = Card::AnonID
 
     Card['Banana'].should_not be
     Card['Basic'].ok?(:create).should be_false, "anon can't creat"

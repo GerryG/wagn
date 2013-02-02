@@ -2,18 +2,18 @@ require 'uri'
 require 'cgi'
 require File.expand_path(File.join(File.dirname(__FILE__), "..", "support", "paths"))
 
-Given /^I log in as (.+)$/ do |authorized_name|
+Given /^I log in as (.+)$/ do |acct_name|
   # FIXME: define a faster simulate method ("I am logged in as")
-  authorized=Card[authorized_name]
-  @auth_id = authorized.id
-  account=authorized.fetch :trait => :account
-  user = account.account
+  acct=Card[acct_name]
+  @current_id = acct.id
+  acct=acct.fetch :trait => :account
+  user = acct.account
   email = user.email
   visit "/account/signin"
   fill_in("login", :with=> email )
   fill_in("password", :with=> user.login.split("_")[0]+"_pass")
   click_button("Sign me in")
-  page.should have_content(authorized_name)
+  page.should have_content(acct_name)
 end
 
 Given /^I log out/ do
@@ -119,9 +119,9 @@ def create_card(username,cardtype,cardname,content="")
 end
 
 def logged_in_as(username)
-  sameuser = (username == "I" or @auth_id && Card[@auth_id].name == username)
+  sameuser = (username == "I" or @current_id && Card[@current_id].name == username)
   unless sameuser
-    @saved_user = @auth_id
+    @saved_user = @current_id
     step "I log in as #{username}"
   end
   yield

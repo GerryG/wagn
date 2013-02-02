@@ -70,10 +70,9 @@ class AccountController < CardController
     card_key=params[:card][:key]
     @card = Card[card_key] or raise(Wagn::NotFound, "Can't find this Account Request")
 
-    #Rails.logger.warn "accept #{@card.inspect}"
-    #FIXME - don't raise; handle it!
-    @card.account or raise(Wagn::Oops, "This card doesn't have an account to approve")
-    #FIXME - don't raise; handle it!
+    #warn "accept #{Account.current_id}, #{@card.inspect}"
+    @account = @card.account or raise(Wagn::Oops, "This card doesn't have an account to approve")
+    #warn "accept #{@account.inspect}"
     @card.ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create accounts")
 
     if request.post?
@@ -143,8 +142,7 @@ class AccountController < CardController
   end
 
   def signout
-    #warn "signout ..."
-    self.session_card_id = nil
+    self.current_id = nil
     flash[:notice] = "Successfully signed out"
 
     redirect_to( Card.path_setting '/' )  # previous_location here can cause infinite loop.  ##  Really?  Shouldn't.  -efm
@@ -161,23 +159,24 @@ class AccountController < CardController
       when !@account.active?
         flash[:notice] = "That account is not active."
         render :action=>'signin', :status=>403
-    else
-      @card=Card[@account.card_id]
+      else
+        @card=Card[@account.card_id]
 
-      @account.generate_password
-      Account.as_bot { @card.save! }
+        @account.generate_password
+        Account.as_bot { @card.save! }
 
-      email_args = {
-          :password => @account.password,
-          :to => @account.email,
-          :subject=> "Password Reset",
-          :message=> "You have been given a new temporary password.  " +
-                     "Please update your password once you've signed in. "
-      }
+        email_args = {
+            :password => @account.password,
+            :to => @account.email,
+            :subject=> "Password Reset",
+            :message=> "You have been given a new temporary password.  " +
+                       "Please update your password once you've signed in. "
+        }
 
-      @card.send_account_info email_args
-      flash[:notice] = "Check your email for your new temporary password"
-      redirect_to previous_location
+        @card.send_account_info email_args
+        flash[:notice] = "Check your email for your new temporary password"
+        redirect_to previous_location
+      end
     end
   end
 
@@ -187,11 +186,11 @@ class AccountController < CardController
     @card = Card.fetch( target_id, :trait=>:thanks ) and Card.path_setting( Card.setting card.name )
   end
 
-  def failed_login! acct_card
-    if acct_card.nil?
+  def failed_login! cd_with_acct
+    if cd_with_acct.nil?
       message = "Email not recognized." 
-    elsif acct_card.errors.any?
-      message = "Login failed: #{acct_card.errors.full_messages*', '}"
+    elsif cd_with_acct.errors.any?
+      message = "Login failed: #{cd_with_acct.errors.full_messages*', '}"
     else
       return
     end

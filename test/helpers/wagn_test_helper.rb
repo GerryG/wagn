@@ -8,8 +8,8 @@ module WagnTestHelper
   def setup_default_account
     Account.reset
 
-    Account.authorized_id = Card['joe_user'].id
-    Rails.logger.warn "setup default user #{Account.session}, #{Account.authorized}, #{Account.as_id}"
+    Account.current_id = Card['joe_user'].id
+    Rails.logger.warn "setup default user #{Account.session}, #{Account.current}, #{Account.as_id}"
 
     nil
   end

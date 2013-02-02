@@ -1,9 +1,9 @@
 
 class Account
   # This will probably have a hash of possible account classes and a value for the class
-  @@as_id = @@authorized = nil
-  @@authorized_id        = Card::AnonID  # this should never be nil, even when session[:user] is nil
-  @@user_class           = User
+  @@as_id = @@current = nil
+  @@current_id        = Card::AnonID  # this should never be nil, even when session[:user] is nil
+  @@user_class        = User
 
   # not used by us (yet), but for the API:
   # Account.user_class = MyUserClass
@@ -41,39 +41,39 @@ class Account
     def get_user_id session
       case session
       when NilClass, Integer; session
-      when @@user_class;   session.card_id
-      when Card;              session.id
-      else               Card[session].send_if :id
+      when @@user_class     ; session.card_id
+      when Card             ; session.id
+      else                    Card[session].send_if :id
       end
     end
     def admin?()
       as_id == Card::WagnBotID
     end
 
-    def authorized
-      if @@authorized_id.nil? || @@authorized.nil? ||
-           @@authorized_id == Card::AnonID || @@authorized.id != authorized_id
-        @@authorized = Card[authorized_id]
-        warn "load authorized #{@@authorized_id}, #{@@as_id}, #{@@authorized.inspect}"
+    def current
+      if @@current_id.nil? || @@current.nil? ||
+           @@current_id == Card::AnonID || @@current.id != current_id
+        @@current = Card[current_id]
+        warn "load current #{@@current_id}, #{@@as_id}, #{@@current.inspect}"
       end
-      Rails.logger.warn "authorized #{@@authorized_id}, #{@@as_id}, #{@@authorized.inspect}"
-      @@authorized
+      Rails.logger.warn "current #{@@current_id}, #{@@as_id}, #{@@current.inspect}"
+      @@current
     end
 
-    def authorized_id         ; @@as_id || @@authorized_id                    end
-    def reset                 ; @@authorized_id = Card::AnonID; @@as_id = nil end
-    def session               ; Card[@@authorized_id]                         end
-    def authorized_id= card_id; @@authorized_id = card_id || Card::AnonID     end
-    def as_id                 ; @@as_id || @@authorized_id                    end
+    def current_id            ; @@as_id || @@current_id                    end
+    def reset                 ; @@current_id = Card::AnonID; @@as_id = nil end
+    def session               ; Card[@@current_id]                         end
+    def current_id= card_id; @@current_id = card_id || Card::AnonID     end
+    def as_id                 ; @@as_id || @@current_id                    end
     def as_bot &block         ; as Card::WagnBotID, &block                    end
 
-    def among? authzed        ; authorized.among? authzed                     end
-    def logged_in?            ; @@authorized_id != Card::AnonID               end
+    def among? authzed        ; current.among? authzed                     end
+    def logged_in?            ; @@current_id != Card::AnonID               end
 
     def as given_account
       save_as_id = @@as_id
       @@as_id = get_user_id(given_account) || Card::AnonID
-      #Rails.logger.info "set ac #{authorized.inspect}"
+      #Rails.logger.info "set ac #{current.inspect}"
 
       if block_given?
         value = yield
@@ -96,7 +96,7 @@ class Account
 
     def always_ok?
       return true if admin? #cannot disable
-      as_id = authorized_id
+      as_id = current_id
  
       always = Card.cache.read('ALWAYS') || {}
       if always[as_id].nil?
@@ -112,7 +112,7 @@ class Account
 
     # FIXME stick this in session? cache it somehow??
     def ok_hash
-      as_id = authorized_id
+      as_id = current_id
       ok_hash = Card.cache.read('OK') || {}
       if ok_hash[as_id].nil?
         ok_hash = ok_hash.dup if ok_hash.frozen?

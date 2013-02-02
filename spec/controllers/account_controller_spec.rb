@@ -25,13 +25,15 @@ describe AccountController, "account functions" do
         @msgs << m
         mock(m).deliver }
 
-      login_as 'joe admin'
+      login_as 'joe_admin'
+      @jadmin = Card['joe admin']
+      @ja_email = @jadmin.account.email
 
       @email_args = {:subject=>'Hey Joe!', :message=>'Come on in.'}
       post :invite, :user=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'},
         :email=> @email_args
 
-      @auth_card = Card['Joe New']
+      @cd_with_acct = Card['Joe New']
       @new_user = User.where(:email=>'joe@new.com').first
 
     end
@@ -54,6 +56,9 @@ describe AccountController, "account functions" do
     it 'should send email' do
       @msgs.size.should == 1
       @msgs[0].should be_a Mail::Message
+      # FIXME: test may need updating, but we want cases that test the parsing
+      #@msgs[0].from.should == "#{@jadmin.name} <#{@ja_email}>"
+      @msgs[0].from.should == [ @ja_email ]
     end
   end
 
@@ -79,14 +84,14 @@ describe AccountController, "account functions" do
     end
     
     it 'should create a user' do
-      #warn "who #{Account.authorized.inspect}"
+      #warn "who #{Account.current.inspect}"
       post :signup, :user=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
       new_user = User.where(:email=>'joe@new.com').first
-      @auth_card = Card['Joe New']
+      @cd_with_acct = Card['Joe New']
       new_user.should be
-      new_user.card_id.should == @auth_card.id
+      new_user.card_id.should == @cd_with_acct.id
       new_user.pending?.should be_true
-      @auth_card.type_id.should == Card::AccountRequestID
+      @cd_with_acct.type_id.should == Card::AccountRequestID
     end
 
     it 'should send email' do
@@ -155,6 +160,8 @@ describe AccountController, "account functions" do
     it 'should send an email to user' do
       @msgs.size.should == 1
       @msgs[0].should be_a Mail::Message
+      # FIXME: shouldn't it be simpler? @msgs[0].from.should == "Anonymous"
+      @msgs[0].from.should == "Anonymous <>"
     end
 
 

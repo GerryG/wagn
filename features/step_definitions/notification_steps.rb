@@ -1,12 +1,12 @@
 require File.expand_path(File.join(File.dirname(__FILE__), "..", "support", "paths"))
 
 Given /^(.*) (is|am) watching "([^\"]+)"$/ do |user, verb, cardname|
-  user = Account.authorized.name if user == "I"
+  user = Account.current.name if user == "I"
   step "the card #{cardname}+*watchers contains \"[[#{user}]]\""
 end
 
 Then /^(.*) should be notified that "(.*)"$/ do |username, subject|
-  account = username=='I' ? Account.authorized : Card[username].fetch(:trait => :account)
+  account = username=='I' ? Account.current_id : Card[username].fetch(:trait => :account)
   user = account.account
   email = user.email
   begin

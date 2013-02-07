@@ -54,7 +54,7 @@ class Account
       if @@current_id.nil? || @@current.nil? ||
            @@current_id == Card::AnonID || @@current.id != current_id
         @@current = Card[current_id]
-        warn "load current #{@@current_id}, #{@@as_id}, #{@@current.inspect}"
+        #warn "load current #{@@current_id}, #{@@as_id}, #{@@current.inspect}"
       end
       Rails.logger.warn "current #{@@current_id}, #{@@as_id}, #{@@current.inspect}"
       @@current

@@ -23,7 +23,7 @@ describe Mailer do
   context "account info, new password" do # forgot password
     before do
       c=Card['sara']
-      Account.authorized_id = c.id
+      Account.current_id = c.id
       @user = c.account
       @user.generate_password
       @email = Mailer.account_info c, {:to=>@user.email, :password=>@user.password,
@@ -36,7 +36,7 @@ describe Mailer do
       end
 
       it "is from Wag bot email" do  # I think logged in user is right here, so anon ...
-        Account.authorized_id = Card::AnonID
+        Account.current_id = Card::AnonID
         @email.should deliver_from("Wagn Bot <no-reply@wagn.org>")
       end
 

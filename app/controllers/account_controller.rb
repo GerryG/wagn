@@ -131,8 +131,8 @@ class AccountController < CardController
       unless failed_login!( auth_card=Account.authenticate(auth_args) )
 
         #warn "authed #{auth_card.id}"
-        self.session_card_id = auth_card.id
-        Account.authorized_id = auth_card.id
+        self.current_account_id = auth_card.id
+        Account.current_id = auth_card.id
 
         flash[:notice] = "Successfully signed in"
 

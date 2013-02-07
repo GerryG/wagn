@@ -19,10 +19,10 @@ class Card::Revision < ActiveRecord::Base
   end
 
   def title #ENGLISH
-    current_id = card.current_revision_id
-    if id == current_id
+    current_rev_id = card.current_revision_id
+    if id == current_rev_id
       'Current Revision'
-    elsif id > current_id
+    elsif id > current_rev_id
       'AutoSave'
     else
       card.revisions.each_with_index do |rev, index|

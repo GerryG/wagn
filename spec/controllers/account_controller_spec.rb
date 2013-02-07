@@ -10,11 +10,11 @@ describe AccountController, "account functions" do
 
   it "should signout" do
     login_as 'joe_user'
-    Account.authorized.account.card_id.should == Card['joe user'].id
+    Account.current.account.card_id.should == Card['joe user'].id
     
     #signout
     post :signout
-    Account.authorized_id.should == Card::AnonID
+    Account.current_id.should == Card::AnonID
 
   end
   
@@ -80,7 +80,7 @@ describe AccountController, "account functions" do
 
     it 'should signout' do
       post :signout
-      Account.authorized_id.should == Card::AnonID
+      Account.current_id.should == Card::AnonID
     end
     
     it 'should create a user' do

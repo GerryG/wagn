@@ -226,7 +226,7 @@ describe "basic card tests" do
 
   it 'should remove cards' do
     Account.as 'joe user' do
-      #warn "as_id #{Account.as_id} #{Account.authorized.inspect}"
+      #warn "as_id #{Account.as_id} #{Account.current.inspect}"
       forba = Card.create! :name=>"Forba"
       torga = Card.create! :name=>"TorgA"
       torgb = Card.create! :name=>"TorgB"

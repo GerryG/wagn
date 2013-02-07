@@ -265,7 +265,7 @@ describe CardController do
 
 
     it "rename without update references should work" do
-      Account.authorized_id = Card['joe_user'].id
+      Account.current_id = Card['joe_user'].id
       f = Card.create! :type=>"Cardtype", :name=>"Apple"
       xhr :post, :update, :id => "~#{f.id}", :card => {
         :name => "Newt",
@@ -277,7 +277,7 @@ describe CardController do
     end
 
     it "update typecode" do
-      Account.authorized_id = Card['joe user'].id
+      Account.current_id = Card['joe user'].id
       xhr :post, :update, :id=>"~#{@simple_card.id}", :card=>{ :type=>"Date" }
       assert_response :success, "changed card type"
       Card['Sample Basic'].typecode.should == :date
@@ -290,7 +290,7 @@ describe CardController do
     #  for now.
     #
     #  def test_update_cardtype_no_stripping
-    #    Account.authorized_id = Card['joe user'].id
+    #    Account.current_id = Card['joe user'].id
     #    post :update, {:id=>@simple_card.id, :card=>{ :type=>"CardtypeA",:content=>"<br/>" } }
     #    #assert_equal "boo", assigns['card'].content
     #    assert_equal "<br/>", assigns['card'].content

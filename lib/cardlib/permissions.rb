@@ -53,7 +53,7 @@ module Cardlib::Permissions
   end
   
   def update_account_ok? #FIXME - temporary API, I think this is fixed, can we cache any of this for speed, this is accessed for each header
-    id == Account.authorized_id || ok?( :create, :trait=>:account, :new=>{} )
+    id == Account.current_id || ok?( :create, :trait=>:account, :new=>{} )
   end
 
   def who_can operation
@@ -130,8 +130,8 @@ module Cardlib::Permissions
     #Rails.logger.warn "AR #{inspect} #{Account.always_ok?}"
     return true if Account.always_ok?
     @read_rule_id ||= (rr=permission_rule_card(:read).first).id.to_i
-    #Rails.logger.warn "AR #{name} #{@read_rule_id}, #{Account.session.inspect} #{rr&&rr.name}, RR:#{Account.authorized.read_rules.map{|i|c=Card[i] and c.name}*", "}"
-    unless Account.authorized.read_rules.member?(@read_rule_id.to_i)
+    #Rails.logger.warn "AR #{name} #{@read_rule_id}, #{Account.session.inspect} #{rr&&rr.name}, RR:#{Account.current.read_rules.map{|i|c=Card[i] and c.name}*", "}"
+    unless Account.current.read_rules.member?(@read_rule_id.to_i)
       deny_because you_cant("read this card")
     end
   end

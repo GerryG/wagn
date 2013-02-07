@@ -14,7 +14,7 @@ describe "User" do
 
     it "3 more should apply to Joe Admin" do
       Account.as('joe_admin') do
-        ids = Account.authorized.read_rules
+        ids = Account.current.read_rules
         Rails.logger.warn "rules = #{ids.map(&Card.method(:find)).map(&:name) * ', '}"
         ids.length.should == @read_rules.size+3
       end

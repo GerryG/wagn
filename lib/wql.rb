@@ -370,11 +370,11 @@ class Wql
       return "(" + sql.conditions.last + ")" if @mods[:return]=='condition'
 
       # Permissions
-      #Rails.logger.debug "wql perms? [#{inspect}] #{Account.authorized.inspect} #{Account.always_ok?} #{root?}" 
+      #Rails.logger.debug "wql perms? [#{inspect}] #{Account.current.inspect} #{Account.always_ok?} #{root?}" 
       unless Account.always_ok? or (Wql.root_perms_only && !root?)
         sql.conditions <<
-         "(#{table_alias}.read_rule_id IN (#{(rr=Account.authorized.read_rules).nil? ? 1 : rr*','}))"
-        #Rails.logger.debug "wql perms? #{Account.always_ok?} #{Account.authorized.id}, #{rr.inspect} SqCond: #{sql.conditions.inspect}" 
+         "(#{table_alias}.read_rule_id IN (#{(rr=Account.current.read_rules).nil? ? 1 : rr*','}))"
+        #Rails.logger.debug "wql perms? #{Account.always_ok?} #{Account.current.id}, #{rr.inspect} SqCond: #{sql.conditions.inspect}" 
       end
 
       sql.fields.unshift fields_to_sql

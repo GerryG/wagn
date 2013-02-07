@@ -367,7 +367,7 @@ end
 
 
 describe Card, "new permissions" do
-  Account.authorized_id= Card['joe_user'].id
+  Account.current_id= Card['joe_user'].id
 
   it "should let joe view new cards" do
     @c = Card.new

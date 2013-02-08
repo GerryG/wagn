@@ -8,6 +8,7 @@ class Account
   # not used by us (yet), but for the API:
   # Account.user_class = MyUserClass
   cattr_accessor :user_class
+  cattr_reader :current_id
 
   class << self
     # can these just be delegations:
@@ -58,24 +59,23 @@ class Account
     end
 
     def current
-      as_card || if @@current.nil? || @@current.id != @@current_id
-        @@current = Card[@@current_id]
+      if @@current.nil? || @@current.id != current_id
+        @@current = Card[current_id]
       else
- raise "???? #{@@current.inspect} .. #{@@curent_id} >#{current_id}" if @@current.id != @@current_id
-      Rails.logger.warn "current #{@@current_id}, #{@@as_id}, #{@@current.inspect}"
+ raise "???? #{@@current.inspect} .. #{current_id}" if @@current.id != current_id
+      Rails.logger.warn "current #{current_id}, #{@@as_id}, #{@@current.inspect}"
         @@current
       end
     end
 
-    def current_id            ; @@as_id || @@current_id                    end
-    def reset                 ; @@current_id = Card::AnonID; @@as_id = nil end
-    def session               ; Card[@@current_id]                         end
-    def current_id= card_id; @@current_id = card_id || Card::AnonID     end
-    def as_id                 ; @@as_id || @@current_id                    end
-    def as_bot &block         ; as Card::WagnBotID, &block                    end
+    def reset              ; current_id = Card::AnonID; @@as_id = nil end
+    def session            ; Card[current_id]                         end
+    def current_id= card_id; current_id = card_id || Card::AnonID     end
+    def as_id              ; @@as_id || current_id                    end
+    def as_bot &block      ; as Card::WagnBotID, &block               end
 
-    def among? authzed        ; current.among? authzed                     end
-    def logged_in?            ; @@current_id != Card::AnonID               end
+    def among? authzed     ; current.among? authzed                   end
+    def logged_in?         ; current_id != Card::AnonID               end
 
     def as given_account
       save_as_id = @@as_id
@@ -103,7 +103,7 @@ class Account
 
     def always_ok?
       return true if admin? #cannot disable
-      as_id = current_id
+      as_id = Account.as_id
  
       always = Card.cache.read('ALWAYS') || {}
       if always[as_id].nil?
@@ -119,7 +119,7 @@ class Account
 
     # FIXME stick this in session? cache it somehow??
     def ok_hash
-      as_id = current_id
+      as_id = Account.as_id
       ok_hash = Card.cache.read('OK') || {}
       if ok_hash[as_id].nil?
         ok_hash = ok_hash.dup if ok_hash.frozen?

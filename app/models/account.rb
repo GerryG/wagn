@@ -1,7 +1,7 @@
 
 class Account
   # This will probably have a hash of possible account classes and a value for the class
-  @@as_id = @@current = nil
+  @@as_card = @@as_id = @@current = nil
   @@current_id        = Card::AnonID  # this should never be nil, even when session[:user] is nil
   @@user_class        = User
 
@@ -50,14 +50,21 @@ class Account
       as_id == Card::WagnBotID
     end
 
-    def current
-      if @@current_id.nil? || @@current.nil? ||
-           @@current_id == Card::AnonID || @@current.id != current_id
-        @@current = Card[current_id]
-        #warn "load current #{@@current_id}, #{@@as_id}, #{@@current.inspect}"
+    def as_card
+      if @@as_card.nil? || @@as_card.id != @@as_id
+        @@as_card = Card[@@as_id]
+      else @@as_card
       end
+    end
+
+    def current
+      as_card || if @@current.nil? || @@current.id != @@current_id
+        @@current = Card[@@current_id]
+      else
+ raise "???? #{@@current.inspect} .. #{@@curent_id} >#{current_id}" if @@current.id != @@current_id
       Rails.logger.warn "current #{@@current_id}, #{@@as_id}, #{@@current.inspect}"
-      @@current
+        @@current
+      end
     end
 
     def current_id            ; @@as_id || @@current_id                    end

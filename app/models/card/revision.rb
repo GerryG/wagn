@@ -7,10 +7,12 @@ class Card::Revision < ActiveRecord::Base
   end
 
   def set_stamper
+    warn "set stam #{Account.current.inspect}"
     self.creator_id = Account.current_id
   end
 
   def creator
+    warn "cretor #{Card[ creator_id ].inspect}"
     Card[ creator_id ]
   end
 

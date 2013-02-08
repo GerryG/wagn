@@ -177,6 +177,8 @@ class AccountController < CardController
         flash[:notice] = "Check your email for your new temporary password"
         redirect_to previous_location
       end
+    else
+      raise Wagn::BadAddress
     end
   end
 

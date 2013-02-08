@@ -448,14 +448,18 @@ class Card < ActiveRecord::Base
 
   def current_revision
     #return current_revision || Card::Revision.new
+    warn "crev #{inspect} #{@cached_revision}"
     if @cached_revision and @cached_revision.id==current_revision_id
     elsif ( Card::Revision.cache &&
        @cached_revision=Card::Revision.cache.read("#{cardname.safe_key}-content") and
        @cached_revision.id==current_revision_id )
+       warn "chit #{@cached_revision.inspect}"
     else
+       warn "cmis #{@cached_revision.inspect}"
       rev = current_revision_id ? Card::Revision.find(current_revision_id) : Card::Revision.new()
       @cached_revision = Card::Revision.cache ?
         Card::Revision.cache.write("#{cardname.safe_key}-content", rev) : rev
+       warn "cmis 2 #{@cached_revision.inspect}"
     end
     @cached_revision
   end

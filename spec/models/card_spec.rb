@@ -109,14 +109,19 @@ describe Card do
       Account.as_bot do
         @b = Card.create! :name=>"New Card", :content=>"Great Content"
         @c = Card.find(@b.id)
+   warn "c is #{@c.inspect}"
       end
     end
 
     it "should not have errors"        do @b.errors.size.should == 0        end
     it "should have the right class"   do @c.class.should    == Card        end
     it "should have the right key"     do @c.key.should      == "new_card"  end
-    it "should have the right name"    do @c.name.should     == "New Card"  end
-    it "should have the right content" do @c.content.should  == "Great Content" end
+    it "should have the right name"    do
+   warn "c is #{@c.inspect} v:#{@c.current_revision.inspect}"
+@c.name.should     == "New Card"  end
+    it "should have the right content" do
+   warn "c is #{@c.inspect} v:#{@c.current_revision.inspect}"
+@c.content.should  == "Great Content" end
 
     it "should have a revision with the right content" do
       @c.current_revision.content == "Great Content"

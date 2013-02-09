@@ -44,6 +44,7 @@ module Cardlib::Permissions
     @permission_errors = []
 
     send "approve_#{operation}"
+    #warn "ok? #{inspect}, #{operation}, #{@operation_approved}"
     @operation_approved
   end
   alias_method_chain :ok?, :fetch # note: method is chained so that we can return the instance variable @operation_approved
@@ -113,7 +114,7 @@ module Cardlib::Permissions
   def approve_task operation, verb=nil
     deny_because "Currently in read-only mode" if operation != :read && Wagn::Conf[:read_only]
     verb ||= operation.to_s
-    #Rails.logger.info "approve_task[#{inspect}](#{operation}, #{verb})" if operation == :delete
+    #warn "approve_task[#{inspect}](#{operation}, #{verb})" if operation == :create
     deny_because you_cant("#{verb} this card") unless self.lets_account( operation )
   end
 
@@ -130,7 +131,7 @@ module Cardlib::Permissions
     #Rails.logger.warn "AR #{inspect} #{Account.always_ok?}"
     return true if Account.always_ok?
     @read_rule_id ||= (rr=permission_rule_card(:read).first).id.to_i
-    #Rails.logger.warn "AR #{name} #{@read_rule_id}, #{Account.session.inspect} #{rr&&rr.name}, RR:#{Account.current.read_rules.map{|i|c=Card[i] and c.name}*", "}"
+    warn "AR #{name} #{@read_rule_id}, #{Account.session.inspect} #{rr&&rr.name}, RR:#{Account.current.read_rules.map{|i|c=Card[i] and c.name}*", "}"
     unless Account.current.read_rules.member?(@read_rule_id.to_i)
       deny_because you_cant("read this card")
     end
@@ -187,6 +188,7 @@ module Cardlib::Permissions
       #find all cards with me as trunk and update their read_rule (because of *type plus right)
       # skip if name is updated because will already be resaved
 
+      warn "set_read_rule #{rcard.inspect}, #{rclass}"
       if !new_card? && updates.for(:type_id)
         Account.as_bot do
           Card.search(:left=>self.name).each do |plus_card|
@@ -203,7 +205,7 @@ module Cardlib::Permissions
     reset_patterns # why is this needed?
     rcard, rclass = permission_rule_card :read
     self.read_rule_id = rcard.id #these two are just to make sure vals are correct on current object
-    #Rails.logger.warn "updating read rule for #{inspect} to #{rcard.inspect}, #{rclass}"
+    warn "updating read rule for #{inspect} to #{rcard.inspect}, #{rclass}"
 
     self.read_rule_class = rclass
     Card.where(:id=>self.id).update_all(:read_rule_id=>rcard.id, :read_rule_class=>rclass)

@@ -26,9 +26,8 @@ class Account
 
     # return the account card
     def authenticate params
-      Rails.logger.warn "A.auth? #{params.inspect}"
+      #Rails.logger.warn "A.auth? #{params.inspect}"
       acct = lookup(params) and acct.authenticate(  card_with_acct = Card[ acct.card_id ], params )
-      Rails.logger.warn "auth? #{params.inspect}, #{card_with_acct.inspect} #{acct}"
       card_with_acct
     end
 
@@ -47,44 +46,43 @@ class Account
       else                    Card[session].send_if :id
       end
     end
-    def admin?()
-      as_id == Card::WagnBotID
-    end
 
     def as_card
-      if @@as_card.nil? || @@as_card.id != @@as_id
+      if @@as_card.nil? || (!@@as_id.nil? && @@as_card.id != @@as_id)
         @@as_card = Card[@@as_id]
       else @@as_card
       end
+      r=@@as_card || current
+      #warn "acard #{@@as_id}, #{current_id} R:#{r.inspect}"; r
     end
 
     def current
       if @@current.nil? || @@current.id != current_id
         @@current = Card[current_id]
       else
- raise "???? #{@@current.inspect} .. #{current_id}" if @@current.id != current_id
-      Rails.logger.warn "current #{current_id}, #{@@as_id}, #{@@current.inspect}"
+      #Rails.logger.warn "current #{current_id}, #{@@as_id}, #{@@current.inspect}"
         @@current
       end
     end
 
     def reset              ; current_id = Card::AnonID; @@as_id = nil end
-    def session            ; Card[current_id]                         end
-    def current_id= card_id; current_id = card_id || Card::AnonID     end
+    def current_id= card_id; @@current_id = card_id || Card::AnonID    end
     def as_id              ; @@as_id || current_id                    end
     def as_bot &block      ; as Card::WagnBotID, &block               end
 
-    def among? authzed     ; current.among? authzed                   end
+    def among? authzed     ; as_card.among? authzed                   end
     def logged_in?         ; current_id != Card::AnonID               end
+    def admin?             ; as_id == Card::WagnBotID                 end
 
     def as given_account
-      save_as_id = @@as_id
+      save_as_id, save_card = @@as_id, @@as_card
       @@as_id = get_user_id(given_account) || Card::AnonID
+      @@as_card = nil
       #Rails.logger.info "set ac #{current.inspect}"
 
       if block_given?
         value = yield
-        @@as_id = save_as_id
+        @@as_id, @@as_card = save_as_id, save_card
         return value
       #else fail "BLOCK REQUIRED with Card#as"
       end
@@ -103,15 +101,16 @@ class Account
 
     def always_ok?
       return true if admin? #cannot disable
-      as_id = Account.as_id
+      card_id = Account.as_id
  
       always = Card.cache.read('ALWAYS') || {}
-      if always[as_id].nil?
+      if always[card_id].nil?
         always = always.dup if always.frozen?
-        always[as_id] = !!Card[as_id].all_roles.detect{|r|r==Card::AdminID}
+        always[card_id] = !!Card[card_id].all_roles.detect{|r|r==Card::AdminID}
         Card.cache.write 'ALWAYS', always
        end
-     always[as_id]
+     #warn "always #{card_id}, #{always[card_id].inspect}"
+     always[card_id]
     end
 
   protected
@@ -119,19 +118,20 @@ class Account
 
     # FIXME stick this in session? cache it somehow??
     def ok_hash
-      as_id = Account.as_id
+      card_id = Account.as_id
       ok_hash = Card.cache.read('OK') || {}
-      if ok_hash[as_id].nil?
+      if ok_hash[card_id].nil?
         ok_hash = ok_hash.dup if ok_hash.frozen?
-        ok_hash[as_id] = begin
-            Card[as_id].all_roles.inject({:role_ids => {}}) do |ok,role_id|
+        ok_hash[card_id] = begin
+            Card[card_id].all_roles.inject({:role_ids => {}}) do |ok,role_id|
               ok[:role_ids][role_id] = true
               ok
             end
           end || false
         Card.cache.write 'OK', ok_hash
       end
-      ok_hash[as_id]
+      #warn "okh #{card_id}, #{ok_hash[card_id].inspect}"
+      ok_hash[card_id]
     end
 
   public

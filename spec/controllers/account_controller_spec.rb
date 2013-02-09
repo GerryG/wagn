@@ -30,22 +30,22 @@ describe AccountController, "account functions" do
       @ja_email = @jadmin.account.email
 
       @email_args = {:subject=>'Hey Joe!', :message=>'Come on in.'}
-      post :invite, :user=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'},
+      post :invite, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'},
         :email=> @email_args
 
       @cd_with_acct = Card['Joe New']
-      @new_user = User.where(:email=>'joe@new.com').first
-
+      @new_account = User.where(:email=>'joe@new.com').first
+      @auth_card = Card['Joe new']
     end
 
     it 'should create a user' do
-      acct_card = @new_user.fetch :trait => :account
-      @auth_card.type_id.should == Card::UserID
-      acct_card.type_id.should == Card::BasicID
+      @new_account.should be_instance_of User
+      warn "ne user #{@auth_card.inspect}, #{@new_account.inspect}"
+      #@auth_card.type_id.should == Card::UserID
       @new_account=Account.find_by_email('joe@new.com')
       #warn "... #{acct_card.inspect}, #{@auth_card.inspect} #{@new_account.inspect}"
       @new_account.should be
-      @new_account.account_id.should == acct_card.id
+      @new_account.card_id.should == @auth_card.id
     end
 
     it "should invite" do
@@ -132,8 +132,8 @@ describe AccountController, "account functions" do
       put :accept, :card=>{:key => "joe_new"}, :account=>{:status=>'active'}
 
       (@auth_card = Card['Joe New']).should be
-      @new_user = @user_user.to_user.should be
-      @new_user.card_id.should == @auth_card.id
+      (@new_account = @auth_card.account).should be
+      @new_account.card_id.should == @auth_card.id
       @auth_card.type_id.should == Card::UserID
       @msgs.size.should == 2
     end

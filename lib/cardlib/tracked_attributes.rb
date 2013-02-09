@@ -98,17 +98,17 @@ module Cardlib::TrackedAttributes
   end
 
   def set_content new_content
-    warn "set_content #{name} #{new_content}"
+    #warn "set_content no id #{name} #{new_content}" unless self.id
     return false unless self.id
+    #warn "set_content #{name} #{new_content}"
     #new_content ||= ''
     new_content ||= (tmpl = template).nil? ? '' : tmpl.content
     new_content = CleanHtml.clean! new_content if clean_html?
     clear_drafts if current_revision_id
-    warn "set_content #{name} #{Account.current_id}, #{new_content}"
-    new_rev = Card::Revision.create :card_id=>self.id, :content=>new_content, :creator_id =>Account.current_id
-    self.current_revision_id = new_rev.id
+    #warn "set_content #{name} #{Account.current_id}, #{new_content}"
+    srev = self.current_revision = Card::Revision.create( :card_id=>self.id, :content=>new_content, :creator_id =>Account.current_id )
     reset_patterns_if_rule unless new_card?
-    Rails.logger.warn "finish cont #{new_content}, #{inspect}"
+    #warn "finish cont #{new_content}, #{inspect}, #{self.current_revision.inspect} ,sr:#{srev.inspect}"
     @name_or_content_changed = true
   end
 
@@ -122,14 +122,13 @@ module Cardlib::TrackedAttributes
     # set_content bails out if we call it on a new record because it needs the
     # card id to create the revision.  call it again now that we have the id.
 
-    Rails.logger.warn "si cont #{content} #{updates.map(&:inspect)*', '} #{template.inspect}"
-    set_content updates.for?(:content) ? updates[:content] : template.send_if(:content)
-    #set_content updates[:content] if updates.for?(:content)
+    #warn "si cont #{content} #{updates.for?(:content).inspect}, #{updates[:content]}"
+    set_content updates[:content] # if updates.for?(:content)
     updates.clear :content
 
     # normally the save would happen after set_content. in this case, update manually:
-    Rails.logger.warn "set_initial_content #{content}, #{current_revision_id} #{inspect}"
-    Card.update(id, :current_revision_id => current_revision_id)
+    Card.where(:id=>id).update_all(:current_revision_id => current_revision_id)
+    #warn "set_initial_content #{content}, #{@current_revision_id}, s.#{self.current_revision_id} #{inspect}"
   end
 
   def cascade_name_changes

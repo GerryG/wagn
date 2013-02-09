@@ -22,6 +22,7 @@ class RevisionTest < ActiveSupport::TestCase
       author_cd2.save
     }
     Account.current_id = author_cd1.id
+    Rails.logger.warn "a1 #{author1.inspect}, #{author_cd1.inspect}, #{author2.inspect}"
     card = Card.create! :name=>'alpha', :content=>'stuff'
     assert_equal 1, card.revisions.length, 'Should have first revisions'
 

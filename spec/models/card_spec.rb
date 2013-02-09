@@ -108,8 +108,9 @@ describe Card do
     before(:each) do
       Account.as_bot do
         @b = Card.create! :name=>"New Card", :content=>"Great Content"
+        Rails.logger.warn "lookup #{@b.inspect}"
         @c = Card.find(@b.id)
-   warn "c is #{@c.inspect}"
+        Rails.logger.warn "c is #{@c.inspect} #{@c.content}, v:#{@c.current_revision.inspect}"
       end
     end
 
@@ -117,8 +118,8 @@ describe Card do
     it "should have the right class"   do @c.class.should    == Card        end
     it "should have the right key"     do @c.key.should      == "new_card"  end
     it "should have the right name"    do
-   warn "c is #{@c.inspect} v:#{@c.current_revision.inspect}"
-@c.name.should     == "New Card"  end
+   warn "c is #{@c.inspect} #{@c.content}  v:#{@c.current_revision.inspect}"
+  @c.name.should     == "New Card"  end
     it "should have the right content" do
    warn "c is #{@c.inspect} v:#{@c.current_revision.inspect}"
 @c.content.should  == "Great Content" end
@@ -297,18 +298,16 @@ describe "basic card tests" do
 
   it 'update_should_create_subcards' do
     Account.current_id = Card['joe_user'].id
-    Account.as 'joe_user' do
-      banana = Card.create! :name=>'Banana'
-      Card.update banana.id, :cards=>{ "+peel" => { :content => "yellow" }}
+    banana = Card.create! :name=>'Banana'
+    Card.update banana.id, :cards=>{ "+peel" => { :content => "yellow" }}
 
-      peel = Card['Banana+peel']
-      peel.content.       should == "yellow"
-      Card['joe_user'].id.should == peel.creator_id
-    end
+    peel = Card['Banana+peel']
+    peel.content.       should == "yellow"
+    Card['joe_user'].id.should == peel.creator_id
   end
 
   it 'update_should_create_subcards_as_wagn_bot_if_missing_subcard_permissions' do
-    Account.as 'joe user' do Card.create :name=>'peel' end
+    Card.create :name=>'peel'
     Account.current_id = Card::AnonID
 
     Card['Banana'].should_not be

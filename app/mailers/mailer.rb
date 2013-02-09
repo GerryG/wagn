@@ -16,7 +16,7 @@ class Mailer < ActionMailer::Base
     nil_args = EMAIL_FIELDS.find_all { |k| args[k].nil? }.compact
     if nil_args.any?
       unless cd_with_acct.errors[:email].any?
-        cd_with_acct.errors[:email].add(:email, "Missing email parameters: #{nil_args.map(&:to_s)*', '}")
+        cd_with_acct.errors.add(:email, "Missing email parameters: #{nil_args.map(&:to_s)*', '}")
       end
       false
     else

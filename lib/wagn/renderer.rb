@@ -269,7 +269,7 @@ module Wagn
           root.error_status = error_code
         end
       end
-      Rails.logger.info "ok_view[#{original_view}] #{view}, #{args.inspect}, Cd:#{card.inspect}" #{caller[0..20]*"\n"}"
+      #Rails.logger.info "ok_view[#{original_view}] #{view}, #{args.inspect}, Cd:#{card.inspect}" #{caller[0..20]*"\n"}"
       view
     end
 

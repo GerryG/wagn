@@ -9,7 +9,7 @@ module WagnTestHelper
     Account.reset
 
     Account.current_id = Card['joe_user'].id
-    Rails.logger.warn "setup default user #{Account.session}, #{Account.current}, #{Account.as_id}"
+    Rails.logger.warn "setup default user #{Account.as_card.inspect}, #{Account.current.inspect}, #{Account.current_id}"
 
     nil
   end

@@ -89,16 +89,14 @@ describe Card, "created with autoname" do
   end
 
   it "should auto-increment" do
-    c = Account.as_bot do
-      b1 = Card.create! :type=>'Book'
-      b2 = Card.create! :type=>'Book'
-    end
+    b1 = Card.create! :type=>'Book'
+    b2 = Card.create! :type=>'Book'
     b2.name.should== 'b2'
   end
 
   it "should handle trashed names" do
-    Account.as_bot { b1 = Card.create! :type=>'Book' }
-    Account.as_bot { b1.delete }
+    b1 = Card.create! :type=>'Book'
+    b1.delete
     b1 = Card.create! :type=>'Book'
     b1.name.should== 'b1'
   end

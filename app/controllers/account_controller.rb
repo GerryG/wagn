@@ -23,12 +23,12 @@ class AccountController < CardController
     acct_params = params[:account] || {}
     acct_params[:name] = @card.name
     @account = Account.new(acct_params).pending
-    Rails.logger.warn "acct? #{params.inspect}, #{acct_params.inspect}, #{@account}"
+    #warn "acct? #{params.inspect}, #{acct_params.inspect}, #{@account}"
 
-    Rails.logger.warn "signup #{request.put?} #{params.inspect}, #{@account.inspect}, #{@card.inspect}"
+    #warn "signup #{request.put?} #{params.inspect}, #{@account.inspect}, #{@card.inspect}"
     if request.post?
       @card.account= @account
-    Rails.logger.warn "signup post #{params.inspect}, #{@card.account.inspect}, #{@card.inspect}"
+      #warn "signup post #{params.inspect}, #{@card.account.inspect}, #{@card.inspect}"
 
       redirect_id = Card::SignupID 
       if @card.ok?(:create, :trait=>:account) 
@@ -103,7 +103,7 @@ class AccountController < CardController
       @account = card.account = ( Account.new( acct_params ) )
 
       @account.active.generate_password
-      #warn "User should be: #{@card.inspect}"
+      #warn "User should be: #{@card.account} :: #{@card.inspect}, #{@account.inspect}"
       if @card.save
         # and @account.valid? should not need this now @card.save should do it
 
@@ -143,6 +143,7 @@ class AccountController < CardController
 
   def signout
     self.current_account_id = nil
+    Account.current_id = Card::AnonID
     flash[:notice] = "Successfully signed out"
 
     redirect_to( Card.path_setting '/' )  # previous_location here can cause infinite loop.  ##  Really?  Shouldn't.  -efm

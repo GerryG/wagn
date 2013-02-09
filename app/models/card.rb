@@ -20,7 +20,7 @@ class Card < ActiveRecord::Base
   attr_reader :type_args
 
   before_save :set_stamper, :base_before_save, :set_read_rule, :set_tracked_attributes
-  after_save :base_after_save, :update_ruled_cards, :update_queue, :expire_related
+  after_save :base_after_save, :save_account, :update_ruled_cards, :update_queue, :expire_related
 
   cache_attributes 'name', 'type_id' #Review - still worth it in Rails 3?
 
@@ -446,20 +446,22 @@ class Card < ActiveRecord::Base
     @selected_rev_id or ( ( cr = current_revision ) ? cr.id : 0 )
   end
 
+  def current_revision= current_rev
+    self.current_revision_id = current_rev.id
+    @cached_revison = current_rev
+  end
+
   def current_revision
     #return current_revision || Card::Revision.new
-    #warn "crev #{inspect} #{@cached_revision}"
+    #warn "crev #{inspect} #{@cached_revision}, #{current_revision_id}"
     if @cached_revision and @cached_revision.id==current_revision_id
     elsif ( Card::Revision.cache &&
        @cached_revision=Card::Revision.cache.read("#{cardname.safe_key}-content") and
        @cached_revision.id==current_revision_id )
-       #warn "chit #{@cached_revision.inspect}"
     else
-       #warn "cmis #{@cached_revision.inspect}"
       rev = current_revision_id ? Card::Revision.find(current_revision_id) : Card::Revision.new()
       @cached_revision = Card::Revision.cache ?
         Card::Revision.cache.write("#{cardname.safe_key}-content", rev) : rev
-       #warn "cmis 2 #{@cached_revision.inspect}"
     end
     @cached_revision
   end
@@ -517,7 +519,7 @@ class Card < ActiveRecord::Base
   def account= acct; @account = acct end
 
   def save_account
-    #Rails.logger.warn "save_account #{inspect} a:#{@account}"
+    Rails.logger.warn "save_account #{inspect} a:#{@account}"
     #warn "save_account #{@account.inspect}, #{inspect} #{@account and right_id != AccountID}"
     if @account and right_id != AccountID
       acct_card = self.fetch(:trait => :account, :new=>{})
@@ -541,22 +543,25 @@ class Card < ActiveRecord::Base
 
   def send_account_info args
     return false unless Mailer.valid_args?(self, args)
-    Mailer.account_info(self, args).deliver
-  rescue Exception=>e
-    self.errors.add(:email, "Exception sending email: #{e.inspect}")
-    warn "ACCOUNT INFO DELIVERY FAILED: \n #{args.inspect}\n   #{e.message}"
-    Rails.logger.info "ACCOUNT INFO DELIVERY FAILED: \n #{args.inspect}\n   #{e.message}, #{e.backtrace*"\n"}"
-    false
+    begin
+      Mailer.account_info(self, args).deliver
+    rescue Exception=>e
+      self.errors.add(:email, "Exception sending email: #{e.inspect}")
+      warn "ACCOUNT INFO DELIVERY FAILED: \n #{args.inspect}\n   #{e.message}"
+      Rails.logger.info "ACCOUNT INFO DELIVERY FAILED: \n #{args.inspect}\n   #{e.message}, #{e.backtrace*"\n"}"
+      false
+    end
   end
 
   #~~~~~~~~~~~~~~ USER-ISH methods ~~~~~~~~~~~~~~#
   # these should be done in a set module when we have the capacity to address the set of "cards with accounts"
   # in the meantime, they should probably be in a module.
 
-  def among? authzed
+  def among? card_with_acct
     prties = parties
-    authzed.each { |auth| return true if prties.member? auth }
-    authzed.member? Card::AnyoneID
+    warn "among #{inspect} :: #{prties.inspect} A:#{card_with_acct.inspect}"
+    card_with_acct.each { |auth| return true if prties.member? auth }
+    card_with_acct.member? Card::AnyoneID
   end
 
   def parties

@@ -14,13 +14,13 @@ describe AdminController, "admin functions" do
   end
 
   it "should clear cache" do
-    Account.as :joe_user do
+    Account.as 'joe_user' do
       get :clear_cache
     end
   end
 
   it "should show cache" do
-    Account.as :joe_user do
+    Account.as 'joe_user' do
       get :show_cache, :id=>"A"
     end
   end

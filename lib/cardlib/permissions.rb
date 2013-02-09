@@ -188,7 +188,7 @@ module Cardlib::Permissions
       #find all cards with me as trunk and update their read_rule (because of *type plus right)
       # skip if name is updated because will already be resaved
 
-      warn "set_read_rule #{rcard.inspect}, #{rclass}"
+      #warn "set_read_rule #{rcard.inspect}, #{rclass}"
       if !new_card? && updates.for(:type_id)
         Account.as_bot do
           Card.search(:left=>self.name).each do |plus_card|
@@ -205,7 +205,7 @@ module Cardlib::Permissions
     reset_patterns # why is this needed?
     rcard, rclass = permission_rule_card :read
     self.read_rule_id = rcard.id #these two are just to make sure vals are correct on current object
-    warn "updating read rule for #{inspect} to #{rcard.inspect}, #{rclass}"
+    #warn "updating read rule for #{inspect} to #{rcard.inspect}, #{rclass}"
 
     self.read_rule_class = rclass
     Card.where(:id=>self.id).update_all(:read_rule_id=>rcard.id, :read_rule_class=>rclass)
@@ -227,13 +227,13 @@ module Cardlib::Permissions
   # fifo of cards that need read rules updated
   def update_read_rule_list() @update_read_rule_list ||= [] end
   def read_rule_updates updates
-    warn "rrups #{updates.inspect}"
+    #warn "rrups #{updates.inspect}"
     @update_read_rule_list = update_read_rule_list.concat updates
     # to short circuite the queue mechanism, just each the new list here and update
   end
 
   def update_queue
-    warn "update queue[#{inspect}] Q[#{self.update_read_rule_list.inspect}]"
+    #warn "update queue[#{inspect}] Q[#{self.update_read_rule_list.inspect}]"
 
     self.update_read_rule_list.each { |card| card.update_read_rule }
     self.update_read_rule_list = []
@@ -260,7 +260,7 @@ module Cardlib::Permissions
       if !(self.trash)
         if class_id = (set=left and set_class=set.tag and set_class.id)
           rule_class_ids = Cardlib::Pattern.subclasses.map &:key_id
-          warn "rule_class_id #{class_id}, #{rule_class_ids*", "}"
+          #warn "rule_class_id #{class_id}, #{rule_class_ids*", "}"
 
           #first update all cards in set that aren't governed by narrower rule
            Account.as_bot do
@@ -274,9 +274,9 @@ module Cardlib::Permissions
                 end
              elsif rule_class_index = rule_class_ids.index( 0 )
                in_set[trunk.key] = true
-               warn "self rule update: #{trunk.inspect}, #{rule_class_index}, #{cur_index}"
+               #warn "self rule update: #{trunk.inspect}, #{rule_class_index}, #{cur_index}"
                trunk.update_read_rule if cur_index > rule_class_index
-             else warn "No current rule index #{class_id}, #{rule_class_ids.inspect}"
+             #else warn "No current rule index #{class_id}, #{rule_class_ids.inspect}"
              end
           end
 

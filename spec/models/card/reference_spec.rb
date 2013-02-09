@@ -96,11 +96,11 @@ describe "Card::Reference" do
   it "should update referencers on rename when requested (case 2)" do
     Account.as_bot do
       card = Card['Administrator links+*self+*read']
-      refs = Card::Reference.where(:referenced_card_id => Card::AdminID).map(&:card_id).sort
+      refs = Card::Reference.where(:referee_id => Card::AdminID).map(&:referer_id).sort
       card.update_referencers = true
       card.name='Administrator links+*type+*read'
       card.save
-      Card::Reference.where(:referenced_card_id => Card::AdminID).map(&:card_id).sort.should == refs
+      Card::Reference.where(:referee_id => Card::AdminID).map(&:referer_id).sort.should == refs
     end
   end
 

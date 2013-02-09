@@ -88,15 +88,10 @@ class Account
       end
     end
  
-    def no_logins?
+    def first_login?()
       cache = Card.cache
       !!(rd=cache.read('no_logins')) ? rd : cache.write( 'no_logins',
                (Card.search({:right=>Card::AccountID, :left=>{:type=>Card::UserID }}).count == 0 ))
-    end
-
-    def first_login?()
-       Card.cache.first_login? || 
-         Card.cache.first_login= @@user_class.where(:status => 'active').count > 2
     end
 
     def always_ok?

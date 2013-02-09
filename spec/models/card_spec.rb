@@ -118,10 +118,10 @@ describe Card do
     it "should have the right class"   do @c.class.should    == Card        end
     it "should have the right key"     do @c.key.should      == "new_card"  end
     it "should have the right name"    do
-   warn "c is #{@c.inspect} #{@c.content}  v:#{@c.current_revision.inspect}"
+   #warn "c is #{@c.inspect} #{@c.content}  v:#{@c.current_revision.inspect}"
   @c.name.should     == "New Card"  end
     it "should have the right content" do
-   warn "c is #{@c.inspect} v:#{@c.current_revision.inspect}"
+   #warn "c is #{@c.inspect} v:#{@c.current_revision.inspect}"
 @c.content.should  == "Great Content" end
 
     it "should have a revision with the right content" do

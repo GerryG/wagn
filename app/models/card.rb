@@ -559,7 +559,7 @@ class Card < ActiveRecord::Base
 
   def among? card_with_acct
     prties = parties
-    warn "among #{inspect} :: #{prties.inspect} A:#{card_with_acct.inspect}"
+    #warn "among #{inspect} :: #{prties.inspect} A:#{card_with_acct.inspect}"
     card_with_acct.each { |auth| return true if prties.member? auth }
     card_with_acct.member? Card::AnyoneID
   end

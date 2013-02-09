@@ -131,7 +131,7 @@ module Cardlib::Permissions
     #Rails.logger.warn "AR #{inspect} #{Account.always_ok?}"
     return true if Account.always_ok?
     @read_rule_id ||= (rr=permission_rule_card(:read).first).id.to_i
-    warn "AR #{name} #{@read_rule_id}, #{Account.session.inspect} #{rr&&rr.name}, RR:#{Account.current.read_rules.map{|i|c=Card[i] and c.name}*", "}"
+    #warn "AR #{name} #{@read_rule_id}, #{Account.current.inspect} #{rr&&rr.name}, RR:#{Account.current.read_rules.map{|i|c=Card[i] and c.name}*", "}"
     unless Account.current.read_rules.member?(@read_rule_id.to_i)
       deny_because you_cant("read this card")
     end
@@ -227,13 +227,13 @@ module Cardlib::Permissions
   # fifo of cards that need read rules updated
   def update_read_rule_list() @update_read_rule_list ||= [] end
   def read_rule_updates updates
-    #warn "rrups #{updates.inspect}"
+    warn "rrups #{updates.inspect}"
     @update_read_rule_list = update_read_rule_list.concat updates
     # to short circuite the queue mechanism, just each the new list here and update
   end
 
   def update_queue
-    #warn (Rails.logger.warn "update queue[#{inspect}] Q[#{self.update_read_rule_list.inspect}]")
+    warn "update queue[#{inspect}] Q[#{self.update_read_rule_list.inspect}]"
 
     self.update_read_rule_list.each { |card| card.update_read_rule }
     self.update_read_rule_list = []
@@ -251,7 +251,7 @@ module Cardlib::Permissions
       # (though maybe not as a tracked_attribute for performance reasons?)
       # AND need to make sure @changed gets wiped after save (probably last in the sequence)
 
-      Card.cache.reset # maybe be more surgical, just Account.session related
+      Card.cache.reset # maybe be more surgical, just Account.current related
       expire #probably shouldn't be necessary,
       # but was sometimes getting cached version when card should be in the trash.
       # could be related to other bugs?
@@ -260,7 +260,7 @@ module Cardlib::Permissions
       if !(self.trash)
         if class_id = (set=left and set_class=set.tag and set_class.id)
           rule_class_ids = Cardlib::Pattern.subclasses.map &:key_id
-          #warn "rule_class_id #{class_id}, #{rule_class_ids.inspect}"
+          warn "rule_class_id #{class_id}, #{rule_class_ids*", "}"
 
           #first update all cards in set that aren't governed by narrower rule
            Account.as_bot do
@@ -274,7 +274,7 @@ module Cardlib::Permissions
                 end
              elsif rule_class_index = rule_class_ids.index( 0 )
                in_set[trunk.key] = true
-               #Rails.logger.warn "self rule update: #{trunk.inspect}, #{rule_class_index}, #{cur_index}"
+               warn "self rule update: #{trunk.inspect}, #{rule_class_index}, #{cur_index}"
                trunk.update_read_rule if cur_index > rule_class_index
              else warn "No current rule index #{class_id}, #{rule_class_ids.inspect}"
              end

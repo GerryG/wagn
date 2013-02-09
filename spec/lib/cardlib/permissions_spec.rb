@@ -235,11 +235,11 @@ describe "Permission", ActiveSupport::TestCase do
       rc=@u1.fetch(:trait=>:roles)
       rc.content = ''; rc << @r1 << @r2
       rc.save
-      warn "rc #{rc.inspect}, #{rc.content}"
+      #warn "rc #{rc.inspect}, #{rc.content}"
       rc=@u2.fetch(:trait=>:roles)
       rc.content = ''; rc << @r1 << @r3
       rc.save
-      warn "rc #{rc.inspect}, #{rc.content}"
+      #warn "rc #{rc.inspect}, #{rc.content}"
 
       [1,2,3].each do |num|
         Card.create(:name=>"c#{num}+*self+*read", :type=>'Pointer', :content=>"[[r#{num}]]")

@@ -238,7 +238,7 @@ module Wagn
             <fieldset>
               <div class="button-area">
                 #{ submit_tag 'Submit', :class=>'submit-button' }
-                #{ button_tag 'Cancel', :class=>'cancel-button slotter', :href=>path(:read), :type=>'button'}
+                #{ button_tag 'Cancel', :class=>'cancel-button slotter', :href=>path(:action=>:read), :type=>'button'}
                 #{
                 if !card.new_card?
                   button_tag "Delete", :href=>path(:action=>:delete), :type=>'button',

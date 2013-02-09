@@ -131,7 +131,7 @@ class CardController < ApplicationController
 
     Rails.logger.info "create_account 1 #{acct.inspect}, #{card.inspect}"
     if card.save
-      Rails.logger.info "create_account #{params.inspect}, #{email_args.inspect}"
+      Rails.logger.info "create_account #{params.inspect}"
       card.send_account_info :to => acct.email, :password => acct.password,
              :subject  => "Your new #{Card.setting :title} account.",   #ENGLISH
              :message  => "Welcome!  You now have an account on #{Card.setting :title}." #ENGLISH

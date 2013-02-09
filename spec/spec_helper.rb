@@ -79,6 +79,7 @@ end
     end
   end
 
+=end
 
   def assert_difference(object, method = nil, difference = 1)
     initial_value = object.send(method)
@@ -86,6 +87,7 @@ end
     assert_equal initial_value + difference, object.send(method), "#{object}##{method}"
   end
 
+=begin
   def assert_no_difference(object, method, &block)
     assert_difference object, method, 0, &block
   end

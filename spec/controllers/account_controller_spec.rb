@@ -40,7 +40,7 @@ describe AccountController, "account functions" do
 
     it 'should create a user' do
       @new_account.should be_instance_of User
-      warn "ne user #{@auth_card.inspect}, #{@new_account.inspect}"
+      #warn "ne user #{@auth_card.inspect}, #{@new_account.inspect}"
       #@auth_card.type_id.should == Card::UserID
       @new_account=Account.find_by_email('joe@new.com')
       #warn "... #{acct_card.inspect}, #{@auth_card.inspect} #{@new_account.inspect}"

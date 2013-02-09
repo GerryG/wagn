@@ -10,10 +10,9 @@ class Wagn::Set::Type::ImageTest < ActiveSupport::TestCase
 
   def test_image_creation
 
-    Rails.logger.warn "user? #{Account.as_card.inspect}, #{Account.current.inspect}"
-    @c=Card.create :name => "Bananamaster", :typecode=>'image',
+    card=Card.create :name => "Bananamaster", :typecode=>'image',
                    :attach=>File.new("#{Rails.root}/test/fixtures/mao2.jpg")
-    @c.attach_file_name == 'Bananamaster.jpg'
+    assert_match /^\/files\/Bananamaster-original-\d+/, card.attach.url
   end
 
 end

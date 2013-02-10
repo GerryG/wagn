@@ -26,7 +26,7 @@ module Notification
       #Rails.logger.warn "send notice #{action}, #{inspect} TW:#{@trunk_watchers.inspect}"
 
       watcher_watched_pairs.reject {|p| @trunk_watchers.include?(p.first) }.each do |watcher, watched|
-        #warn "wtch: Mailer.change_notice( #{watcher.inspect}, #{self.inspect}, #{action.inspect}, #{watched.inspect}, #{nested_notifications.inspect}"
+        Rails.logger.warn "wtch: Mailer.change_notice( #{watcher.inspect}, #{self.inspect}, #{action.inspect}, #{watched.inspect}, #{nested_notifications.inspect}"
         watcher and mail = Mailer.change_notice( watcher, self, action,
                         watched.to_s, nested_notifications ) and mail.deliver
       end
@@ -87,7 +87,6 @@ module Notification
 
       else [] 
       end
-      #warn "wp r:#{r}"; r
     end
   end
 

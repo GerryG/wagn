@@ -26,18 +26,18 @@ module Cardlib::Fetch
     def fetch mark, opts = {}
       # "mark" here means a generic identifier -- can be a numeric id, a name, a string name, etc.
 #      ActiveSupport::Notifications.instrument 'wagn.fetch', :message=>"fetch #{cardname}" do
+
       if mark.nil?
         return if opts[:new].nil?
         # This is fetch_or_new now when you supply :new=>{opts}
 
       else
 
-        #warn "fetch #{mark.inspect}, #{opts.inspect}"
+        #Rails.logger.warn "fetch #{mark.inspect}, #{opts.inspect}"
         # Symbol (codename) handling
         if Symbol===mark
           mark = Wagn::Codename[mark] || raise( "Missing codename for #{mark.inspect}" )
         end
-
 
         cache_key, method, val = if Integer===mark
           [ "~#{mark}", :find_by_id_and_trash, mark ]
@@ -52,7 +52,6 @@ module Cardlib::Fetch
         #Cache lookup
         result = Card.cache.read cache_key if Card.cache
         card = (result && Integer===mark) ? Card.cache.read(result) : result
-        #warn "fetch R #{cache_key}, #{method}, R:#{result}, c:#{card&&card.name}"
 
         unless card
           # DB lookup
@@ -72,6 +71,7 @@ module Cardlib::Fetch
       else
         return card.fetch_new(opts) if card && opts[:skip_virtual] && card.new_card?
 
+        #warn "new card? #{card.inspect}"
         # NEW card -- (either virtual or missing)
         if card.nil? or ( !opts[:skip_virtual] && card.type_id==-1 )
           # The -1 type_id allows us to skip all the type lookup and flag the need for

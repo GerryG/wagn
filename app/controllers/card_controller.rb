@@ -1,8 +1,8 @@
 # -*- encoding : utf-8 -*-
-
 require_dependency 'cardlib'
 
 class CardController < ApplicationController
+  include Wagn::Sets::CardActions
 
   helper :wagn
 
@@ -12,48 +12,37 @@ class CardController < ApplicationController
   before_filter :load_card
   before_filter :refresh_card, :only=> [ :create, :update, :delete, :comment, :rollback ]
 
-  def create
-    if card.save
-      success
-    else
-      render_errors
+  attr_reader :card
+
+  METHODS = {
+    'POST'   => :create,  # C
+    'GET'    => :read,    # R
+    'PUT'    => :update,  # U
+    'DELETE' => :delete,  # D
+    'INDEX'  => :index
+  }
+
+  # this form of dispatching is not used yet, write specs first, then integrate into routing
+  def action
+    @action = METHODS[request.method]
+    Rails.logger.warn "action #{request.method}, #{@action} #{params.inspect}"
+    #warn "action #{request.method}, #{@action} #{params.inspect}"
+    send "perform_#{@action}"
+    render_errors || success
+  end
+
+  def action_method event
+    return "_final_#{event}" unless card && subset_actions[event]
+    card.method_keys.each do |method_key|
+      meth = "_final_"+(method_key.blank? ? "#{event}" : "#{method_key}_#{event}")
+      #warn "looking up #{method_key}, M:#{meth} for #{card.name}"
+      return meth if respond_to?(meth.to_sym)
     end
   end
 
-  def read
-    save_location # should be an event!
-    show
+  def action_error *a
+    warn "action_error #{a.inspect}"
   end
-
-  def update
-    if card.new_card?
-      create
-    elsif card.update_attributes params[:card]
-      success
-    else
-      render_errors
-    end
-  end
-
-  def delete
-    if card.delete
-      discard_locations_for card #should be an event
-      success 'REDIRECT: *previous'
-    else
-      render_errors
-    end
-  end
-
-  #FIXME!  move into renderer
-  def read_file
-    if card.ok? :read
-      show_file
-    else
-      wagn_redirect "#{params[:id]}?view=denial"
-    end
-  end 
-
-
 
 
   ## the following methods need to be merged into #update
@@ -139,7 +128,7 @@ class CardController < ApplicationController
     card.ok!(:create, :new=>{}, :trait=>:account)
     email_args = { :subject => "Your new #{Card.setting :title} account.",   #ENGLISH
                    :message => "Welcome!  You now have an account on #{Card.setting :title}." } #ENGLISH
-    @user, @card = User.create_with_card(params[:user],card, email_args)
+    @user, @card = User.create_with_card(params[:user], card, email_args)
     raise ActiveRecord::RecordInvalid.new(@user) if !@user.errors.empty?
     #@account = User.new(:email=>@user.email)
 #    flash[:notice] ||= "Done.  A password has been sent to that email." #ENGLISH
@@ -192,6 +181,7 @@ class CardController < ApplicationController
         opts[:type] ||= params[:type] # for /new/:type shortcut.  we should fix and deprecate this.
         name = params[:id] || opts[:name]
         
+        #warn "load card #{@action.inspect}, p:#{params.inspect} :: #{name.inspect} #{opts.inspect}"
         if @action == 'create'
           # FIXME we currently need a "new" card to catch duplicates (otherwise #save will just act like a normal update)
           # I think we may need to create a "#create" instance method that handles this checking.
@@ -203,6 +193,7 @@ class CardController < ApplicationController
         end
       end
 
+    #warn "load_card #{card.inspect}"
     Wagn::Conf[:main_name] = params[:main] || (card && card.name) || ''
     render_errors if card.errors.any?
     true
@@ -216,6 +207,7 @@ class CardController < ApplicationController
   #------- REDIRECTION 
 
   def success default_target='_self'
+    #warn "success #{default_target}, #{card.inspect}"
     target = params[:success] || default_target
     redirect = !ajax?
     new_params = {}
@@ -245,6 +237,7 @@ class CardController < ApplicationController
       @card = target
       show new_params[:view]
     end
+    true
   end
 
 end

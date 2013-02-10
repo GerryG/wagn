@@ -1,5 +1,6 @@
 module Wagn
-  module Set::Right::Template
+  module Set::Right::TemplateRight
+
     include Wagn::Sets
 
     format :base
@@ -10,6 +11,7 @@ module Wagn
       #  self._final_core args
       #end
     end
+
     alias_view :core, {:right=>'content'}, {:right=>'default'}
 
     define_view :template_rule, :tags=>:unknown_ok do |args|
@@ -26,7 +28,6 @@ module Wagn
           end
         "<strong>{{#{args[:unmask]}}} -- #{set_name}</strong>"
       end
-
     end
   end
 end

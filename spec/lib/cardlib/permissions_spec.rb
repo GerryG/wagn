@@ -111,7 +111,7 @@ describe "reader rules" do
   end
 
   it "should get updated when relative settings change" do
-    all_plus = Card.fetch '*all plus+*read', :new=>{:content=>'_left'}
+    all_plus = Card.fetch '*all plus+*read', :new => { :content=>'_left' }
     all_plus.save
     c = Card.new(:name=>'Home+Heart')
     c.who_can(:read).should == [Card::AnyoneID]
@@ -130,7 +130,7 @@ describe "reader rules" do
 
   it "should insure that class overrides work with relative settings" do
     Account.as_bot do
-      all_plus = Card.fetch '*all plus+*read', :new=>{:content=>'_left'}
+      all_plus = Card.fetch '*all plus+*read', :new => { :content=>'_left' }
       all_plus.save
       Account.as_bot { @perm_card.save! }
       c = Card.create(:name=>'Home+Heart')

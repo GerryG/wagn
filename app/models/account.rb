@@ -92,10 +92,13 @@ class Account
       Card.cache.delete 'no_logins'
     end
 
-    def first_login?()
+    def first_login?
       cache = Card.cache
-      !!(rd=cache.read('no_logins')) ? rd : cache.write( 'no_logins',
-               (Card.search({:right=>Card::AccountID, :left=>{:type=>Card::UserID }}).count == 0 ))
+      !( if cval=cache.read('no_logins')
+           cval
+         else
+           cache.write( 'no_logins', Card.search({:right=>Card::AccountID, :left=>{:type=>Card::UserID }}).count == 0 )
+         end )
     end
 
     def always_ok?

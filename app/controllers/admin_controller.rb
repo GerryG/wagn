@@ -26,7 +26,7 @@ class AdminController < CardController
           roles_card.save
           self.current_account_id = @card.id
           Account.current_id = card.id
-          Card.cache.delete 'no_logins'
+          Account.first_login!
           flash[:notice] = "You're good to go!"
           redirect_to Card.path_setting('/')
         else

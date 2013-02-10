@@ -42,9 +42,9 @@ Rails.logger.warn "rref? #{was_name} :#{inspect}"
     # FIXME: why not like this: references_expired = nil # do we have to make sure this is saved?
     #Card.update( id, :references_expired=>nil )
     #  or just this and save it elsewhere?
-    #references_expired=nil
+    Rails.logger.warn "expire refs #{inspect}"
     connection.execute("update cards set references_expired=NULL where id=#{id}")
-    expire if refresh
+    expire
 
     rendered_content ||= ObjectContent.new(content, {:card=>self} )
       

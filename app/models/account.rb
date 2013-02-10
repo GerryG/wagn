@@ -88,6 +88,10 @@ class Account
       end
     end
  
+    def first_login!
+      Card.cache.delete 'no_logins'
+    end
+
     def first_login?()
       cache = Card.cache
       !!(rd=cache.read('no_logins')) ? rd : cache.write( 'no_logins',

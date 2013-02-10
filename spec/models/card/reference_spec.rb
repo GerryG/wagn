@@ -5,25 +5,32 @@ describe "Card::Reference" do
 
   describe "references on hard templated cards should get updated" do
     it "on templatee creation" do
+     Account.as 'joe user' do
       Card.create! :name=>"JoeForm", :type=>'UserForm'
       Wagn::Renderer.new(Card["JoeForm"]).render(:core)
       assert_equal ["joe_form+age", "joe_form+description", "joe_form+name"],
         Card["JoeForm"].includees.map(&:key).sort
       Card["JoeForm"].references_expired.should_not == true
+     end
     end
 
     it "on template creation" do
+     Account.as 'joe admin' do
       Card.create! :name=>"SpecialForm", :type=>'Cardtype'
       Card.create! :name=>"Form1", :type=>'SpecialForm', :content=>"foo"
       c = Card["Form1"]
+      warn "card #{c.references_expired.inspect} c:#{c.inspect}"
       c.references_expired.should be_nil
       Card.create! :name=>"SpecialForm+*type+*content", :content=>"{{+bar}}"
       c = Card["Form1"]
+      warn "card #{c.inspect}"
       c.references_expired.should be_true
       Wagn::Renderer.new(Card["Form1"]).render(:core)
       c = Card["Form1"]
+      warn "card #{c.inspect}"
       c.references_expired.should be_nil
       Card["Form1"].includees.map(&:key).should == ["form1+bar"]
+     end
     end
 
     it "on template update" do
@@ -106,6 +113,7 @@ describe "Card::Reference" do
 
   it "should not update references when not requested" do
 
+   Account.as 'joe user' do
     watermelon = newcard('watermelon', 'mmmm')
     watermelon_seeds = newcard('watermelon+seeds', 'black')
     lew = newcard('Lew', "likes [[watermelon]] and [[watermelon+seeds|seeds]]")
@@ -118,6 +126,7 @@ describe "Card::Reference" do
     lew.reload.content.should == "likes [[watermelon]] and [[watermelon+seeds|seeds]]"
     assert_equal [ 'L', 'L' ], lew.out_references.map(&:ref_type), "links should be a LINK"
     assert_equal [ 0, 0 ], lew.out_references.map(&:present), "links should not be present"
+   end
   end
 
   it "update referencing content on rename junction card" do
@@ -152,10 +161,12 @@ describe "Card::Reference" do
   end
 
   it "simple link" do
+   Account.as 'joe user' do
     alpha = Card.create :name=>'alpha'
     beta = Card.create :name=>'beta', :content=>"I link to [[alpha]]"
     Card['alpha'].referencers.map(&:name).should == ['beta']
     Card['beta'].referencees.map(&:name).should == ['alpha']
+   end
   end
 
   it "link with spaces" do
@@ -187,8 +198,10 @@ describe "Card::Reference" do
   end
   
   it "should handle commented inclusion" do
+   Account.as 'joe user' do
     c = Card.create :name=>'inclusion comment test', :content=>'{{## hi mom }}'
     c.errors.any?.should be_false
+   end
   end
 
 

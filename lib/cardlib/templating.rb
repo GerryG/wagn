@@ -15,7 +15,7 @@ module Cardlib::Templating
   def template
     # currently applicable templating card.
     # note that a *default template is never returned for an existing card.
-    if @template.nil?
+    @template ||= begin
       @virtual = false
       if new_card?
         default_card = rule_card :default, :skip_modules=>true
@@ -27,16 +27,14 @@ module Cardlib::Templating
 
         if content_card = dup_card.content_rule_card
           @virtual = true
-          @template = content_card
+          content_card
         else
-          @template = default_card
+          default_card
         end
       else
-        @template = content_rule_card
+        content_rule_card
       end
     end
-    #warn "template #{inspect} => #{@template.inspect}"
-    @template
   end
 
   def hard_template
@@ -58,6 +56,7 @@ module Cardlib::Templating
 
   def hard_templatee_names
     if wql = hard_templatee_spec
+      #warn "ht_names_wql #{wql.inspect}"
       Account.as_bot do
         wql == true ? [name] : Wql.new(wql.merge :return=>:name).run
       end
@@ -85,10 +84,8 @@ module Cardlib::Templating
   private
 
   def hard_templatee_spec
-    if is_hard_template? and tk=trunk and tk.type_id == Card::SetID
-      tk.get_spec
-    else
-      true
+    if is_hard_template? and c=Card.fetch(cardname.trunk_name)
+      c.type_id == Card::SetID ? c.get_spec : true
     end
   end
 

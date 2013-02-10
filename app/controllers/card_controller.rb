@@ -164,7 +164,7 @@ class CardController < ApplicationController
 
   def load_id
     params[:id] ||= case
-      when Account.no_logins?
+      when !Account.first_login?
         return wagn_redirect( '/admin/setup' )
       when params[:card] && params[:card][:name]
         params[:card][:name]

@@ -3,26 +3,26 @@ class Account
   # This will probably have a hash of possible account classes and a value for the class
   @@as_card = @@as_id = @@current = nil
   @@current_id        = Card::AnonID  # this should never be nil, even when session[:user] is nil
-  @@user_class        = User
+  @@account_class        = User
 
   # not used by us (yet), but for the API:
-  # Account.user_class = MyUserClass
-  cattr_accessor :user_class
+  # Account.account_class = MyUserClass
+  cattr_accessor :account_class
   cattr_reader :current_id
 
   class << self
     # can these just be delegations:
 
     def [] id
-      @@user_class.find_by_card_id id or
-        @@user_class.find_by_account_id id
+      @@account_class.find_by_card_id id or
+        @@account_class.find_by_account_id id
     end
 
-    def new *args            ; @@user_class.new(*args)            end
-    def find_by_email email  ; @@user_class.find_by_email(email)  end
-    #def find_by_login login  ; @@user_class.find_by_login(login)  end
-    def find_by_account_id id; @@user_class.find_by_account_id id end
-    def find_by_card_id id   ; @@user_class.find_by_card_id id    end
+    def new *args            ; @@account_class.new(*args)            end
+    def find_by_email email  ; @@account_class.find_by_email(email)  end
+    #def find_by_login login  ; @@account_class.find_by_login(login)  end
+    def find_by_account_id id; @@account_class.find_by_account_id id end
+    def find_by_card_id id   ; @@account_class.find_by_card_id id    end
 
     # return the account card
     def authenticate params
@@ -41,7 +41,7 @@ class Account
     def get_user_id acct
       case acct
       when NilClass, Integer; acct
-      when @@user_class     ; acct.card_id
+      when @@account_class     ; acct.card_id
       when Card             ; acct.id
       else                    Card[acct].send_if :id
       end

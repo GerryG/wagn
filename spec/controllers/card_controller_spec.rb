@@ -170,7 +170,6 @@ describe CardController do
     include AuthenticatedTestHelper
 
     before do
-      @user = Card['joe_user'].account
       @request    = ActionController::TestRequest.new
       @response   = ActionController::TestResponse.new
       @controller = CardController.new
@@ -385,7 +384,7 @@ describe CardController, "test/integration card action tests" do
   it "should test_should_create_account_from_scratch" do
     login_as 'joe_admin'
     assert_difference ActionMailer::Base.deliveries, :size do
-      post :create_account, :id=>'a', :user=>{:email=>'foo@bar.com'}
+      post :create_account, :id=>'a', :account=>{:email=>'foo@bar.com'}
       assert_response :redirect  # this now redirects, and I think that is correct
     end
     email = ActionMailer::Base.deliveries[-1]

@@ -85,7 +85,7 @@ describe AccountController, "account functions" do
     
     it 'should create a user' do
       #warn "who #{Account.current.inspect}"
-      post :signup, :user=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
+      post :signup, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
       new_user = User.where(:email=>'joe@new.com').first
       @cd_with_acct = Card['Joe New']
       new_user.should be
@@ -95,7 +95,7 @@ describe AccountController, "account functions" do
     end
 
     it 'should send email' do
-      post :signup, :user=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
+      post :signup, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
       login_as 'joe admin'
 
       post :accept, :card=>{:key=>'joe_new'}, :email=>{:subject=>'Hey Joe!', :message=>'Can I Come on in?'}

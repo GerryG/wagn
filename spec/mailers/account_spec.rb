@@ -24,15 +24,15 @@ describe Mailer do
     before do
       c=Card['sara']
       Account.current_id = c.id
-      @user = c.account
-      @user.generate_password
-      @email = Mailer.account_info c, {:to=>@user.email, :password=>@user.password,
+      @account = c.account
+      @account.generate_password
+      @email = Mailer.account_info c, {:to=>@account.email, :password=>@account.password,
         :subject=>"New password subject", :message=>"Forgot my password"}
     end
 
     context "new password message" do
       it "is addressed to users email" do
-        @email.should deliver_to(@user.email)
+        @email.should deliver_to(@account.email)
       end
 
       it "is from Wag bot email" do  # I think logged in user is right here, so anon ...

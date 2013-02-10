@@ -38,12 +38,12 @@ class Account
       end
     end
 
-    def get_user_id session
-      case session
-      when NilClass, Integer; session
-      when @@user_class     ; session.card_id
-      when Card             ; session.id
-      else                    Card[session].send_if :id
+    def get_user_id acct
+      case acct
+      when NilClass, Integer; acct
+      when @@user_class     ; acct.card_id
+      when Card             ; acct.id
+      else                    Card[acct].send_if :id
       end
     end
 
@@ -131,6 +131,7 @@ class Account
             end
           end || false
         Card.cache.write 'OK', ok_hash
+        warn "write okh #{card_id}, #{ok_hash[card_id].inspect}"
       end
       #warn "okh #{card_id}, #{ok_hash[card_id].inspect}"
       ok_hash[card_id]

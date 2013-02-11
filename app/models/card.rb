@@ -347,6 +347,11 @@ class Card < ActiveRecord::Base
     end
   end
 
+  def current_revision= current_rev
+    self.current_revision_id = current_rev.id
+    @cached_revison = current_rev
+  end
+
   def right *args
     simple? ? nil : Card.fetch( cardname.right, *args )
   end
@@ -559,7 +564,6 @@ class Card < ActiveRecord::Base
 
   def among? card_with_acct
     prties = parties
-    #warn "among #{inspect} :: #{prties.inspect} A:#{card_with_acct.inspect}"
     card_with_acct.each { |auth| return true if prties.member? auth }
     card_with_acct.member? Card::AnyoneID
   end

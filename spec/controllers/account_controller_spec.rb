@@ -118,8 +118,6 @@ describe AccountController, "account functions" do
 
     it 'should detect duplicates' do
       post :signup, :account=>{:email=>'joe@user.com'}, :card=>{:name=>'Joe Scope'}
-      #warn "first #{Card['joe scope'].inspect}"
-
       post :signup, :account=>{:email=>'joe@user.com'}, :card=>{:name=>'Joe Duplicate'}
       
       c=Card['Joe Duplicate']

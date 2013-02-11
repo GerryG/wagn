@@ -15,16 +15,17 @@ module Cardlib::Fetch
     #   - database
     #   - virtual cards
     #
+    # "mark" here means a generic identifier -- can be a numeric id, a name, a string name, etc.
+    #
     #   Options:
     #     :skip_vitual                Real cards only
     #     :skip_modules               Don't load Set modules
-    #     :loaded_left => card       Loads the card's trunk
+    #     :loaded_left => card        Loads the card's trunk
     #     :new => {  card opts }      Return a new card when not found
     #     :trait => :code (or [:c1, :c2] maybe?)  Fetches base card + tag(s)
     #
 
     def fetch mark, opts = {}
-      # "mark" here means a generic identifier -- can be a numeric id, a name, a string name, etc.
 #      ActiveSupport::Notifications.instrument 'wagn.fetch', :message=>"fetch #{cardname}" do
 
       if mark.nil?
@@ -69,7 +70,7 @@ module Cardlib::Fetch
           Rails.logger.info "fetch of missing card_id #{mark}" # should send this to airbrake
         end
       else
-        return card.fetch_new(opts) if card && opts[:skip_virtual] && card.new_card?
+        return card.fetch_new opts if card && opts[:skip_virtual] && card.new_card?
 
         #warn "new card? #{card.inspect}"
         # NEW card -- (either virtual or missing)
@@ -83,14 +84,14 @@ module Cardlib::Fetch
         end
       end
 
-      if Card.cache && needs_caching
+      if needs_caching
         Card.cache.write card.key, card
-        Card.cache.write "~#{card.id}", card.key if card.id and card.id != 0
       end
 
       return card.fetch_new(opts) if card.new_card? and ( opts[:skip_virtual] || !card.virtual? )
 
-      #warn "fetch returning #{card.inspect}"
+      #raise "???" if opts[:skip_modules] && card.key == 'anonymous+*account'
+      #warn "fetch returning #{card.inspect}, #{opts.inspect}"
       card.include_set_modules unless opts[:skip_modules]
       card
     end
@@ -104,8 +105,8 @@ module Cardlib::Fetch
       fetch name, :skip_virtual=>true
     end
 
-    def exists? cardname
-      card = fetch cardname, :skip_virtual=>true, :skip_modules=>true
+    def exists? name
+      card = fetch name, :skip_virtual=>true, :skip_modules=>true
       card.present?
     end
 
@@ -125,8 +126,6 @@ module Cardlib::Fetch
     end
 
     def set_members set_names, key
-
-      #warn Rails.logger.warn("set_members #{set_names.inspect}, #{key}")
       set_names.compact.map(&:to_name).map(&:key).map do |set_key|
         skey = "$#{set_key}" # dollar sign avoids conflict with card keys
         h = Card.cache.read skey
@@ -137,7 +136,6 @@ module Cardlib::Fetch
         end
         h = h.dup if h.frozen?
         h[key] = true
-        #warn Rails.logger.warn("set_members w #{h.inspect}, #{skey.inspect}")
         Card.cache.write skey, h
       end
     end
@@ -166,7 +164,7 @@ module Cardlib::Fetch
   def expire_related
     self.expire
 
-    if self.hard_template?
+    if self.is_hard_template?
       self.hard_templatee_names.each do |name|
         Card.expire name
       end

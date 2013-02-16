@@ -45,7 +45,7 @@ module Wagn
     end
 
     define_view :title do |args|
-      t = content_tag :h1, fancy_title, :class=>'card-title', :name_context=>"#{ @context_names.map(&:key)*',' }"
+      t = content_tag :h1, fancy_title, :class=>'card-title'
       add_name_context
       t
     end
@@ -83,14 +83,20 @@ module Wagn
 
       option_html = %{
         <ul class="card-menu">
-          <li>#{ link_to_view 'edit', :edit, :class=>'slotter' }
-            <ul>
-                <li>#{ link_to_view 'content', :edit, :class=>'slotter' }</li>
-                <li>#{ link_to_view 'name', :edit_name, :class=>'slotter' }</li>
-                <li>#{ link_to_view 'type', :edit_type, :class=>'slotter' }</li>
-                <li>#{ link_to_view 'history', :changes, :class=>'slotter' }</li>
-            </ul>
-          </li>
+          #{
+            if !card.virtual?
+              %{
+                <li>#{ link_to_view 'edit', :edit, :class=>'slotter' }
+                  <ul>
+                      <li>#{ link_to_view 'content', :edit, :class=>'slotter' }</li>
+                      <li>#{ link_to_view 'name', :edit_name, :class=>'slotter' }</li>
+                      <li>#{ link_to_view 'type', :edit_type, :class=>'slotter' }</li>
+                      <li>#{ link_to_view 'history', :changes, :class=>'slotter' }</li>
+                  </ul>
+                </li>
+              }
+            end
+          }
           <li>#{ link_to_page 'view', card.name }
             <ul>
             #{
@@ -98,7 +104,7 @@ module Wagn
                 "<li>#{ link_to_page raw("#{piece} &crarr;"), piece }</li>"
               end.join "\n"
             }
-              <li>#{ link_to_view 'refresh', :read }
+              <li>#{ link_to_view 'refresh', :read, :class=>'slotter' }
                 <ul>
                   #{ 
                     %w{ titled open closed content }.map do |view|
@@ -116,7 +122,7 @@ module Wagn
             </ul>    
           </li>
           #{
-            if Account.logged_in? && !card.new_card?
+            if card.update_account_ok? 
               "<li>#{ link_to_view 'account', :account, :class=>'slotter' }</li>"
             end
           }
@@ -309,7 +315,7 @@ module Wagn
         else
           type_field :class=>"type-field live-type-field", :href=>path(:view=>:new), 'data-remote'=>true
         end
-      end)
+      end), :attribs=> { :class=>'type-fieldset'}
     end
 
     define_view :edit_type, :perms=>:update do |args|
@@ -340,12 +346,12 @@ module Wagn
     define_view :edit_in_form, :perms=>:update, :tags=>:unknown_ok do |args|
       eform = form_for_multi
       content = content_field eform, :nested=>true
-      attribs = %{ class="card-editor RIGHT-#{ card.cardname.tag_name.safe_key }" }
+      attribs = { :class=> "card-editor RIGHT-#{ card.cardname.tag_name.safe_key }" }
       link_target, help_settings = if card.new_card?
         content += raw( "\n #{ eform.hidden_field :type_id }" )
         [ card.cardname.tag, [:add_help, { :fallback => :edit_help } ] ]
       else
-        attribs += %{ card-id="#{card.id}" card-name="#{h card.name}" }
+        attribs.merge :card_id=>card.id, :card_name=>(h card.name)
         [ card.name, :edit_help ]
       end
 

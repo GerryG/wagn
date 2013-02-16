@@ -198,7 +198,12 @@ describe CardController do
         get :read, {:id=>'Sample_Fako'}
         assert_response :success
       end
+      
+    end
+  end
 
+  describe " " do
+    describe "  " do
       it "handles nonexistent card without create permissions" do
         login_as :anonymous
         get :read, {:id=>'Sample_Fako'}

@@ -2,6 +2,7 @@ require File.expand_path('../../spec_helper', File.dirname(__FILE__))
 
 
 describe "Card::Reference" do
+  include MySpecHelpers
 
   describe "references on hard templated cards should get updated" do
     it "on templatee creation" do
@@ -41,11 +42,10 @@ describe "Card::Reference" do
         tmpl.save!
         Card["JoeForm"].references_expired.should be_true
         Wagn::Renderer.new(Card["JoeForm"]).render(:core)
-        assert_equal ["joe_form+monkey", "joe_form+banana", "joe_form+fruit"].sort,
+        assert_equal ["joe_form+banana", "joe_form+fruit", "joe_form+monkey"],
           Card["JoeForm"].includees.map(&:key).sort
         Card["JoeForm"].references_expired.should_not == true
       end
-
     end
   end
 
@@ -250,9 +250,5 @@ describe "Card::Reference" do
     references[1].ref_type.should == Card::Reference::WANTED_PAGE
   end
 =end
-  private
-  def newcard(name, content="")
-    Card.create! :name=>name, :content=>content
-  end
 
 end

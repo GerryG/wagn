@@ -89,9 +89,9 @@ class ApplicationController < ActionController::Base
     ext = request.parameters[:format]
     known = FORMATS.split('|').member? ext
 
-    if !known && card && card.error_view
+    if !known && status >= 400
       ext, known = 'txt', true
-      # render simple text for errors on unknown formats; without this, file/image permissions checks are meaningless
+      # render simple text for errors on unknown formats;
     end
 
     case
@@ -100,8 +100,8 @@ class ApplicationController < ActionController::Base
       obj_sym = [:json, :xml].member?( ext = ext.to_sym ) ? ext : :text
       renderer = Wagn::Renderer.new card, :format=>ext, :controller=>self
 
-      render_obj = renderer.render_show :view => view || params[:view]
-      render obj_sym => render_obj, :status=> renderer.error_status || status
+      render_text = renderer.render_show :view => view || params[:view]
+      render :text=>render_text, :status=> renderer.error_status || status
 
     when show_file            # send_file can handle it
     else                      # dunno how to handle it

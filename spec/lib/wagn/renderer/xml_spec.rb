@@ -4,7 +4,7 @@ require File.dirname(__FILE__) + '/../../../packs/pack_spec_helper'
 describe Wagn::Renderer::Xml, "" do
   before do
     Wagn::Conf[:base_url] = nil
-    Account.user= :joe_user
+    Account.current_id= Card['joe_user'].id
     Wagn::Renderer::Xml.current_slot = nil
   end
 
@@ -296,7 +296,7 @@ describe Wagn::Renderer::Xml, "" do
 
     context "HTML" do
       before do
-        Account.user= Card::WagnBotID
+        Account.current_id= Card::WagnBotID
       end
 
       it "should have special editor" do
@@ -431,7 +431,7 @@ describe Wagn::Renderer::Xml, "" do
 
   context "replace refs" do
     before do
-      Account.user= Card::WagnBotID
+      Account.current_id= Card::WagnBotID
     end
 
     it "replace references should work on inclusions inside links" do

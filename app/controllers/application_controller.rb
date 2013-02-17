@@ -37,9 +37,9 @@ class ApplicationController < ActionController::Base
 
       Wagn::Cache.renew
 
-      #warn "set curent_user (app-cont) #{self.session_card_id}, U.cu:#{Account.user_id}"
-      Account.user = self.session_card_id || Card::AnonID
-      #warn "set curent_user a #{session_card_id}, U.cu:#{Account.user_id}"
+      #warn "set curent_user (app-cont) #{self.current_account_id}, U.cu:#{Account.current_id}"
+      Account.current_id = self.current_account_id || Card::AnonID
+      #warn "set curent_user a #{current_account_id}, U.cu:#{Account.current_id}"
 
       # RECAPTCHA HACKS
       Wagn::Conf[:recaptcha_on] = !Account.logged_in? &&     # this too
@@ -136,7 +136,7 @@ class ApplicationController < ActionController::Base
   rescue_from Exception do |exception|
     Rails.logger.info "exception = #{exception.class}: #{exception.message}"
     
-    card ||= Card.new
+    @card ||= Card.new
     
     view, status = case exception
       ## arguably the view and status should be defined in the error class;

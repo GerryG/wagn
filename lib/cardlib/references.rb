@@ -32,10 +32,10 @@ Rails.logger.warn "rref? #{was_name} :#{inspect}"
     obj_content.to_s
   end
 
-  def update_references rendering_result = nil, refresh = false
+  def update_references rendered_content = nil, refresh = false
 
     #Rails.logger.warn "update references...card name: #{inspect}, rr: #{rendering_result}, refresh: #{refresh}"
-    return if id.nil?
+    raise "update references should not be called on new cards" if id.nil?
 
     Card::Reference.delete_all_from self
 
@@ -46,44 +46,38 @@ Rails.logger.warn "rref? #{was_name} :#{inspect}"
     connection.execute("update cards set references_expired=NULL where id=#{id}")
     expire if refresh
 
-    if rendering_result.nil?
-       #Rails.logger.warn "New OC from #{content.class} #{content}"
-       rendering_result = ObjectContent.new(content, {:card=>self} )
-    end
-
-    rendering_result.find_chunks(Chunks::Reference).inject({}) do |hash, chunk|
-
-      #Rails.logger.warn "chunks #{chunk}"
-      if id != ( referee_id = chunk.reference_id ) &&
-              !hash.has_key?( referee_key = referee_id || chunk.refcardname.key )
-
-        # update references from link_text
-        update_references chunk.link_text if ObjectContent === chunk.link_text
-
-        #raise '???' unless chunk.refcardname
-        hash[ referee_key ] = {
-          :referee_id  => referee_id,
-          :referee_key => chunk.refcardname.key,
-          :ref_type    => Chunks::Link===chunk      ? 'L' : 'I',
-          :present     => chunk.reference_card.nil? ?  0  :  1
-        }
+    rendered_content ||= ObjectContent.new(content, {:card=>self} )
+      
+    rendered_content.find_chunks(Chunks::Reference).each do |chunk|
+      if referee_name = chunk.refcardname # name is referenced (not true of commented inclusions)
+        referee_id = chunk.reference_id   
+        if id != referee_id               # not self reference
+          
+          update_references chunk.link_text if ObjectContent === chunk.link_text
+          
+          Card::Reference.create!(
+            :referer_id  => id,
+            :referee_id  => referee_id,
+            :referee_key => referee_name.key,
+            :ref_type    => Chunks::Link===chunk      ? 'L' : 'I',
+            :present     => chunk.reference_card.nil? ?  0  :  1
+          )
+        end
       end
-
-      hash
-    end.each_value { |update| Card::Reference.create! update.merge( :referer_id => id ) }
-
+    end
   end
+
 
   # ---------- Referenced cards --------------
 
   def referencers
     return [] unless refs = references
-    refs.map(&:referer_id).map( &Card.method(:fetch) )
+    refs.map(&:referer_id).map( &Card.method(:fetch) ).compact
   end
 
   def includers
     return [] unless refs = includes
-    refs.map(&:referer_id).map( &Card.method(:fetch) )
+    refs.map(&:referer_id).map( &Card.method(:fetch) ).compact
   end
 
 
@@ -91,12 +85,12 @@ Rails.logger.warn "rref? #{was_name} :#{inspect}"
 
   def referencees
     return [] unless refs = out_references
-    refs. map { |ref| Card.fetch ref.referee_key, :new=>{} }
+    refs.map { |ref| Card.fetch ref.referee_key, :new=>{} }.compact
   end
 
   def includees
     return [] unless refs = out_includes
-    refs.map { |ref| Card.fetch ref.referee_key, :new=>{} }
+    refs.map { |ref| Card.fetch ref.referee_key, :new=>{} }.compact
   end
 
   def self.included base
@@ -112,7 +106,7 @@ Rails.logger.warn "rref? #{was_name} :#{inspect}"
       has_many :out_includes,   :class_name => :Reference, :foreign_key => :referer_id, :conditions => { :ref_type => 'I' }
 
       after_create  :update_references_on_create
-      after_destroy :update_references_on_destroy
+#      after_destroy :update_references_on_destroy
       after_update  :update_references_on_update
     end
   end
@@ -135,8 +129,9 @@ Rails.logger.warn "rref? #{was_name} :#{inspect}"
     expire_templatee_references
   end
 
-  def update_references_on_destroy
-    Card::Reference.update_on_destroy self
+  def update_references_on_delete
+    Card::Reference.update_on_delete self
     expire_templatee_references
   end
+
 end

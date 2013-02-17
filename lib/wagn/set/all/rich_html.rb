@@ -324,7 +324,7 @@ module Wagn
             #'main-success'=>'REDIRECT: _self', # adding this back in would make main cards redirect on cardtype changes
             %{ 
               #{ hidden_field_tag :view, :edit }
-              #{if card.type_id == Card::CardtypeID and !Card.search(:type_id=>card.card.id).empty? #ENGLISH
+              #{if card.type_id == Card::CardtypeID and !Card.search(:type_id=>card.id).empty? #ENGLISH
                 %{<div>Sorry, you can't make this card anything other than a Cardtype so long as there are <strong>#{ card.name }</strong> cards.</div>}
               else
                 _render_type_editor :variety=>:edit #FIXME dislike this api -ef
@@ -359,7 +359,7 @@ module Wagn
 
     define_view :account, :perms=> lambda { |r| r.card.update_account_ok? } do |args|
 
-      locals = {:slot=>self, :card=>card, :account=>card.to_user }
+      locals = {:slot=>self, :card=>card, :account=>card.account }
       wrap :options, args.merge(:frame=>true) do
         %{ #{ _render_header }
           <div class="options-body">
@@ -519,7 +519,7 @@ module Wagn
       load_revisions
       wrap :errors do |args|
         %{<strong>Conflict!</strong><span class="new-current-revision-id">#{@revision.id}</span>
-          <div>#{ link_to_page @revision.creator.card.name } has also been making changes.</div>
+          <div>#{ link_to_page @revision.creator.name } has also been making changes.</div>
           <div>Please examine below, resolve above, and re-submit.</div>
           #{wrap(:conflict) { |args| _render_diff } } }
       end

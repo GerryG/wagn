@@ -7,9 +7,9 @@ class CardController < ApplicationController
 
   helper :wagn
 
-  before_filter :index_preload, :only=> [ :index ]
   before_filter :read_file_preload, :only=> [ :read_file ]
 
+  before_filter :load_id, :only => [ :read ]
   before_filter :load_card
   before_filter :refresh_card, :only=> [ :create, :update, :delete, :comment, :rollback ]
 
@@ -102,12 +102,8 @@ Done"
   end
 
   def read
-    if card.errors.any?
-      render_errors
-    else
-      save_location # should be an event!
-      show
-    end
+    save_location # should be an event!
+    show
   end
 
 =begin FIXME move to action events
@@ -134,33 +130,32 @@ Done"
 =end
 
   def update
-    case
-    when card.new_card?                          ;  create
-    when card.update_attributes( params[:card] ) ;  success
-    else                                             render_errors
+    if card.new_card?
+      create
+    elsif card.update_attributes params[:card]
+      success
+    else
+      render_errors
     end
   end
 
   def delete
-    
-    card.destroy
-    discard_locations_for card #should be an event
-    success 'REDIRECT: *previous'
+    if card.delete
+      discard_locations_for card #should be an event
+      success 'REDIRECT: *previous'
+    else
+      render_errors
+    end
   end
 
-
-  def index
-    read
-  end # handle in load card?
-
-
+  #FIXME!  move into renderer
   def read_file
     if card.ok? :read
       show_file
     else
-      show :denial
+      wagn_redirect "#{params[:id]}?view=denial"
     end
-  end #FIXME!  move into renderer
+  end 
 
 
 
@@ -181,10 +176,10 @@ Done"
     # if we enforce RESTful http methods, we should do it consistently,
     # and error should be 405 Method Not Allowed
 
-    author = Account.user_id == Card::AnonID ?
-        "#{session[:comment_author] = params[:card][:comment_author]} (Not signed in)" : "[[#{Account.user.card.name}]]"
-    comment = params[:card][:comment].split(/\n/).map{|c| "<p>#{c.strip.empty? ? '&nbsp;' : c}</p>"} * "\n"
-    card.comment = "<hr>#{comment}<p><em>&nbsp;&nbsp;--#{author}.....#{Time.now}</em></p>"
+    author = Account.logged_in? ? "[[#{Account.current.name}]]" :
+             "#{session[:comment_author] = params[:card][:comment_author]} (Not signed in)"
+
+    card.comment = %{<hr>#{ params[:card][:comment].to_html }<p><em>&nbsp;&nbsp;--#{ author }.....#{Time.now}</em></p>}
 
     if card.save
       show
@@ -204,7 +199,7 @@ Done"
   def watch
     watchers = card.fetch :trait=>:watchers, :new=>{}
     watchers = watchers.refresh
-    myname = Card[Account.user_id].name
+    myname = Account.current.name
     watchers.send((params[:toggle]=='on' ? :add_item : :drop_item), myname)
     ajax? ? show(:watch) : read
   end
@@ -217,7 +212,6 @@ Done"
   #-------- ( ACCOUNT METHODS )
 
   def update_account
-
     if params[:save_roles]
       role_card = card.fetch :trait=>:roles, :new=>{}
       role_card.ok! :update
@@ -227,16 +221,16 @@ Done"
       role_card.items= role_hash.keys.map &:to_i
     end
 
-    account = card.to_user
-    if account and account_args = params[:account]
+    acct = card.account
+    if acct and account_args = params[:account]
       unless Account.as_id == card.id and !account_args[:blocked]
         card.fetch(:trait=>:account).ok! :update
       end
-      account.update_attributes account_args
+      acct.update_attributes account_args
     end
 
-    if account && account.errors.any?
-      account.errors.each do |field, err|
+    if acct && acct.errors.any?
+      acct.errors.each do |field, err|
         card.errors.add field, err
       end
       render_errors
@@ -260,7 +254,6 @@ Done"
 
 
 
-
   private
 
   #-------( FILTERS )
@@ -275,25 +268,31 @@ Done"
     end
   end
 
-  def index_preload
-    Account.no_logins? ?
-      redirect_to( Card.path_setting '/admin/setup' ) :
-      params[:id] = (Card.setting(:home) || 'Home').to_name.url_key
+
+  def load_id
+    params[:id] ||= case
+      when Account.no_logins?
+        return wagn_redirect( '/admin/setup' )
+      when params[:card] && params[:card][:name]
+        params[:card][:name]
+      when Wagn::Renderer.tagged( params[:view], :unknown_ok )
+        ''
+      else  
+        Card.setting(:home) || 'Home'
+      end
   end
 
-
-  # FIXME: make me an event
   def load_card
     @card = case params[:id]
-      when '*previous'   ; return wagn_redirect( previous_location )
-      when /^\~(\d+)$/   ; Card.fetch $1.to_i
-      when /^\:(\w+)$/   ; Card.fetch $1.to_sym
+      when '*previous'
+        return wagn_redirect( previous_location )
+      when /^\~(\d+)$/
+        Card.fetch( $1.to_i ) or raise Wagn::NotFound 
+      when /^\:(\w+)$/
+        Card.fetch $1.to_sym
       else
-
-        opts = if opts = params[:card]  ; opts.clone
-            else                        {}
-            end
-
+        opts = params[:card]
+        opts = opts ? opts.clone : {} #clone so that original params remain unaltered.  need deeper clone?
         opts[:type] ||= params[:type] # for /new/:type shortcut.  we should fix and deprecate this.
         name = params[:id] || opts[:name]
         
@@ -309,14 +308,16 @@ Done"
       end
 
     Wagn::Conf[:main_name] = params[:main] || (card && card.name) || ''
+    render_errors if card.errors.any?
     true
   end
 
   # FIXME: event
   def refresh_card
-    @card = card.refresh
+    @card =  card.refresh
   end
 
+  #------- REDIRECTION 
 
   def success default_target='_self'
     target = params[:success] || default_target

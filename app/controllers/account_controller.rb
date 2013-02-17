@@ -49,8 +49,8 @@ class AccountController < CardController
     #warn "accept #{card_key.inspect}, #{Card[card_key]}, #{params.inspect}"
     raise(Wagn::Oops, "I don't understand whom to accept") unless params[:card]
     @card = Card[card_key] or raise(Wagn::NotFound, "Can't find this Account Request")
-    #warn "accept #{Account.user_id}, #{@card.inspect}"
-    @user = @card.to_user or raise(Wagn::Oops, "This card doesn't have an account to approve")
+    #warn "accept #{Account.current_id}, #{@card.inspect}"
+    @user = @card.account or raise(Wagn::Oops, "This card doesn't have an account to approve")
     #warn "accept #{@user.inspect}"
     @card.ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create accounts")
 
@@ -88,29 +88,33 @@ class AccountController < CardController
   end
 
   def signout
-    self.session_card_id = nil
+    self.current_account_id = nil
     flash[:notice] = "Successfully signed out"
     redirect_to Card.path_setting('/')  # previous_location here can cause infinite loop.  ##  Really?  Shouldn't.  -efm
   end
 
   def forgot_password
-    return unless request.post? and email = params[:email].downcase
-    @user = User.find_by_email(email)
-    if @user.nil?
-      flash[:notice] = "Unrecognized email."
-      render :action=>'signin', :status=>404
-    elsif !@user.active?
-      flash[:notice] = "That account is not active."
-      render :action=>'signin', :status=>403
+    if request.post? and email = params[:email]
+      @user = User.find_by_email email.downcase
+      case
+      when @user.nil?
+        flash[:notice] = "Unrecognized email."
+        render :action=>'signin', :status=>404
+      when !@user.active?
+        flash[:notice] = "That account is not active."
+        render :action=>'signin', :status=>403
+      else
+        @user.generate_password
+        @user.save!
+        subject = "Password Reset"
+        message = "You have been given a new temporary password.  " +
+           "Please update your password once you've signed in. "
+        Mailer.account_info(@user, subject, message).deliver
+        flash[:notice] = "Check your email for your new temporary password"
+        redirect_to previous_location
+      end
     else
-      @user.generate_password
-      @user.save!
-      subject = "Password Reset"
-      message = "You have been given a new temporary password.  " +
-         "Please update your password once you've signed in. "
-      Mailer.account_info(@user, subject, message).deliver
-      flash[:notice] = "Check your email for your new temporary password"
-      redirect_to previous_location
+      raise Wagn::BadAddress
     end
   end
 
@@ -125,7 +129,7 @@ class AccountController < CardController
   end
 
   def password_authentication(login, password)
-    if self.session_card_id = User.authenticate( params[:login], params[:password] )
+    if self.current_account_id = User.authenticate( params[:login], params[:password] )
       flash[:notice] = "Successfully signed in"
       #warn Rails.logger.info("to prev #{previous_location}")
       redirect_to previous_location

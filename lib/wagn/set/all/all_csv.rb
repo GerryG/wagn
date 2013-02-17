@@ -1,7 +1,7 @@
-require_dependency 'csv'
+require 'csv'
 
 module Wagn
-  module Set::All::Csv
+  module Set::All::AllCsv
     include Sets
 
     format :csv
@@ -17,7 +17,7 @@ module Wagn
 
     define_view :csvrow do |args|
       _render_raw.scan( /\{\{[^\}]*\}\}/ ).map do |inc|
-        process_content_object( inc ).strip
+        process_content( inc ).strip
       end.to_csv.chop
       #chop is because search already joins with newlines
     end

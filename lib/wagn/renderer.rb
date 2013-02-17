@@ -11,7 +11,6 @@ module Wagn
     DEFAULT_ITEM_VIEW = :link  # should be set in card?
 
     RENDERERS = { #should be defined in renderer
-      :json => :JsonRenderer,
       :email => :EmailHtml,
       :css  => :Text,
       :txt  => :Text
@@ -44,10 +43,10 @@ module Wagn
   end
 
   class Renderer
+
     class << self
 
       def new card, opts={}
-
         format = ( opts[:format].send_if :to_sym ) || :html
         renderer = if self!=Renderer or format.nil? or format == :base
               self
@@ -59,6 +58,11 @@ module Wagn
         new_renderer = renderer.allocate
         new_renderer.send :initialize, card, opts
         new_renderer
+      end
+      
+      
+      def tagged view, tag
+        view && tag && @@view_tags[view.to_sym] && @@view_tags[view.to_sym][tag.to_sym]
       end
     end
 
@@ -213,11 +217,6 @@ module Wagn
       end
     end
 
-
-    def tagged view, tag
-      @@view_tags[view] && @@view_tags[view][tag]
-    end
-
     def ok_view view, args={}
       original_view = view
 
@@ -230,7 +229,7 @@ module Wagn
         # This should disappear when we get rid of admin and account controllers and all renderers always have cards
 
         # HANDLE UNKNOWN CARDS ~~~~~~~~~~~~
-        when !card.known? && !tagged( view, :unknown_ok )
+        when !card.known? && !self.class.tagged( view, :unknown_ok )
           if focal?
             if @format==:html && card.ok?(:create) ;  :new
             else                                   ;  :not_found
@@ -294,9 +293,10 @@ module Wagn
       case
       when opts.has_key?( :comment )                            ; opts[:comment]     # as in commented code
       when @mode == :closed && @char_count > @@max_char_count   ; ''                 # already out of view
-      when opts[:tname]=='_main' && !ajax_call? && @depth==0    ; expand_main opts
+      when opts[:include_name]=='_main' && !ajax_call? && @depth==0    ; expand_main opts
       else
-        fullname = opts[:tname].to_name.to_absolute card.cardname, :params=>params
+        fullname = opts[:include_name].to_name.to_absolute card.cardname, :params=>params
+        #warn "ex inc full[#{opts[:include_name]}]#{fullname}, #{params.inspect}"
         included_card = Card.fetch fullname, :new=>( @mode==:edit ? new_inclusion_card_args(opts) : {} )
 
         result = process_inclusion included_card, opts
@@ -313,7 +313,7 @@ module Wagn
         end
       end
       opts[:view] = @main_view || opts[:view] || :open #FIXME configure elsewhere
-      opts[:tname] = root.card.name
+      opts[:include_name] = root.card.name
       with_inclusion_mode :main do
         wrap_main process_inclusion( root.card, opts )
       end
@@ -364,8 +364,8 @@ module Wagn
 
     def new_inclusion_card_args options
       args = { :type =>options[:type] }
-      args[:loaded_left]=card if options[:tname] =~ /^\+/
-      if content=get_inclusion_content(options[:tname])
+      args[:loaded_left]=card if options[:include_name] =~ /^\+/
+      if content=get_inclusion_content(options[:include_name])
         args[:content]=content
       end
       args
@@ -373,7 +373,7 @@ module Wagn
 
     def path opts={}
       pcard = opts.delete(:card) || card
-      base = opts[:action] ? "/card/#{opts[:action]}" : ''
+      base = opts[:action] ? "/card/#{ opts.delete :action }" : ''
       if pcard && !pcard.name.empty? && !opts.delete(:no_id) && ![:new, :create].member?(opts[:action]) #generalize. dislike hardcoding views/actions here
         base += '/' + ( opts[:id] ? "~#{ opts.delete :id }" : pcard.cardname.url_key )
       end
@@ -408,10 +408,11 @@ module Wagn
     #
 
     def build_link href, text, known_card = nil
-      # Rails.logger.info( "~~~~~~~~~~~~~~~ bl #{href.inspect}, #{text.inspect}, #{known_card.inspect}" )
+      #Rails.logger.info "~~~~~~~~~~~~~~~ bl #{href.inspect}, #{text.inspect}, #{known_card.inspect}"
       klass = case href.to_s
-        when /^https?:/; 'external-link'
-        when /^mailto:/; 'email-link'
+        when /^https?:/                   ; 'external-link'
+        when /^mailto:/                   ; 'email-link'
+        when /^([a-zA-Z][\-+.a-zA-Z\d]*):/; $1 + '-link'
         when /^\//
           href = full_uri href.to_s
           'internal-link'
@@ -428,6 +429,7 @@ module Wagn
           href = full_uri href.to_s
           known_card ? 'known-card' : 'wanted-card'
         end
+      # FIXME: shouldn't this be in the html version of this?  this should give plain-text links.
       %{<a class="#{klass}" href="#{href}">#{text.to_s}</a>}
     end
 
@@ -454,7 +456,7 @@ module Wagn
 
   end
 
-  class Renderer::JsonRenderer < Renderer
+  class Renderer::Json < Renderer
   end
 
   class Renderer::Text < Renderer

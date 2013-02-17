@@ -163,6 +163,11 @@ describe "Card::Reference" do
     Card['beta'].referencees.map(&:name).should == ['alpha']
     Card['alpha'].referencers.map(&:name).should == ['beta']
   end
+  
+  it "should handle commented inclusion" do
+    c = Card.create :name=>'inclusion comment test', :content=>'{{## hi mom }}'
+    c.errors.any?.should be_false
+  end
 
 
   it "pickup new links on create" do
@@ -183,7 +188,7 @@ describe "Card::Reference" do
   # This test doesn't make much sense to me... LWH
   it "revise changes references from wanted to linked for new cards" do
     new_card = Card.create(:name=>'NewCard')
-    new_card.revise('Reference to [[WantedCard]], and to [[WantedCard2]]', Time.now, Card['quentin'].to_user),
+    new_card.revise('Reference to [[WantedCard]], and to [[WantedCard2]]', Time.now, Card['quentin'].account),
         new_renderer)
 
     references = new_card.card_references(true)
@@ -194,7 +199,7 @@ describe "Card::Reference" do
     references[1].ref_type.should == Card::Reference::WANTED_PAGE
 
     wanted_card = Card.create(:name=>'WantedCard')
-    wanted_card.revise('And here it is!', Time.now, Card['quentin'].to_user), new_renderer)
+    wanted_card.revise('And here it is!', Time.now, Card['quentin'].account), new_renderer)
 
     # link type stored for NewCard -> WantedCard reference should change from WANTED to LINKED
     # reference NewCard -> WantedCard2 should remain the same

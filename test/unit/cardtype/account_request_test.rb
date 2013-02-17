@@ -6,7 +6,7 @@ class Wagn::Set::Type::AccountRequestTest < ActiveSupport::TestCase
     super
     setup_default_user
     # make sure all this stuff works as anonymous user
-    Account.user = Card::AnonID
+    Account.current_id = Card::AnonID
   end
 
 
@@ -25,8 +25,8 @@ class Wagn::Set::Type::AccountRequestTest < ActiveSupport::TestCase
 
   def test_should_block_user
     c=Card.fetch('Ron Request')
-    Account.as 'joe_admin' do c.destroy!  end
-    #warn "destroyed card (#{c.inspect}) #{User.where(:email=>'ron@request.com').first.inspect}"
+    Account.as 'joe_admin' do c.delete!  end
+    #warn "deleted card (#{c.inspect}) #{User.where(:email=>'ron@request.com').first.inspect}"
 
     assert_equal nil, Card.fetch('Ron Request')
     assert_equal 'blocked', User.where(:email=>'ron@request.com').first.status

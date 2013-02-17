@@ -4,7 +4,7 @@ module Wagn
               'none' => "{{_main}}"
             }
 
- class Renderer::JsonRenderer < Renderer
+ class Renderer::Json < Renderer
 
   cattr_accessor :set_actions
   attr_accessor  :options_need_save, :js_queue_initialized,
@@ -16,7 +16,7 @@ module Wagn
   end
 
   def set_action(key)
-    Renderer::JsonRenderer.actions[key] or super
+    Renderer::Json.actions[key] or super
   end
 
   def initialize(card, opts=nil)

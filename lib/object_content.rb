@@ -15,9 +15,9 @@ class ObjectContent < SimpleDelegator
   def initialize content, card_options
     @card_options = card_options
     @card_options[:card] or raise "No Card in Content!!"
-    splt = ObjectContent.split_content(card_options, content)
-    #warn "split: #{splt.class}, #{splt.inspect}"
-    super splt
+    content = ObjectContent.split_content(card_options, content) unless Array===content
+    #Rails.logger.warn "oc new[#{card_options}] #{content.class}, #{content.inspect} #{caller[0..10]*', '}"
+    super content
   end
 
   attr_reader :revision, :card_options
@@ -55,13 +55,17 @@ class ObjectContent < SimpleDelegator
         if rest_match
           pos += rest_match.end(0)
         
-          if grp_start < 1 or !chunk_class.respond_to?( :avoid_autolinking ) or !chunk_class.avoid_autolinking( content[grp_start-2..grp_start-1] )
-            # save between strings and chunks indexed by position (probably should just be ordered pairs)
-            m, *groups = rest_match.to_a
-            rec = [ pos, ( pre_start == grp_start ? nil : content[pre_start..grp_start-1] ), 
-                           chunk_class.new(m_str+m, card_params, [first_char, m_str] + groups) ]
-            pre_start = pos
-            positions << rec
+          begin
+            if grp_start < 1 or !chunk_class.respond_to?( :avoid_autolinking ) or !chunk_class.avoid_autolinking( content[grp_start-2..grp_start-1] )
+              # save between strings and chunks indexed by position (probably should just be ordered pairs)
+              m, *groups = rest_match.to_a
+              rec = [ pos, ( pre_start == grp_start ? nil : content[pre_start..grp_start-1] ), 
+                             chunk_class.new(m_str+m, card_params, [first_char, m_str] + groups) ]
+              pre_start = pos
+              positions << rec
+            end
+          rescue URI::Error=>e
+            Rails.logger.warn "rescue parse #{chunk_class}: '#{m}' #{e.inspect}"
           end
         end
       end

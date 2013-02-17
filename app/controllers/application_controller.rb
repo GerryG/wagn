@@ -89,9 +89,9 @@ class ApplicationController < ActionController::Base
     ext = request.parameters[:format]
     known = FORMATS.split('|').member? ext
 
-    if !known && card && card.error_view
+    if !known && status >= 400
       ext, known = 'txt', true
-      # render simple text for errors on unknown formats; without this, file/image permissions checks are meaningless
+      # render simple text for errors on unknown formats;
     end
 
     case

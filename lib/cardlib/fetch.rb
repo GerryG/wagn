@@ -26,7 +26,7 @@ module Cardlib::Fetch
     #
 
     def fetch mark, opts = {}
-#      ActiveSupport::Notifications.instrument 'wagn.fetch', :message=>"fetch #{cardname}" do
+#      ActiveSupport::Notifications.instrument 'wagn.fetch', :message=>"fetch #{mark}" do
 
       if mark.nil?
         return if opts[:new].nil?
@@ -43,6 +43,7 @@ module Cardlib::Fetch
         cache_key, method, val = if Integer===mark
           [ "~#{mark}", :find_by_id_and_trash, mark ]
         else
+          opts[:name] = mark # this is needed to correctly fetch missing cards with different name variants in cache
           key = mark.to_name.key
           [ key, :find_by_key_and_trash, key ]
         end
@@ -66,11 +67,13 @@ module Cardlib::Fetch
 
       if Integer===mark
         if card.nil?
-          return nil 
           Rails.logger.info "fetch of missing card_id #{mark}" # should send this to airbrake
+          return nil
         end
       else
-        return card.fetch_new opts if card && opts[:skip_virtual] && card.new_card?
+        if card && opts[:skip_virtual] && card.new_card?
+          return card.renew(opts)
+        end
 
         #warn "new card? #{card.inspect}"
         # NEW card -- (either virtual or missing)
@@ -84,14 +87,19 @@ module Cardlib::Fetch
         end
       end
 
-      if needs_caching
+      if Card.cache && needs_caching
         Card.cache.write card.key, card
+        Card.cache.write "~#{card.id}", card.key if card.id and card.id != 0
       end
 
-      return card.fetch_new(opts) if card.new_card? and ( opts[:skip_virtual] || !card.virtual? )
+      if card.new_card?
+        if opts[:skip_virtual] || !card.virtual?
+          return card.renew(opts)
+        elsif opts[:name] && opts[:name] != card.name
+          card.name = opts[:name]
+        end
+      end
 
-      #raise "???" if opts[:skip_modules] && card.key == 'anonymous+*account'
-      #warn "fetch returning #{card.inspect}, #{opts.inspect}"
       card.include_set_modules unless opts[:skip_modules]
       card
     end
@@ -151,8 +159,11 @@ module Cardlib::Fetch
     end
   end
 
-  def fetch_new opts={}
-    opts = opts[:new] and Card.new opts.merge(:name=>cardname)
+  def renew args={}
+    if opts = args[:new]
+      opts[:name] ||= cardname
+      Card.new opts
+    end
   end
 
   def expire_pieces

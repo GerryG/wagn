@@ -101,7 +101,7 @@ class CardController < ApplicationController
       role_card = card.fetch :trait=>:roles, :new=>{}
       role_card.ok! :update
 
-      role_hash = params[:user_roles] || {}
+      role_hash = params[:account_roles] || {}
       role_card = role_card.refresh
       role_card.items= role_hash.keys.map &:to_i
     end
@@ -155,7 +155,12 @@ class CardController < ApplicationController
 
 
   def load_id
-    params[:id] ||= case
+    params[:id] = case
+      when params[:id]
+        params[:id].gsub '_', ' '
+        # with unknown cards, underscores in urls assumed to indicate spaces.
+        # with known cards, the key look makes this irrelevant
+        # (note that this is not performed on params[:card][:name])
       when Account.no_logins?
         return wagn_redirect( '/admin/setup' )
       when params[:card] && params[:card][:name]

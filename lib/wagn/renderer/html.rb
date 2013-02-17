@@ -1,5 +1,5 @@
 module Wagn
-  class Renderer::HtmlRenderer < Renderer
+  class Renderer::Html < Renderer
 
     attr_accessor  :options_need_save, :start_time, :skip_autosave
     DEFAULT_ITEM_VIEW = :closed  #FIXME: It can't access this default
@@ -113,7 +113,11 @@ module Wagn
         attributes['card-id']  = card.id
         attributes['card-name'] = card.name
       end
-
+      
+      if @context_names
+        attributes['name_context'] = @context_names.map( &:key ) * ','
+      end
+      
       content_tag(:div, attributes ) { yield }
     end
 
@@ -246,8 +250,13 @@ module Wagn
     end
 
     def fieldset title, content, opts={}
+      if attribs = opts[:attribs]
+        attrib_string = attribs.keys.map do |key| 
+          %{#{key}="#{attribs[key]}"}
+        end * ' '
+      end
       %{
-        <fieldset #{ opts[:attribs] }>
+        <fieldset #{ attrib_string }>
           <legend>
             <h2>#{ title }</h2>
             #{ help_text *opts[:help] }
@@ -255,6 +264,14 @@ module Wagn
           #{ content }
         </fieldset>
       }
+    end
+
+    def main?
+      if ajax_call?
+        @depth == 0 && params[:is_main]
+      else
+        @depth == 1 && @mode == :main
+      end
     end
 
     private

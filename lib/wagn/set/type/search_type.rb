@@ -16,7 +16,7 @@ module Wagn
 
       case
       when results.nil?
-        Rails.logger.debug error.backtrace
+        Rails.logger.debug " no result? #{error.backtrace}"
         %{No results? #{error.class.to_s}: #{error&&error.message}<br/>#{card.content}}
       when card.spec[:return] =='count'
         results.to_s
@@ -265,7 +265,7 @@ module Wagn
     end
   end
 
-  class Renderer::HtmlRenderer < Renderer
+  class Renderer::Html < Renderer
     def page_link text, page
       @paging_path_args[:offset] = page * @paging_limit
       " #{link_to raw(text), path(@paging_path_args), :class=>'card-paging-link slotter', :remote => true} "

@@ -11,10 +11,8 @@ module Wagn
     DEFAULT_ITEM_VIEW = :link  # should be set in card?
 
     RENDERERS = { #should be defined in renderer
-      :json  => :JsonRenderer,
       :email => :EmailHtml,
-      :html  => :HtmlRenderer,
-      :txt   => :Text
+      :txt  => :Text
     }
 
     cattr_accessor :current_slot, :ajax_call, :perms, :denial_views, :subset_views, :error_codes, :view_tags
@@ -166,7 +164,7 @@ module Wagn
     def rescue_view e, view
       controller.send :notify_airbrake, e if Airbrake.configuration.api_key
       Rails.logger.info "\nError rendering #{error_cardname} / #{view}: #{e.class} : #{e.message}"
-      Rails.logger.debug "  #{e.backtrace*"\n  "}"
+      Rails.logger.debug "BT:  #{e.backtrace*"\n  "}"
       rendering_error e, view
     end
 
@@ -483,13 +481,13 @@ module Wagn
 
   end
 
-  class Renderer::JsonRenderer < Renderer
+  class Renderer::Json < Renderer
   end
 
   class Renderer::Text < Renderer
   end
 
-  class Renderer::HtmlRenderer < Renderer
+  class Renderer::Html < Renderer
   end
 
   class Renderer::Csv < Renderer::Text

@@ -26,7 +26,7 @@ module Cardlib::Fetch
     #
 
     def fetch mark, opts = {}
-#      ActiveSupport::Notifications.instrument 'wagn.fetch', :message=>"fetch #{cardname}" do
+#      ActiveSupport::Notifications.instrument 'wagn.fetch', :message=>"fetch #{mark}" do
 
       if mark.nil?
         return if opts[:new].nil?
@@ -87,8 +87,9 @@ module Cardlib::Fetch
         end
       end
 
-      if needs_caching
+      if Card.cache && needs_caching
         Card.cache.write card.key, card
+        Card.cache.write "~#{card.id}", card.key if card.id and card.id != 0
       end
 
       if card.new_card?

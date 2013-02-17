@@ -13,17 +13,17 @@ class AccountController < CardController
     #FIXME - don't raise; handle it!
     raise(Wagn::Oops, "You have to sign out before signing up for a new Account") if logged_in?
 
-    card_params = (params[:card]||{}).merge :type_id=>Card::AccountRequestID
+    card_params = ( params[:card] || {} ).symbolize_keys.merge :type_id=>Card::AccountRequestID
 
     @card = Card.new card_params
 
     #FIXME - don't raise; handle it!
     raise(Wagn::PermissionDenied, "Sorry, no Signup allowed") unless @card.ok? :create
 
-    acct_params = params[:account] || {}
-    acct_params[:name] = @card.name
-    @account = Account.new(acct_params).pending
-    #warn "acct? #{params.inspect}, #{acct_params.inspect}, #{@account}"
+    account_params = ( params[:account] || {} ).symbolize_keys
+    account_params[:name] = @card.name
+    @account = Account.new(account_params).pending
+    #warn "acct? #{params.inspect}, #{account_params.inspect}, #{@account}"
 
     #warn "signup #{request.put?} #{params.inspect}, #{@account.inspect}, #{@card.inspect}"
     if request.post?
@@ -96,9 +96,9 @@ class AccountController < CardController
 
     if request.post?
       @card = Card.new params[:card]
-      acct_params = (params[:account] || {})
-      acct_params[:name] = @card.name
-      @account = card.account = ( Account.new( acct_params ) )
+      account_params = (params[:account] || {})
+      account_params[:name] = @card.name
+      @account = card.account = ( Account.new( account_params ) )
 
       @account.active.generate_password
       #warn "User should be: #{@card.account} :: #{@card.inspect}, #{@account.inspect}"

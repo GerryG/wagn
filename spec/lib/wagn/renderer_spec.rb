@@ -16,6 +16,24 @@ describe Wagn::Renderer, "" do
       render_content("[[A]]").should=="<a class=\"known-card\" href=\"/A\">A</a>"
     end
 
+    it "should handle dot (.) in missing cardlink" do
+      render_content("[[Wagn 1.10.12]]").should=='<a class="wanted-card" href="/Wagn%201%2E10%2E12">Wagn 1.10.12</a>'
+    end
+
+    it "should allow for inclusion in links as in Cardtype" do
+       Account.as_bot do
+         Card.create! :name=>"TestType", :type=>'Cardtype', :content=>'[[/new/{{_self|linkname}}|add {{_self|name}} card]]'
+         Card.create! :name=>'TestType+*self+*content', :content=>'_self' #otherwise content overwritten by *content rule
+         Wagn::Renderer.new(Card['TestType']).render_core.should == '<a class="internal-link" href="/new/TestType">add TestType card</a>'
+         
+       end
+    end
+    
+    it "should ignore empty inclusions" do
+      render_content('{{}}').should == ''
+      render_content('{{ }}').should == ''
+    end
+
     it "invisible comment inclusions as blank" do
       render_content("{{## now you see nothing}}").should==''
     end
@@ -42,6 +60,14 @@ describe Wagn::Renderer, "" do
         result = Wagn::Renderer.new(c, :params=>{'_card' => "A"})._render_core
         result.should == "AlphaBeta"
       end
+    end
+  end
+  
+  context "language quirks" do
+    it "should not fail on quirky language" do
+      render_content( 'irc: man').should == 'irc: man'
+      render_content( 'ethan@wagn.org, dude').should == '<a class="email-link" href="mailto:ethan@wagn.org">ethan@wagn.org</a>, dude'
+      render_content( 'git://<a href="http://github.com/wagn/wagn.git">github.com/wagn/wagn.git</a>').should_not =~ /render-error/
     end
   end
 
@@ -175,6 +201,7 @@ describe Wagn::Renderer, "" do
 
 
       it "renders top menu" do
+        #warn "sp #{@simple_page}"
         assert_view_select @simple_page, 'div[id="menu"]' do
           assert_select 'a[class="internal-link"][href="/"]', 'Home'
           assert_select 'a[class="internal-link"][href="/recent"]', 'Recent'
@@ -351,6 +378,7 @@ describe Wagn::Renderer, "" do
       @card = Card.fetch('templated')# :name=>"templated", :content => "Bar" )
       @card.content = 'Bar'
       result = Wagn::Renderer.new(@card).render :edit
+      #warn "res #{@card.inspect}\n#{result}"
       assert_view_select result, 'fieldset' do
         assert_select 'textarea[name=?][class="tinymce-textarea card-content"]', 'card[cards][templated~plus~alpha][content]'
       end
@@ -442,6 +470,8 @@ describe Wagn::Renderer, "" do
       it "should have special content that escapes HTML" do
         render_card(:core, :type=>'Plain Text', :content=>"<b></b>").should == '&lt;b&gt;&lt;/b&gt;'
       end
+      
+      it 
     end
 
     context "Search" do

@@ -95,7 +95,7 @@ describe Wagn::Renderer::Xml, "" do
       image_card = Card.create! :name => "TestImage", :type=>"Image", :content => %{TestImage.jpg\nimage/jpeg\n12345}
       including_card = Card.new :name => 'Image1', :content => "{{TestImage | core; size:small }}"
       rendered = Wagn::Renderer::Xml.new(including_card)._render :core
-      assert_view_select rendered, 'img[src=?]', "/files/TestImage-small-#{image_card.current_revision_id}.jpg"
+      rendered.should == "/files/TestImage-small-#{image_card.current_revision_id}.jpg"
     end
 
     describe "css classes" do
@@ -288,9 +288,10 @@ describe Wagn::Renderer::Xml, "" do
       it "should handle size argument in inclusion syntax" do
         Card.create! :name => "TestImage", :type=>"Image",
           :content => %{TestImage.jpg\nimage/jpeg\n12345}
-        c = Card.new :name => 'Image1',
+        c=Card.new :name => 'Image1',
              :content => "{{TestImage | naked; size:small }}"
-        Wagn::Renderer::Xml.new(c)._render( :core ).should match %r{^<img alt="Testimage-small-\d+" src="/files/TestImage-small-\d+\.jpg" />$}
+        r=Wagn::Renderer::Xml.new(c)._render( :core )
+        r.should == "/files/TestImage-small-#{Card['testImage'].current_revision_id}.jpg"
       end
     end
 

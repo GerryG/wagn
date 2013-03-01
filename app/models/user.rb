@@ -48,7 +48,7 @@ class User < ActiveRecord::Base
         @user.save_with_card(@card)
         @user.send_account_info(email_args) if @card.errors.empty? && !email_args.empty?
       end
-      [@user, @card]
+      [@account, @card]
     end
 
     # Authenticates a user by their login name and unencrypted password.  Returns the user or nil.
@@ -187,13 +187,8 @@ class User < ActiveRecord::Base
     end
   end
 
-  def card()
-    #raise "deprecate user.card #{card_id}, #{@card&&@card.id} #{caller*"\n"}"
-    Rails.logger.info "deprecate user.card #{card_id}, #{@card&&@card.id} #{caller[0,2]*', '}"
-    @card && @card.id == card_id ? @card : @card = Card[card_id]
-  end
+protected
 
-  protected
   # Encrypts the password with the user salt
   def encrypt(password)
     self.class.encrypt(password, salt)

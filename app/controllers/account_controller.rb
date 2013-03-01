@@ -13,14 +13,14 @@ class AccountController < CardController
     raise(Wagn::Oops, "You have to sign out before signing up for a new Account") if logged_in?
     
     card_params = ( params[:card] || {} ).symbolize_keys.merge :type_id=>Card::AccountRequestID
-    user_params = ( params[:user] || {} ).symbolize_keys.merge :status=>'pending'
+    account_params = ( params[:account] || {} ).symbolize_keys.merge :status=>'pending'
     
     @card = Card.new card_params
     #FIXME - don't raise; handle it!
     raise(Wagn::PermissionDenied, "Sorry, no Signup allowed") unless @card.ok? :create
 
     if !request.post? #signup form
-      @user = User.new user_params
+      @account = User.new account_params
     else
       @user, @card = User.create_with_card user_params, card_params
       if card.errors.any?
@@ -36,7 +36,7 @@ class AccountController < CardController
           Account.as_bot do
             Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'
           end
-          #Rails.logger.warn "signup with/app #{@user}, #{@card}"
+          #Rails.logger.warn "signup with/app #{@account}, #{@card}"
           redirect_cardname = '*request+*thanks'
         end
         wagn_redirect Card.setting( redirect_cardname )
@@ -88,21 +88,21 @@ class AccountController < CardController
 
   def forgot_password
     if request.post? and email = params[:email]
-      @user = User.find_by_email email.downcase
+      @account = User.find_by_email email.downcase
       case
-      when @user.nil?
+      when @account.nil?
         flash[:notice] = "Unrecognized email."
         render :action=>'signin', :status=>404
-      when !@user.active?
+      when !@account.active?
         flash[:notice] = "That account is not active."
         render :action=>'signin', :status=>403
       else
-        @user.generate_password
-        @user.save!
+        @account.generate_password
+        @account.save!
         subject = "Password Reset"
         message = "You have been given a new temporary password.  " +
            "Please update your password once you've signed in. "
-        Mailer.account_info(@user, subject, message).deliver
+        Mailer.account_info(@account, subject, message).deliver
         flash[:notice] = "Check your email for your new temporary password"
         redirect_to previous_location
       end

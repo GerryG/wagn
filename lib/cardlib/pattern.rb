@@ -6,8 +6,8 @@ module Cardlib
     def self.register_class klass
       @@subclasses.unshift klass
     end
-    
-    def self.method_key(opts)
+
+    def self.method_key opts
       @@subclasses.each do |pclass|
         if !pclass.opt_keys.map(&opts.method(:has_key?)).member? false;
           return pclass.method_key_from_opts(opts)
@@ -35,20 +35,20 @@ module Cardlib
     def patterns
       @patterns ||= @@subclasses.map { |sub| sub.new(self) }.compact
     end
-    
-    def patterns_with_new()
-      new_card? ? patterns_without_new()[1..-1] : patterns_without_new()
+
+    def patterns_with_new
+      new_card? ? patterns_without_new[1..-1] : patterns_without_new
     end
     alias_method_chain :patterns, :new
     
     def safe_keys
       patterns.map(&:safe_key).reverse*" "
     end
-    
+
     def set_modules
       @set_modules ||= patterns_without_new.reverse.map(&:set_const).compact
     end
-    
+
     def set_names
       Card.set_members(@set_names = patterns.map(&:to_s), key) if @set_names.nil?
       @set_names
@@ -78,6 +78,7 @@ module Cardlib
           module_name_parts = mod.split('/') << 'model'
           module_name_parts.inject Wagn::Set do |base, part|
             return if base.nil?
+            #Rails.logger.warn "find m #{base}, #{part}"
             part = part.camelize
             key = "#{base}::#{part}"
             if MODULES.has_key?(key)
@@ -87,8 +88,10 @@ module Cardlib
               MODULES[key] = base.const_defined?(*args) ? base.const_get(*args) : nil
             end
           end
-        rescue NameError
-          nil
+        rescue Exception => e
+        #rescue NameError => e
+          Rails.logger.warn "find_module error #{mod}: #{e.inspect}"
+          return nil if NameError ===e
         end
 
         def junction_only?()  !!junction_only  end
@@ -96,9 +99,9 @@ module Cardlib
         def anchor_name(card) ''               end
           
         def new card
-          super(card) if pattern_applies?(card)
+          super if pattern_applies? card
         end
-        
+
         def key_name
           @key_name ||= (code=Wagn::Codename[self.key] and card=Card[code] and card.name)
         end
@@ -117,7 +120,7 @@ module Cardlib
             end << key) * '_')
         end
 
-        def pattern_applies?(card)
+        def pattern_applies? card
           junction_only? ? card.cardname.junction? : true
         end
       end
@@ -141,13 +144,11 @@ module Cardlib
         when  opt_vals.member?( nil )   ; nil
         else  "#{self.class.key}/#{opt_vals * '_'}"
         end
+
+      rescue Exception => e; warn "exception set_const #{e.inspect}," #{e.backtrace*"\n"}"
       end
 
-      def set_const
-        self.class.find_module set_module
-      end
-
-      def get_method_key()
+      def get_method_key
         tkls_key = self.class.method_key
         return tkls_key if tkls_key
         return self.class.method_key if self.class.anchorless?
@@ -159,8 +160,6 @@ module Cardlib
         self.class.method_key_from_opts opts
       end
 
-      def inspect()       "<#{self.class} #{to_s.to_name.inspect}>" end
-
       def opt_vals
         if @opt_vals.nil?
           @opt_vals = self.class.anchorless? ? [] :
@@ -169,6 +168,10 @@ module Cardlib
             end
         end
         @opt_vals
+      end
+
+      def inspect
+        "<#{self.class} #{to_s.to_name.inspect}>"
       end
 
       def to_s()
@@ -192,7 +195,6 @@ module Cardlib
           [ @anchor_id, self.class.key ].map( &:to_s ) * '+'
         end
       end
-
     end
 
     class AllPattern < BasePattern
@@ -219,16 +221,16 @@ module Cardlib
 
     class StarPattern < BasePattern
       register 'star', :star, :method_key=>'star'
-      def self.label(name)              'All "*" cards'            end
-      def self.prototype_args(base)     {:name=>'*dummy'}          end
-      def self.pattern_applies?(card)   card.cardname.star?        end
+      def self.label            name;   'All "*" cards'            end
+      def self.prototype_args   base;   {:name=>'*dummy'}          end
+      def self.pattern_applies? card;   card.cardname.star?        end
     end
 
     class RstarPattern < BasePattern
       register 'rstar', :rstar, :method_key=>'rstar', :junction_only=>true
-      def self.label(name)              'All "+*" cards'           end
-      def self.prototype_args(base)     { :name=>'*dummy+*dummy'}  end
-      def self.pattern_applies?(card)   card.cardname.rstar?       end
+      def self.label            name;   'All "+*" cards'           end
+      def self.prototype_args   base;   { :name=>'*dummy+*dummy'}  end
+      def self.pattern_applies? card;   card.cardname.rstar?       end
     end
 
     class RightPattern < BasePattern

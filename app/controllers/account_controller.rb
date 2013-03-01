@@ -22,15 +22,15 @@ class AccountController < CardController
     if !request.post? #signup form
       @account = User.new account_params
     else
-      @account, @card = User.create_with_card account_params, card_params
-      if @account.errors.any?
-        account_errors 
+      @user, @card = User.create_with_card user_params, card_params
+      if card.errors.any?
+        render_errors 
       else
         if @card.ok?(:create, :new=>{}, :trait=>:account)      # automated approval
           email_args = { :message => Card.setting('*signup+*message') || "Thanks for signing up to #{Card.setting('*title')}!",
                          :subject => Card.setting('*signup+*subject') || "Account info for #{Card.setting('*title')}!" }
-          @account.accept @card, email_args
-          #Rails.logger.warn "signup #{@account.inspect}, #{@account.errors.full_messages*', '}, #{@card.inspect} #{@card.errors.full_messages*', '},"
+                         
+          @user.accept @card, email_args
           redirect_cardname = '*signup+*thanks'
         else                                            # requires further approval
           Account.as_bot do
@@ -46,18 +46,15 @@ class AccountController < CardController
 
   def accept
     card_key=params[:card][:key]
-    #warn "accept #{card_key.inspect}, #{Card[card_key]}, #{params.inspect}"
     raise(Wagn::Oops, "I don't understand whom to accept") unless params[:card]
     @card = Card[card_key] or raise(Wagn::NotFound, "Can't find this Account Request")
-    #warn "accept #{Account.current_id}, #{@card.inspect}"
-    @account = @card.account or raise(Wagn::Oops, "This card doesn't have an account to approve")
-    #warn "accept #{@account.inspect}"
+    @user = @card.account or raise(Wagn::Oops, "This card doesn't have an account to approve")
     @card.ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create accounts")
 
     if request.post?
-      #warn "accept #{@card.inspect}, #{@account.inspect}"
-      @account.accept(@card, params[:email])
-      if @account.errors.empty? #SUCCESS
+      #warn "accept #{@card.inspect}, #{@user.inspect}"
+      @user.accept(@card, params[:email])
+      if @card.errors.empty? #SUCCESS
         redirect_to Card.path_setting(Card.setting('*invite+*thanks'))
         return
       end
@@ -66,22 +63,18 @@ class AccountController < CardController
   end
 
   def invite
-    #warn "invite: ok? #{Card.new(:name=>'dummy+*account').ok?(:create)}"
-    cok=Card.new(:name=>'dummy+*account').ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create")
-    #warn "post invite #{cok}, #{request.post?}, #{params.inspect}"
-    @account, @card = request.post? ?
-      User.create_with_card( params[:account], params[:card] ) :
+    User.create_ok? or raise(Wagn::PermissionDenied, "You need permission to create")
+    @user, @card = request.post? ?
+      User.create_with_card( params[:user], params[:card] ) :
       [User.new, Card.new()]
-    #warn "invite U:#{@account.inspect} C:#{@card.inspect}"
-    if request.post? and @account.errors.empty?
-      @account.send_account_info(params[:email])
+    if request.post? and @card.errors.empty?
+      @user.send_account_info(params[:email])
       redirect_to Card.path_setting(Card.setting('*invite+*thanks'))
     end
   end
 
 
   def signin
-    #warn Rails.logger.info("signin #{params[:login]}")
     if params[:login]
       password_authentication params[:login], params[:password]
     end
@@ -119,14 +112,6 @@ class AccountController < CardController
   end
 
   protected
-
-  def account_errors
-    @account.errors.each do |field, err|
-      @card.errors.add field, err unless @card.errors[field].any?
-      # needed to prevent duplicates because User adds them in the other direction in user.rb
-    end
-    render_errors
-  end
 
   def password_authentication(login, password)
     if self.current_account_id = User.authenticate( params[:login], params[:password] )

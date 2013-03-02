@@ -26,7 +26,6 @@ class AccountRequestTest < ActiveSupport::TestCase
   def test_should_block_account
     c=Card.fetch('Ron Request')
     Account.as 'joe_admin' do c.delete!  end
-    #warn "deleted card (#{c.inspect}) #{User.where(:email=>'ron@request.com').first.inspect}"
 
     assert_equal nil, Card.fetch('Ron Request')
     Rails.logger.warn "acct #{Card['RonRequest'].inspect}, U#{Account.find_by_email('ron@request.com').inspect}"

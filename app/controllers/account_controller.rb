@@ -42,6 +42,7 @@ class AccountController < CardController
               :message => Card.setting('*signup+*message') || "Thanks for signing up to #{Card.setting('*title')}!",
               :subject => Card.setting('*signup+*subject') || "Account info for #{Card.setting('*title')}!" } )
 
+        redirect_id = Card::RequestID 
       else
 
         @account.pending
@@ -51,26 +52,24 @@ class AccountController < CardController
 
         Account.as_bot do
           Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'
+
         end
         #warn "errors #{@account.errors.full_messages*", "}"
         Rails.logger.warn "errors? #{@card.inspect}"
-        wagn_redirect Card.setting( redirect_id )
       end
+      wagn_redirect Card.setting( redirect_id )
 
     end
   end
 
 
   def accept
-    #FIXME - don't raise; handle it!
+    card_key=params[:card][:key]
     raise(Wagn::Oops, "I don't understand whom to accept") unless params[:card]
 
     card_key=params[:card][:key]
     @card = Card[card_key] or raise(Wagn::NotFound, "Can't find this Account Request")
-
-    #warn "accept #{Account.current_id}, #{@card.inspect}"
     @account = @card.account or raise(Wagn::Oops, "This card doesn't have an account to approve")
-    #warn "accept #{@account.inspect}"
     @card.ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create accounts")
 
     if request.post?
@@ -83,6 +82,7 @@ class AccountController < CardController
         card.send_account_info eparams.merge( :password => @account.password, :to => @account.email )
 
         redirect_to( target Card::InviteID )
+        #redirect_to Card.path_setting(Card.setting('*invite+*thanks'))
       end
     else
 
@@ -91,7 +91,6 @@ class AccountController < CardController
   end
 
   def invite
-    #FIXME - don't raise; handle it!
     cok=Card.new(:name=>'dummy+*account').ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create")
 
     if request.post?

@@ -174,7 +174,7 @@ module Wagn
       end
 
       if !ajax_call?
-        header_text = card.type_id == Card::DefaultTypeID ? 'Card' : card.type_name
+        header_text = card.type_id == Card::DefaultTypeID ? '' : card.type_name
         %{ <h1 class="page-header">New #{header_text}</h1>}
       else '' end +
 
@@ -264,7 +264,7 @@ module Wagn
     define_view :name_editor do |args|
       fieldset 'name', (editor_wrap :name do
          raw( name_field form )
-      end)
+      end), :help=>''
     end
 
 
@@ -403,7 +403,7 @@ module Wagn
               <div class="settings-tab">
                 #{ if !related_sets.empty?
                   %{ <div class="set-selection">
-                    #{ form_tag path(:view=>:options, :attrib=>:settings), :method=>'get', :remote=>true, :class=>'slotter' }
+                    #{ form_tag path(:view=>:options), :method=>'get', :remote=>true, :class=>'slotter' }
                         <label>Set:</label>
                         <select name="current_set" class="set-select">#{ set_options }</select>
                     </form>
@@ -416,9 +416,8 @@ module Wagn
 
                 #{ if Card.toggle(card.rule :accountable) && card.update_account_ok?
                     %{<div class="new-account-link">
-                    #{ link_to %{Add a sign-in account for "#{card.name}"},
-                        path(:view=>:options, :attrib=>:new_account),
-                      :class=>'slotter new-account-link', :remote=>true }
+                    #{ link_to %{Add a sign-in account for "#{card.name}"}, path(:view=>:new_account),
+                         :class=>'slotter new-account-link', :remote=>true }
                     </div>}
                    end
                 }

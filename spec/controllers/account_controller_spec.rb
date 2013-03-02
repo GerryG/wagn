@@ -86,7 +86,8 @@ describe AccountController, "account functions" do
     it 'should create a user' do
       #warn "who #{Account.current.inspect}"
       post :signup, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
-      new_user = User.where(:email=>'joe@new.com').first
+      new_user = User[ 'joe@new.com' ]
+      
       @cd_with_acct = Card['Joe New']
       new_user.should be
       new_user.card_id.should == @cd_with_acct.id
@@ -151,7 +152,7 @@ describe AccountController, "account functions" do
         mock(@mail = m).deliver }
 
       @email='joe@user.com'
-      @juser=User.where(:email=>@email).first
+      @juser = User[ @email ]
       post :forgot_password, :email=>@email
     end
 

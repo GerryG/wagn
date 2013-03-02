@@ -32,6 +32,8 @@ Spork.prefork do
 
   FIXTURES_PATH = File.dirname(__FILE__) + '/../fixtures'
 
+  ORIGINAL_RULE_CACHE = Card.rule_cache
+
   RSpec.configure do |config|
 
     config.include RSpec::Rails::Matchers::RoutingMatchers, :example_group => {
@@ -50,6 +52,7 @@ Spork.prefork do
     config.fixture_path = "#{::Rails.root}/spec/fixtures"
     config.use_transactional_fixtures = true
     config.use_instantiated_fixtures  = false
+
 
     config.before(:each) do
       Account.reset
@@ -101,7 +104,7 @@ end
   def integration_login_as(user, functional=nil)
 
     raise "Don't know email & password for #{user}" unless uc=Card[user] and
-        u=User.where(:card_id=>uc.id).first and
+        u=User[ uc.id ] and
         login = u.email and pass = USERS[login]
 
     if functional

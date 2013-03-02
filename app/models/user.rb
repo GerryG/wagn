@@ -6,6 +6,10 @@ class User < ActiveRecord::Base
   # Virtual attribute for the unencrypted password
   attr_accessor :password, :name
 
+  validates_presence_of     :card_id
+  validates_uniqueness_of   :card_id
+  validates_presence_of     :account_id
+  validates_uniqueness_of   :account_id
   validates_presence_of     :email, :if => :email_required?
   validates_format_of       :email, :with => /^([^@\s]+)@((?:[-a-z0-9]+\.)+[a-z]{2,})$/i  , :if => :email_required?
   validates_length_of       :email, :within => 3..100,   :if => :email_required?
@@ -98,8 +102,10 @@ class User < ActiveRecord::Base
   end
 
   def password_required?
-     !built_in? and !active? and self.class.password_required? and
-       (crypted_password.blank? or not password.blank?)
+    !built_in? &&
+    !pending?  &&
+    #not_openid? &&
+    (crypted_password.blank? or not password.blank?)
   end
 
 end

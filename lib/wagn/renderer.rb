@@ -156,7 +156,7 @@ module Wagn
     def rescue_view e, view
       controller.send :notify_airbrake, e if Airbrake.configuration.api_key
       Rails.logger.info "\nError rendering #{error_cardname} / #{view}: #{e.class} : #{e.message}"
-      Rails.logger.debug "  #{e.backtrace*"\n  "}"
+      Rails.logger.debug "BT:  #{e.backtrace*"\n  "}"
       rendering_error e, view
     end
 
@@ -238,7 +238,7 @@ module Wagn
         else
           perms_required = @@perms[view] || :read
           if Proc === perms_required
-            args[:denied_task] = !(perms_required.call self)
+            args[:denied_task] = :read if !(perms_required.call self)  # read isn't quite right
           else
             args[:denied_task] = [perms_required].flatten.find do |task|
               task = :create if task == :update && card.new_card?
@@ -297,7 +297,7 @@ module Wagn
         included_card = Card.fetch fullname, :new=>( @mode==:edit ? new_inclusion_card_args(opts) : {} )
 
         result = process_inclusion included_card, opts
-        @char_count += result.length if result
+        @char_count += result.length if @mode == :closed && result
         result
       end
     end
@@ -373,9 +373,6 @@ module Wagn
       base = opts[:action] ? "/card/#{ opts.delete :action }" : ''
       if pcard && !pcard.name.empty? && !opts.delete(:no_id) && ![:new, :create].member?(opts[:action]) #generalize. dislike hardcoding views/actions here
         base += '/' + ( opts[:id] ? "~#{ opts.delete :id }" : pcard.cardname.url_key )
-      end
-      if attrib = opts.delete( :attrib )
-        base += "/#{attrib}"
       end
       query =''
       if !opts.empty?

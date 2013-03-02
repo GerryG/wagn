@@ -15,7 +15,7 @@ module Wagn
 
       case
       when results.nil?
-        Rails.logger.debug error.backtrace
+        Rails.logger.debug " no result? #{error.backtrace}"
         %{No results? #{error.class.to_s}: #{error&&error.message}<br/>#{card.content}}
       when card.spec[:return] =='count'
         results.to_s
@@ -44,6 +44,9 @@ module Wagn
 
     define_view :closed_content, :type=>:search_type do |args|
       return "..." if @depth > 2
+      search_params[:limit] = 10 #not quite right, but prevents massive invisible lists.  
+      # really needs to be a hard high limit but allow for lower ones.
+
       results= begin
         card.item_cards( search_params )
       rescue Exception=>e

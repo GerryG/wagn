@@ -16,6 +16,10 @@ describe Wagn::Renderer, "" do
       render_content("[[A]]").should=="<a class=\"known-card\" href=\"/A\">A</a>"
     end
 
+    it "empty inclusion shouldn't blow up" do
+      render_content("{{}}").should==""
+    end
+
     it "should handle dot (.) in missing cardlink" do
       render_content("[[Wagn 1.10.12]]").should=='<a class="wanted-card" href="/Wagn%201%2E10%2E12">Wagn 1.10.12</a>'
     end
@@ -66,8 +70,23 @@ describe Wagn::Renderer, "" do
   context "language quirks" do
     it "should not fail on quirky language" do
       render_content( 'irc: man').should == 'irc: man'
+      # this is really a specification issue, should we exclude the , like we do . at the end of a 'free' URI ?
       render_content( 'ethan@wagn.org, dude').should == '<a class="email-link" href="mailto:ethan@wagn.org">ethan@wagn.org</a>, dude'
-      render_content( 'git://<a href="http://github.com/wagn/wagn.git">github.com/wagn/wagn.git</a>').should_not =~ /render-error/
+    end
+  
+    it "should leave alone something that quacks like a URI when URI module raises invalid uri error" do
+      # it does leave this alone, there was too much going on in one test
+      wack_uri = 'git://<a href="/wagn/wagn.git">/wagn/wagn.git</a>'
+      render_content( wack_uri ).should == wack_uri
+    end
+    it "should leave alone something that quacks like a URI when ?" do
+      pending "its embeded in an <a> tag? quotes? need a spec"
+      wack_uri = '<a href="http://github.com/wagn/wagn.git">github.com/wagn/wagn.git</a>'
+      render_content( wack_uri ).should == wack_uri
+    end
+    it "should leave alone something that quacks like a URI when URI module raises invalid uri error" do
+      render_content( 'mailto:eat@joe.com?v=k').should == "<a class=\"email-link\" href=\"mailto:eat@joe.com?v=k\">mailto:eat@joe.com?v=k</a>"
+      #render_content( 'mailto:eat@joe.com?v=k').should == "mailto:eat@joe.com?v=k\">mailto:eat@joe.com?Subject=Hello"
     end
   end
 
@@ -333,9 +352,10 @@ describe Wagn::Renderer, "" do
 
 
   context "Content rule" do
-    it "is rendered as raw" do
+    it "closed_content is rendered as title + raw" do
       template = Card.new(:name=>'A+*right+*content', :content=>'[[link]] {{inclusion}}')
-      Wagn::Renderer.new(template)._render(:core).should == '[[link]] {{inclusion}}'
+      Wagn::Renderer.new(template)._render(:closed_content).should ==
+        '<a href="/Basic" class="cardtype default-type">Basic</a> : [[link]] {{inclusion}}'
     end
 
     it "is used in new card forms when soft" do

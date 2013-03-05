@@ -105,6 +105,7 @@ Done"
     save_location # should be an event!
     show
   end
+  alias index read
 
 =begin FIXME move to action events
     Rails.logger.warn "update card #{params.inspect}"

@@ -9,7 +9,7 @@ class CardController < ApplicationController
 
   before_filter :read_file_preload, :only=> [ :read_file ]
 
-  before_filter :load_id, :only => [ :read ]
+  before_filter :load_id, :only => [ :read, :index ]
   before_filter :load_card
   before_filter :refresh_card, :only=> [ :create, :update, :delete, :comment, :rollback ]
 

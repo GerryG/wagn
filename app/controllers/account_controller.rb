@@ -1,7 +1,4 @@
 # -*- encoding : utf-8 -*-
-#
-class InvitationError < StandardError; end
-
 class AccountController < CardController
 
   before_filter :login_required, :only => [ :invite, :update ]
@@ -23,9 +20,9 @@ class AccountController < CardController
     account_params = ( params[:account] || {} ).symbolize_keys
     account_params[:name] = @card.name
     @account = Account.new(account_params).pending
-    #warn "acct? #{params.inspect}, #{account_params.inspect}, #{@account}"
+    Rails.logger.warn "acct? #{params.inspect}, #{account_params.inspect}, #{@account}"
 
-    #warn "signup #{request.put?} #{params.inspect}, #{@account.inspect}, #{@card.inspect}"
+    Rails.logger.warn "signup #{request.put?} #{params.inspect}, #{@account.inspect}, #{@card.inspect}"
     if request.post?
       @card.account= @account
       #warn "signup post #{params.inspect}, #{@card.account.inspect}, #{@card.inspect}"
@@ -35,7 +32,7 @@ class AccountController < CardController
         @account.active
         @card.save
 
-        return if render_errors
+        return if @card.errors.any? && render_errors
 
         #Rails.logger.warn "invite: #{@card.inspect} #{@account.inspect}"
         @card.send_account_info( { :password=>@account.password, :to => @account.email,
@@ -48,7 +45,7 @@ class AccountController < CardController
         @account.pending
         Account.as_bot { @card.save }
 
-        return if render_errors
+        return if @card.errors.any? && render_errors
 
         Account.as_bot do
           Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'

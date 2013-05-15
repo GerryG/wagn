@@ -1,4 +1,4 @@
-
+# -*- encoding : utf-8 -*-
 class Account
   # This will probably have a hash of possible account classes and a value for the class
   @@as_card = @@as_id = @@current = nil
@@ -88,6 +88,12 @@ class Account
       end
     end
  
+    def create_ok?
+      base  = Card.new :name=>'dummy*', :type_id=>Card::UserID
+      trait = Card.new :name=>"dummy*+#{Card[:account].name}"
+      base.ok?(:create) && trait.ok?(:create)
+    end
+
     def first_login!
       Card.cache.delete 'no_logins'
     end

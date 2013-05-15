@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 require File.expand_path('../spec_helper', File.dirname(__FILE__))
 require 'object_content'
 
@@ -214,7 +215,7 @@ CONTENT = {
      }
 
    ~
-} # should the ~ be there?  is it css?
+}
 
 CLASSES = {
    :one => [String, Literal::Escape, String, Chunks::Include, String ],
@@ -316,6 +317,7 @@ describe ObjectContent do
     it "should find uri chunks (b)" do
       # tried some tougher cases that failed, don't know the spec, so hard to form better tests for URIs here
       cobj = ObjectContent.new CONTENT[:three_b], @card_opts
+      #warn "cobj #{cobj.inspect} #{CLASSES[:three_b].inspect}"
       cobj.inject(CLASSES[:three_b], &@check_proc).should == true
       clist = CLASSES[:three_b].find_all {|c| String != c }
       #warn "clist #{clist.inspect}, #{cobj.inspect}"

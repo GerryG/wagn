@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 module Wagn
   module Set::Right::Email
     include Sets
@@ -5,7 +6,8 @@ module Wagn
     format :base
 
     define_view  :raw, :right=>'email'  do |args|
-      acct=card.trunk.account and acct.email
+      account = Account[ card.left.id ]
+      account ? account.send('email') : ''
     end
     alias_view :raw, {:right=>:email}, :core
   end

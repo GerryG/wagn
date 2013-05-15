@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 module Wagn
   module Set::Type::AccountRequest
     include Sets
@@ -7,7 +8,7 @@ module Wagn
     define_view :core, :type=>:account_request do |args|
       links = []
       #ENGLISH
-      if User.create_ok?
+      if Account.create_ok?
         links << link_to( "Invite #{card.name}", Card.path_setting("/account/accept?card[key]=#{card.cardname.url_key}"), :class=>'invitation-link')
       end
       if Account.logged_in? && card.ok?(:delete)
@@ -16,7 +17,7 @@ module Wagn
 
       process_content(_render_raw) +
       if (card.new_card?); '' else
-        %{<div class="invite-links help instruction">
+        %{<div class="invite-links">
             <div><strong>#{card.name}</strong> requested an account on #{format_date(card.created_at) }</div>
             #{%{<div>#{links.join('')}</div> } unless links.empty? }
         </div>}
@@ -32,7 +33,7 @@ module Wagn
       private
 
       def block_account
-        if account = User[ self.id ]
+        if account = Account[ self.id ]
           account.update_attributes :status=>'blocked'
         end
       end

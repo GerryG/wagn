@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 require File.expand_path('../spec_helper', File.dirname(__FILE__))
 include AuthenticatedTestHelper
 require 'rr'
@@ -86,7 +87,7 @@ describe AccountController, "account functions" do
     it 'should create a user' do
       #warn "who #{Account.current.inspect}"
       post :signup, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
-      new_user = User[ 'joe@new.com' ]
+      new_user = Account.find_by_email( 'joe@new.com' )
       
       @cd_with_acct = Card['Joe New']
       new_user.should be
@@ -112,29 +113,21 @@ describe AccountController, "account functions" do
     end
 
     it "should create an account request" do
-      c = Card['Joe New'].should be
+      post :signup, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
+
+      (c = Card['Joe New']).should be
       c.type_id.should == Card::AccountRequestID
-      c.to_user.blocked?.should be_true
+      c.account.pending?.should be_true
     end
 
     it 'should detect duplicates' do
       post :signup, :account=>{:email=>'joe@user.com'}, :card=>{:name=>'Joe Scope'}
       post :signup, :account=>{:email=>'joe@user.com'}, :card=>{:name=>'Joe Duplicate'}
       
+      warn "first #{Card['Joe Scope'].inspect}"
       c=Card['Joe Duplicate']
-      #warn "second #{c.inspect}"
+      warn "second #{c.inspect}"
       c.should be_nil
-    end
-
-    it "should accept" do
-      #put :update, :id=>"Joe New", :account=>{:status=>'active'}
-      put :accept, :card=>{:key => "joe_new"}, :account=>{:status=>'active'}
-
-      (@auth_card = Card['Joe New']).should be
-      (@new_account = @auth_card.account).should be
-      @new_account.card_id.should == @auth_card.id
-      @auth_card.type_id.should == Card::UserID
-      @msgs.size.should == 2
     end
   end
 
@@ -152,7 +145,7 @@ describe AccountController, "account functions" do
         mock(@mail = m).deliver }
 
       @email='joe@user.com'
-      @juser = User[ @email ]
+      @juser = Account.find_by_email( @email )
       post :forgot_password, :email=>@email
     end
 
@@ -160,7 +153,7 @@ describe AccountController, "account functions" do
       @msgs.size.should == 1
       @msgs[0].should be_a Mail::Message
       # FIXME: shouldn't it be simpler? @msgs[0].from.should == "Anonymous"
-      @msgs[0].from.should == "Anonymous <>"
+      @msgs[0].from.should == ["no-reply@wagn.org"]
     end
 
 

@@ -12,20 +12,8 @@ class Mailer < ActionMailer::Base
 
   EMAIL_FIELDS = [ :to, :subject, :message, :password ]
 
-  def valid_args? cd_with_acct, args
-    nil_args = EMAIL_FIELDS.find_all { |k| args[k].nil? }.compact
-    if nil_args.any?
-      unless cd_with_acct.errors[:email].any?
-        cd_with_acct.errors.add(:email, "Missing email parameters: #{nil_args.map(&:to_s)*', '}")
-      end
-      false
-    else
-      true
-    end
-  end
-
-
   def account_info cd_with_acct, args
+    #Rails.logger.warn "ainfo #{caller[0..3]*', '}"
 
     arg_array = EMAIL_FIELDS.map { |f| args[f] }
     return if arg_array.find(&:nil?)

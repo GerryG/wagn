@@ -97,12 +97,12 @@ module Wagn
         end
 
         view_key = get_set_key view, opts
-        #warn "defining view method[#{Renderer.renderer}] _final_#{view_key}"
+        #warn "defining view method[#{Renderer.current_class}] _final_#{view_key}"
         Renderer.current_class.class_eval { define_method "_final_#{view_key}", &final }
         Renderer.subset_views[view] = true if !opts.empty?
 
         if !method_defined? "render_#{view}"
-          #warn "defining view method[#{Renderer.renderer}] _render_#{view}"
+          #warn "defining view method[#{Renderer.current_class}] _render_#{view}"
           Renderer.current_class.class_eval do
             define_method "_render_#{view}" do |*a|
               begin
@@ -171,7 +171,6 @@ module Wagn
         :perform_update    => :update,
         :perform_delete    => :delete,
         :perform_index     => :read,
-        :perform_read_file => :read_file,
       }
 
       def action event, opts={}, &final_action

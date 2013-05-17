@@ -1,6 +1,4 @@
 # -*- encoding : utf-8 -*-
-require_dependency 'cardlib'
-
 class CardController < ApplicationController
   include Wagn::Sets::CardActions
 
@@ -9,38 +7,30 @@ class CardController < ApplicationController
   before_filter :load_id, :only => [ :read ]
   before_filter :load_card
   before_filter :refresh_card, :only=> [ :create, :update, :delete, :comment, :rollback ]
-
-  METHODS = {
-    'POST'   => :create,  # C
-    'GET'    => :read,    # R
-    'PUT'    => :update,  # U
-    'DELETE' => :delete,  # D
-    'INDEX'  => :index
-  }
-
-  # this form of dispatching is not used yet, write specs first, then integrate into routing
-  def action
-    @action = METHODS[request.method]
-    Rails.logger.warn "action #{request.method}, #{@action} #{params.inspect}"
-    #warn "action #{request.method}, #{@action} #{params.inspect}"
-    send "perform_#{@action}"
-    render_errors || success
+  
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+  #  CORE METHODS
+  
+  def create
+    handle { card.save }
   end
 
-  def action_method event
-    return "_final_#{event}" unless card && subset_actions[event]
-    card.method_keys.each do |method_key|
-      meth = "_final_"+(method_key.blank? ? "#{event}" : "#{method_key}_#{event}")
-      #warn "looking up #{method_key}, M:#{meth} for #{card.name}"
-      return meth if respond_to?(meth.to_sym)
-    end
+  def read
+    save_location # should be an event!
+    show
   end
 
-  def action_error *a
-    warn "action_error #{a.inspect}"
+  def update
+    card.new_card? ? create : handle { card.update_attributes params[:card] }
   end
 
+  def delete
+    discard_locations_for card #should be an event
+    params[:success] ||= 'REDIRECT: *previous'
+    handle { card.delete }
+  end
 
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ## the following methods need to be merged into #update
 
   def save_draft
@@ -169,8 +159,7 @@ class CardController < ApplicationController
         opts[:type] ||= params[:type] # for /new/:type shortcut.  we should fix and deprecate this.
         name = params[:id] || opts[:name]
         
-        #warn "load card #{@action.inspect}, p:#{params.inspect} :: #{name.inspect} #{opts.inspect}"
-        if @action == 'create'
+        if params[:action] == 'create'
           # FIXME we currently need a "new" card to catch duplicates (otherwise #save will just act like a normal update)
           # I think we may need to create a "#create" instance method that handles this checking.
           # that would let us get rid of this...
@@ -189,14 +178,6 @@ class CardController < ApplicationController
   end
 
 
-  # ------- REDIRECTION --------
-
-  def success default_target='_self'
-    #warn "success #{default_target}, #{card.inspect}"
-    target = params[:success] || default_target
-    redirect = !ajax?
-    new_params = {}
-  end
 
   #------- REDIRECTION 
 

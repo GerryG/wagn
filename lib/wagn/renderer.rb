@@ -1,7 +1,5 @@
 # -*- encoding : utf-8 -*-
 
-require_dependency "cardlib"
-
 module Wagn
   class Renderer
 
@@ -10,6 +8,10 @@ module Wagn
     
     cattr_accessor :current_slot, :ajax_call, :perms, :denial_views, :subset_views, :error_codes, :view_tags, :current_class
     @@current_class = Renderer
+
+    attr_reader :format, :card, :root, :parent
+    attr_accessor :form, :main_content, :error_status
+
 
     DEPRECATED_VIEWS = { :view=>:open, :card=>:open, :line=>:closed, :bare=>:core, :naked=>:core }
     INCLUSION_MODES  = { :main=>:main, :closed=>:closed, :closed_content=>:closed, :edit=>:edit,
@@ -21,9 +23,6 @@ module Wagn
       :txt  => :Text
     }
 
-    cattr_accessor :current_slot, :ajax_call, :perms, :denial_views, :subset_views, :error_codes, :view_tags
-    cattr_reader :renderer
-
     @@max_char_count = 200 #should come from Wagn::Conf
     @@max_depth      = 10 # ditto
     @@perms          = {}
@@ -31,10 +30,6 @@ module Wagn
     @@subset_views   = {}
     @@error_codes    = {}
     @@view_tags      = {}
-    @@renderer = Renderer
-
-    attr_reader :format, :card, :root, :parent
-    attr_accessor :form, :main_content, :error_status
 
     class << self
 
@@ -115,7 +110,7 @@ module Wagn
 
     def method_missing method_id, *args, &proc
       proc = proc {|*a| raw yield *a } if proc
-      #warn "mmiss #{self.class}, #{card.name}, #{method_id}"
+      #Rails.logger.warn "mmiss #{self.class}, #{@card.inspect}, #{caller[0]}, #{method_id}"
       response = template.send method_id, *args, &proc
       String===response ? template.raw( response ) : response
     end

@@ -88,16 +88,26 @@ class Account
       end
     end
  
+    def create_ok?
+      base  = Card.new :name=>'dummy*', :type_id=>Card::UserID
+      trait = Card.new :name=>"dummy*+#{Card[:account].name}"
+      base.ok?(:create) && trait.ok?(:create)
+    end
+
     def first_login!
+Rails.logger.warn "firstlog clear"
       Card.cache.delete 'no_logins'
     end
 
     def first_login?
       cache = Card.cache
       !( if cval=cache.read('no_logins')
+Rails.logger.warn "firstlog #{cval}"
            cval
          else
-           cache.write( 'no_logins', Card.search({:right=>Card::AccountID, :left=>{:type=>Card::UserID }}).count == 0 )
+           nval = Card.search({:right=>Card::AccountID, :left=>{:type=>Card::UserID }}).count == 0
+Rails.logger.warn "firstlog new #{nval}"
+           cache.write( 'no_logins', nval )
          end )
     end
 

@@ -640,6 +640,7 @@ module Wagn
           else
             ["follow", :on, "send emails about changes to #{card.cardname}" ]
           end
+          warn "watch view #{link_args.inspect}"
           watch_link *link_args
         end
       end
@@ -648,6 +649,7 @@ module Wagn
   
   class Renderer::Html < Renderer
     def watching_type_cards
+      warn "watching type"
       %{<div class="faint">(following)</div>} #yuck
     end
 

@@ -134,7 +134,7 @@ describe Card do
 
     it "returns content even when context card is hard templated" do
       context_card = Card["A"] # refers to 'Z'
-      c1=Card.create! :name => "A+*self+*content", :content => "Banana"
+      c1=Card.create! :name => "A+*self+*structure", :content => "Banana"
       c = Card.new( :name => "foo", :content => "{{_self+B|core}}" )
       c.contextual_content( context_card ).should == "AlphaBeta"
     end

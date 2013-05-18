@@ -22,7 +22,7 @@ describe "Card::Reference" do
       c = Card["Form1"]
       warn "card #{c.references_expired.inspect} c:#{c.inspect}"
       c.references_expired.should be_nil
-      Card.create! :name=>"SpecialForm+*type+*content", :content=>"{{+bar}}"
+      Card.create! :name=>"SpecialForm+*type+*structure", :content=>"{{+bar}}"
       c = Card["Form1"]
       warn "card #{c.inspect}"
       c.references_expired.should be_true
@@ -37,7 +37,7 @@ describe "Card::Reference" do
     it "on template update" do
       Account.as_bot do
         Card.create! :name=>"JoeForm", :type=>'UserForm'
-        tmpl = Card["UserForm+*type+*content"]
+        tmpl = Card["UserForm+*type+*structure"]
         tmpl.content = "{{+monkey}} {{+banana}} {{+fruit}}";
         tmpl.save!
         Card["JoeForm"].references_expired.should be_true
@@ -150,7 +150,7 @@ describe "Card::Reference" do
   it "template inclusion" do
     Account.as_bot do
       cardtype = Card.create! :name=>"ColorType", :type=>'Cardtype', :content=>""
-      Card.create! :name=>"ColorType+*type+*content", :content=>"{{+rgb}}"
+      Card.create! :name=>"ColorType+*type+*structure", :content=>"{{+rgb}}"
       green = Card.create! :name=>"green", :type=>'ColorType'
       rgb = newcard 'rgb'
       green_rgb = Card.create! :name => "green+rgb", :content=>"#00ff00"

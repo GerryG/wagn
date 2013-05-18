@@ -10,15 +10,17 @@ class AdminController < CardController
     Wagn::Conf[:recaptcha_on] = false
     if request.post?
       Account.as_bot do
-        @card = Card.new params[:card]
+        @card = Card.new params[:card].merge(:type=>Card::UserID)
         aparams = params[:account]
         aparams[:name] = @card.name
         acct = Account.new( aparams ).active
-        #warn "acct setup #{acct.inspect}, #{@card.account}"
         @account = card.account = Account.new( aparams ).active
+        Rails.logger.warn "acct setup #{acct.inspect}, #{card.inspect}, #{@card.account}"
         set_default_request_recipient
 
-        #warn "ext id = #{@account.id}"
+        card.save
+
+        Rails.logger.warn "ext id = #{@account.inspect}"
 
         if @card.errors.empty?
           roles_card = card.fetch :trait=>:roles, :new=>{}
@@ -30,6 +32,7 @@ class AdminController < CardController
           flash[:notice] = "You're good to go!"
           redirect_to Card.path_setting('/')
         else
+        Rails.logger.warn "setup error #{@card.errors.map {|e| e.to_s}*', '}"
           flash[:notice] = "Durn, setup went awry..."
         end
       end

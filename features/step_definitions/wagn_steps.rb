@@ -121,7 +121,7 @@ end
 def logged_in_as(username)
   sameuser = (username == "I" or @current_id && Card[@current_id].name == username)
   unless sameuser
-    @saved_user = @current_id
+    @saved_account = @current_id
     step "I log in as #{username}"
   end
   yield
@@ -139,6 +139,7 @@ end
 
 When /^In (.*) I click "(.*)"$/ do |section, link|
   within scope_of(section) do
+    warn "page #{page.body}"
     click_link link
   end
 end
@@ -163,7 +164,7 @@ end
 
 Then /^In (.*) I should see "([^\"]*)"$/ do |section, text|
   within scope_of(section) do
-warn "page #{page.body}"
+    #warn "page #{page.body}"
     page.should have_content(text)
   end
 end
@@ -178,7 +179,7 @@ Then /^In (.*) I should (not )?see a ([^\"]*) with class "([^\"]*)"$/ do |select
   # checks for existence of a element with a class in a selection context
   element = 'a' if element == 'link'
   within scope_of(selection) do
-    page.send ( neg ? :should_not : :should ), have_css( [ element, selector ] * '.' )
+    page.send( ( neg ? :should_not : :should ), have_css( [ element, selector ] * '.' ) )
   end
 end
 
@@ -192,6 +193,7 @@ end
 
 ## variants of standard steps to handle """ style quoted args
 Then /^I should see$/ do |text|
+  warn "page #{page.body}"
   page.should have_content(text)
 end
 

@@ -15,14 +15,15 @@ class UserTest < ActiveSupport::TestCase
 
   def test_should_create_account
     assert_difference User, :count do
-      assert create_account.valid?
+      u=create_account(:card_id=>0, :account_id=>0)
+      Rails.logger.warn "user is #{u.inspect}"
+      assert u.valid?
     end
   end
 
   def test_should_require_password
     assert_no_difference User, :count do
       u = create_account(:password => '')
-      Rails.logger.warn "require pw #{u}, #{u.errors.map{|k,v| "#{k} -> #{v}"}*", "}"
       assert u.errors[:password]
     end
   end
@@ -65,11 +66,11 @@ class UserTest < ActiveSupport::TestCase
 
   protected
   def create_account(options = {})
-    acct=Account.new({ :login => 'quire', :email => 'quire@example.com',  # login isn't really used now
-      :password => 'quire', :password_confirmation => 'quire', :card_id=>0, :account_id=>0
-    }.merge(options))
-    #Rails.logger.warn "create_account #{acct.inspect}"
+    acct=Account.new( opts=({ :email => 'quire@example.com', :password => 'quire', :password_confirmation => 'quire'
+    }.merge(options)) )
+    Rails.logger.warn "create_account opts: org:#{options.inspect}, merged:#{opts.inspect}\nacct: #{acct.inspect}"
     acct.save
+    Rails.logger.warn "create_account saved: #{acct.inspect}"
     acct
   end
 end

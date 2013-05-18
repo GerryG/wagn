@@ -25,7 +25,7 @@ Feature: Set settings
     Given I create Phrase card "User+cereal+*type plus right+*edit help" with content "your favorite"
     When I go to card  "Joe User+cereal"
     Then I should see "your favorite"
-    When I create card "User+*type+*content" with content "{{+cereal}}"
+    When I create card "User+*type+*structure" with content "{{+cereal}}"
     And I log in as Joe User
     And I edit "Joe User"
     Then I should see "your favorite"

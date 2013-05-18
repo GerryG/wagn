@@ -282,7 +282,7 @@ describe "renaming" do
   end
 
   it "test_rename_should_not_fail_when_updating_hard_templated_referencer" do
-    pending "the test seems wrong, the *default rule isn't even found, why not *content?"
+    pending "the test seems wrong, the *default rule isn't even found, why not *structure?"
     c=Card.create! :name => "Pit"
     Card.create! :name => "Orange", :type=>"Fruit", :content => "[[Pit]]"
     Card["Fruit+*type+*default"].update_attributes(:content=>"this [[Pit]]")

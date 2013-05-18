@@ -1,4 +1,5 @@
-#require "#{Rails.root}/lib/util/card_builder.rb"
+# -*- encoding : utf-8 -*-
+#require "#{Rails.root}/lib/util/card_builder"
 #require 'renderer'
 
 module WagnTestHelper
@@ -6,7 +7,10 @@ module WagnTestHelper
 #  include CardBuilderMethods
 
   def setup_default_account
-    Account.reset
+    Account.current_id = Card::WagnBotID
+    @account = Account.current.account
+
+    @account.update_column 'crypted_password', '610bb7b564d468ad896e0fe4c3c5c919ea5cf16c'
 
     Account.current_id = Card['joe_user'].id
     Rails.logger.warn "setup default user #{Account.as_card.inspect}, #{Account.current.inspect}, #{Account.current_id}"

@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 require File.expand_path('../../spec_helper', File.dirname(__FILE__))
 
 
@@ -42,16 +43,24 @@ describe Card, "with right content template" do
     Wagn::Renderer.new(@jb)._render_raw.should == 'Today!'
   end
 
-  it "should change content with template" do
+  it "should change type and content with template" do
     Account.as_bot do
-      @bt=Card[@bt.name]
       @bt.content = "Tomorrow"
-    #warn "save tomorrow #{@bt.inspect} c:#{@bt.content}"
+      @bt.type = 'Phrase'
       @bt.save!
-    #warn "saved tomorrow #{@bt.inspect} c:#{@bt.content}, #{@bt.raw_content}"
     end
-    #warn "render tomorrow #{@jb.inspect}"
-    Wagn::Renderer.new( Card[@jb.key] ).render(:raw).should == 'Tomorrow'
+    jb = @jb.refresh force=true
+    Wagn::Renderer.new( jb ).render(:raw).should == 'Tomorrow'
+    jb.type_id.should == Card::PhraseID    
+  end
+  
+  it "should have type and content overridden by (new) type_plus_right set" do
+    Account.as_bot do
+      Card.create! :name=>'Basic+birthday+*type plus right+*structure', :type=>'PlainText', :content=>'Yesterday'
+    end
+    jb = @jb.refresh force=true
+    jb.raw_content.should == 'Yesterday'
+    jb.type_id.should == Card::PlainTextID
   end
 end
 

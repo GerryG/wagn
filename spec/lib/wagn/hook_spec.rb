@@ -1,19 +1,9 @@
+# -*- encoding : utf-8 -*-
 require File.expand_path('../../spec_helper', File.dirname(__FILE__))
 
 describe Wagn::Hook do
   it "module exists and autoloads" do
     Wagn::Hook.should be_true
-  end
-
-  describe ".ephemerally" do
-    it "restores registry to original state after running block" do
-      reg = Wagn::Hook.registry.deep_clone
-      Wagn::Hook.ephemerally do
-        Wagn::Hook.add :save, "Book+*type" do "fish" end
-        Wagn::Hook.registry.should_not == reg
-      end
-      Wagn::Hook.registry.should == reg
-    end
   end
 
   describe ".invoke" do

@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 require File.expand_path('../../spec_helper', File.dirname(__FILE__))
 
 describe Card do
@@ -55,6 +56,10 @@ describe Card do
     it "handles name variants of cached cards" do
       Card.fetch('yomama+*self').name.should == 'yomama+*self'
       Card.fetch('YOMAMA+*self').name.should == 'YOMAMA+*self'
+      Card.fetch('yomama', :new=>{}).name.should == 'yomama'
+      Card.fetch('YOMAMA', :new=>{}).name.should == 'YOMAMA'
+      Card.fetch('yomama!', :new=>{ :name=>'Yomama'} ).name.should == 'Yomama'
+#      Card.fetch('yomama!', :new=>{ :type=>'Phrase'} ).name.should == 'yomama!'  FIXME!!     
     end
 
     it "does not recurse infinitely on template templates" do
@@ -102,7 +107,7 @@ describe Card do
         c2=Card.create!(:name => "a+y", :content => "DB Content")
         card = Card.fetch("a+y")
         card.virtual?.should be_false
-        card.rule(:content).should == "Formatted Content"
+        card.rule(:structure).should == "Formatted Content"
         card.content.should == "DB Content"
       end
 
@@ -170,6 +175,7 @@ describe Card do
       new_card.should be_instance_of(Card)
       new_card.typecode.should == :image
       new_card.new_record?.should be_true
+      Card.fetch( 'Never Before', :new=>{} ).type_id.should == Card::BasicID
     end
   end
 

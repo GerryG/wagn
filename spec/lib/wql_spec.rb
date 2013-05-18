@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 require File.expand_path('../spec_helper', File.dirname(__FILE__))
 
 A_JOINEES = ["B", "C", "D", "E", "F"]
@@ -229,11 +230,6 @@ describe Wql do
 
   end
 
-  #describe "group tagging" do
-  #  it "should find frequent taggers of cardtype cards" do
-  #    Wql.new( :group_tagging=>'Cardtype' ).run.map(&:name).sort().should == ["*related", "*tform"].sort()
-  #  end
-  #end
 
   describe "trash handling" do
     it "should not find cards in the trash" do

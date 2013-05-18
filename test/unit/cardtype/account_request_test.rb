@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 require File.expand_path('../../test_helper', File.dirname(__FILE__))
 class AccountRequestTest < ActiveSupport::TestCase
 
@@ -28,7 +29,6 @@ class AccountRequestTest < ActiveSupport::TestCase
     Account.as 'joe_admin' do c.delete!  end
 
     assert_equal nil, Card.fetch('Ron Request')
-    Rails.logger.warn "acct #{Card['RonRequest'].inspect}, U#{Account.find_by_email('ron@request.com').inspect}"
     assert_equal 'blocked', Account.find_by_email('ron@request.com').status
   end
 

@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 
 module Wagn
   module Set::Type::Pointer
@@ -13,14 +14,14 @@ module Wagn
     format :html
 
     define_view :core, :type=>'pointer' do |args|
-      @item_view ||= Wagn::Renderer::DEFAULT_ITEM_VIEW  #FIXME: this needs work, it won't subclass as intended
-      %{<div class="pointer-list">#{card.pointer_items self, @item_view}</div>}
+      itemview = args[:item] || :closed #Wagn::Renderer::DEFAULT_ITEM_VIEW  #FIXME: this needs work, it won't subclass as intended
+      %{<div class="pointer-list">#{card.pointer_items self, itemview}</div>}
       #+ link_to( 'add/edit', path(action), :remote=>true, :class=>'slotter add-edit-item' ) #ENGLISH
     end
 
     define_view :closed_content, :type=>'pointer' do |args|
-      @item_view = 'link' unless @item_view == 'name'
-      %{<div class="pointer-list">#{card.pointer_items self, @item_view}</div>}
+      itemview = args[:item]=='name' ? 'name' : 'link'
+      %{<div class="pointer-list">#{card.pointer_items self, itemview}</div>}
     end
 
     define_view :editor, :type=>'pointer' do |args|
@@ -33,7 +34,7 @@ module Wagn
       args ||= {}
       items = args[:items] || card.item_names(:context=>:raw)
       items = [''] if items.empty?
-      options_card_name = ((oc = card.options_card) ? oc.name : '*all').to_name.url_key
+      options_card_name = (oc = card.options_card) ? oc.cardname.url_key : ':all'
 
       extra_css_class = args[:extra_css_class] || 'pointer-list-ul'
 
@@ -93,13 +94,13 @@ module Wagn
     module Model
       def collection?() true  end
 
-      def pointer_items renderer, item_view
+      def pointer_items renderer, itemview
         typeparam = case (type=item_type)
           when String ; ";type:#{type}"
           when Array  ; ";type:#{type.second}"  #type spec is likely ["in", "Type1", "Type2"]
           else ""
         end
-        renderer.process_content_object content.gsub(/\[\[/,"<div class=\"pointer-item item-#{item_view}\">{{").gsub(/\]\]/,"|#{item_view}#{typeparam}}}</div>")
+        renderer.process_content_object content.gsub(/\[\[/,"<div class=\"pointer-item item-#{itemview}\">{{").gsub(/\]\]/,"|#{itemview}#{typeparam}}}</div>")
       end
 
       def item_cards( args={} )
@@ -116,8 +117,7 @@ module Wagn
 
       def item_names( args={} )
         context = args[:context] || self.cardname
-        cc=self.content
-        self.content.split(/\n+/).map{ |line|
+        self.raw_content.split(/\n+/).map{ |line|
           line.gsub(/\[\[|\]\]/,'')
         }.map{ |link| context==:raw ? link : link.to_name.to_absolute(context) }
       end
@@ -128,26 +128,25 @@ module Wagn
         opt.item_type
       end
 
-      def items=(array)
+      def items= array
         self.content=''
-        array.each {|i| self << i }
+        array.each { |i| self << i }
+        save!
       end
-      # FIXME.  this is horribly inefficient.  If there are 10 items in the array the card will get saved 10 times!
 
-      def << card
-        add_item ( case card
-                     when Card; card.name
-                     when Integer; c = Card[card] and c.name
-                     else card
-                     end )
-        self
+      def << item
+        newname = case item
+          when Card     ;  item.name
+          when Integer  ;  c = Card[item] and c.name
+          else             item
+          end
+        add_item newname
       end
 
       def add_item newname
         inames = item_names
         unless inames.include? newname
           self.content="[[#{(inames << newname).reject(&:blank?)*"]]\n[["}]]"
-          save!
         end
       end
 
@@ -156,7 +155,6 @@ module Wagn
         if inames.include? name
           inames = inames.reject{|n|n==name}
           self.content= inames.empty? ? '' : "[[#{inames * "]]\n[["}]]"
-          save!
         end
       end
 

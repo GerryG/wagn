@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 require 'spork'
 ENV["RAILS_ENV"] = 'test'
 
@@ -15,16 +16,10 @@ end
 
 Spork.prefork do
   require File.expand_path File.dirname(__FILE__) + "/../config/environment"
-  require File.expand_path File.dirname(__FILE__) + "/../lib/authenticated_test_helper.rb"
+  require File.expand_path File.dirname(__FILE__) + "/../lib/authenticated_test_helper"
   require 'rspec/rails'
 
   require_dependency 'chunks/chunk'
-  require_dependency 'chunks/uri'
-  require_dependency 'chunks/literal'
-  require_dependency 'chunks/reference'
-  require_dependency 'chunks/link'
-  require_dependency 'chunks/include'
-
 
   # Requires supporting ruby files with custom matchers and macros, etc,
   # in spec/support/ and its subdirectories.
@@ -102,7 +97,6 @@ end
   }
 
   def integration_login_as(user, functional=nil)
-
     raise "Don't know email & password for #{user}" unless uc=Card[user] and
         u=Account[ uc.id ] and
         login = u.email and pass = USERS[login]

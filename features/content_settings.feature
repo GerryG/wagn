@@ -9,7 +9,7 @@ Feature: Content Settings
     And I create card "Movie+*type+*structure" with content "{{+director}} {{+lead}} {{+color}}"
     And I create Phrase card "color+*right+*default" with content "true dat"
 
-  Scenario: New card with templated content
+  Scenario: New structured card
     When I edit "Movie+*type+*structure"
     And I should see "{{+lead}}"
     When I go to new Movie

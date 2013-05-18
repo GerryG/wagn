@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 require 'uri'
 require 'cgi'
 require File.expand_path(File.join(File.dirname(__FILE__), "..", "support", "paths"))
@@ -12,7 +13,7 @@ Given /^I log in as (.+)$/ do |acct_name|
   visit "/account/signin"
   fill_in("login", :with=> email )
   fill_in("password", :with=> user.login.split("_")[0]+"_pass")
-  click_button("Sign me in")
+  click_button("Sign in")
   page.should have_content(acct_name)
 end
 

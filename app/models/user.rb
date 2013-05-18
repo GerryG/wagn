@@ -13,7 +13,7 @@ class User < ActiveRecord::Base
   validates_presence_of     :email, :if => :email_required?
   validates_format_of       :email, :with => /^([^@\s]+)@((?:[-a-z0-9]+\.)+[a-z]{2,})$/i  , :if => :email_required?
   validates_length_of       :email, :within => 3..100,   :if => :email_required?
-  validates_uniqueness_of   :email, :scope=>:login,      :if => :email_required?
+  validates_uniqueness_of   :email, :scope => :login,    :if => :email_required?
   validates_presence_of     :password,                   :if => :password_required?
   validates_presence_of     :password_confirmation,      :if => :password_required?
   validates_length_of       :password, :within => 5..40, :if => :password_required?
@@ -29,6 +29,10 @@ class User < ActiveRecord::Base
 
     def encrypt(password, salt) Digest::SHA1.hexdigest("#{salt}--#{password}--") end
     def password_required?;     true                                             end
+
+    def delete_cardless
+      where( Card.where( :id=>arel_table[:card_id] ).exists.not ).delete_all
+    end
   end
 
 #~~~~~~~ Instance

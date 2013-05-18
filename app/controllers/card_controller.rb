@@ -1,48 +1,36 @@
 # -*- encoding : utf-8 -*-
-require_dependency 'cardlib'
-
 class CardController < ApplicationController
   include Wagn::Sets::CardActions
 
   helper :wagn
 
-  before_filter :read_file_preload, :only=> [ :read_file ]
-
   before_filter :load_id, :only => [ :read ]
   before_filter :load_card
   before_filter :refresh_card, :only=> [ :create, :update, :delete, :comment, :rollback ]
-
-  METHODS = {
-    'POST'   => :create,  # C
-    'GET'    => :read,    # R
-    'PUT'    => :update,  # U
-    'DELETE' => :delete,  # D
-    'INDEX'  => :index
-  }
-
-  # this form of dispatching is not used yet, write specs first, then integrate into routing
-  def action
-    @action = METHODS[request.method]
-    Rails.logger.warn "action #{request.method}, #{@action} #{params.inspect}"
-    #warn "action #{request.method}, #{@action} #{params.inspect}"
-    send "perform_#{@action}"
-    render_errors || success
+  
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+  #  CORE METHODS
+  
+  def create
+    handle { card.save }
   end
 
-  def action_method event
-    return "_final_#{event}" unless card && subset_actions[event]
-    card.method_keys.each do |method_key|
-      meth = "_final_"+(method_key.blank? ? "#{event}" : "#{method_key}_#{event}")
-      #warn "looking up #{method_key}, M:#{meth} for #{card.name}"
-      return meth if respond_to?(meth.to_sym)
-    end
+  def read
+    save_location # should be an event!
+    show
   end
 
-  def action_error *a
-    warn "action_error #{a.inspect}"
+  def update
+    card.new_card? ? create : handle { card.update_attributes params[:card] }
   end
 
+  def delete
+    discard_locations_for card #should be an event
+    params[:success] ||= 'REDIRECT: *previous'
+    handle { card.delete }
+  end
 
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ## the following methods need to be merged into #update
 
   def save_draft
@@ -53,23 +41,6 @@ class CardController < ApplicationController
     end
   end
 
-  def comment
-    raise Wagn::BadAddress, "comment without card" unless params[:card]
-    # this previously failed unless request.post?, but it is now (properly) a PUT.
-    # if we enforce RESTful http methods, we should do it consistently,
-    # and error should be 405 Method Not Allowed
-
-    author = Account.logged_in? ? "[[#{Account.current.name}]]" :
-             "#{session[:comment_author] = params[:card][:comment_author]} (Not signed in)"
-
-    card.comment = %{<hr>#{ params[:card][:comment].to_html }<p><em>&nbsp;&nbsp;--#{ author }.....#{Time.now}</em></p>}
-
-    if card.save
-      show
-    else
-      render_errors
-    end
-  end
 
   def rollback
     revision = card.revisions[params[:rev].to_i - 1]
@@ -84,11 +55,9 @@ class CardController < ApplicationController
     watchers = watchers.refresh
     myname = Account.current.name
     watchers.send((params[:toggle]=='on' ? :add_item : :drop_item), myname)
+    watchers.save!
     ajax? ? show(:watch) : read
   end
-
-
-
 
 
 
@@ -106,7 +75,10 @@ class CardController < ApplicationController
 
     acct = card.account
     if acct and account_args = params[:account]
-      unless Account.as_id == card.id and !account_args[:blocked]
+      account_args[:blocked] = account_args[:blocked] == '1'
+      if Account.as_id == card.id
+        raise Wagn::Oops, "can't block own account" if account_args[:blocked]
+      else
         card.fetch(:trait=>:account).ok! :update
       end
 
@@ -141,17 +113,15 @@ class CardController < ApplicationController
 
 
   private
-
+  
+  def handle
+    yield ? success : render_errors
+  end
+  
   #-------( FILTERS )
 
-  def read_file_preload
-    #warn "show preload #{params.inspect}"
-    params[:id] = params[:id].sub(/(-(#{Card::STYLES*'|'}))?(-\d+)?(\.[^\.]*)?$/) do
-      @style = $1.nil? ? 'original' : $2
-      @rev_id = $3 && $3[1..-1]
-      params[:format] = $4[1..-1] if $4
-      ''
-    end
+  def refresh_card
+    @card =  card.refresh
   end
 
   def load_id
@@ -170,7 +140,10 @@ class CardController < ApplicationController
       else  
         Card.setting(:home) || 'Home'
       end
+  rescue ArgumentError # less than perfect way to handle encoding issues.
+    raise Wagn::BadAddress
   end
+  
 
   def load_card
     @card = case params[:id]
@@ -186,8 +159,7 @@ class CardController < ApplicationController
         opts[:type] ||= params[:type] # for /new/:type shortcut.  we should fix and deprecate this.
         name = params[:id] || opts[:name]
         
-        #warn "load card #{@action.inspect}, p:#{params.inspect} :: #{name.inspect} #{opts.inspect}"
-        if @action == 'create'
+        if params[:action] == 'create'
           # FIXME we currently need a "new" card to catch duplicates (otherwise #save will just act like a normal update)
           # I think we may need to create a "#create" instance method that handles this checking.
           # that would let us get rid of this...
@@ -197,6 +169,7 @@ class CardController < ApplicationController
           Card.fetch name, :new=>opts
         end
       end
+    @card.selected_revision_id = params[:rev].to_i if params[:rev]
 
     #warn "load_card #{card.inspect}"
     Wagn::Conf[:main_name] = params[:main] || (card && card.name) || ''
@@ -204,29 +177,25 @@ class CardController < ApplicationController
     true
   end
 
-  # FIXME: event
-  def refresh_card
-    @card =  card.refresh
-  end
 
-  # ------- REDIRECTION --------
 
-  def success default_target='_self'
-    #warn "success #{default_target}, #{card.inspect}"
-    target = params[:success] || default_target
-    redirect = !ajax?
-    new_params = {}
+  #------- REDIRECTION 
 
-    if Hash === target
-      new_params = target
-      target = new_params.delete :id # should be some error handling here
-      redirect ||= !!(new_params.delete :redirect)
-    end
-
-    if target =~ /^REDIRECT:\s*(.+)/
-      redirect, target = true, $1
-    end
-
+  def success
+    redirect, new_params = !ajax?, {}
+    
+    target = case params[:success]
+      when Hash
+        new_params = params[:success]
+        redirect ||= !!(new_params.delete :redirect)
+        new_params.delete :id
+      when /^REDIRECT:\s*(.+)/
+        redirect=true
+        $1
+      when nil  ;  '_self'
+      else      ;   params[:success]
+      end
+        
     target = case target
       when '*previous'     ;  previous_location #could do as *previous
       when '_self  '       ;  card #could do as _self
@@ -240,7 +209,8 @@ class CardController < ApplicationController
     when  String===target ; render :text => target
     else
       @card = target
-      show new_params[:view]
+      self.params = self.params.merge new_params #need tests.  insure we get slot, main...
+      show
     end
     true
   end

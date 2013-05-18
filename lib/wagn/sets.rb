@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 
 module Wagn
   # pre-declare the root of the Modules namespace tree
@@ -17,31 +18,6 @@ module Wagn
         #warn "gvkey #{selection_key}, #{opts.inspect} R:#{key}"
         key.to_sym
       end
-
-=begin
-      def get_module mod
-        module_name_parts = mod.split('::').map(&:to_sym)
-        module_name_parts.inject Wagn::Set do |base, part|
-          return if base.nil?
-          key = "#{base}::#{part}"
-          args = Cardlib::Patterns::BasePattern::RUBY19 ? [part, false] : [part]
-          Cardlib::Patterns::BasePattern::MODULES[key] ||= if base.const_defined?(*args)
-                base.const_get *args
-              else
-                base.const_set part.to_sym, Module.new
-              end
-        end
-      rescue NameError => e
-        warn "rescue ne #{e.inspect}, #{e.backtrace*"\n"}"
-        nil
-      end
-
-      def namespace spc, &block
-        const = get_module spc
-        #warn "namespace2: #{spc.inspect} :: #{const}"
-        const.module_eval &block
-      end
-=end
     end
 
     CARDLIB   = "#{Rails.root}/lib/cardlib/*.rb"
@@ -51,8 +27,8 @@ module Wagn
     class << self
       def load_cardlib  ; load_dir File.expand_path( CARDLIB, __FILE__   ) end
       def load_renderers; load_dir File.expand_path( RENDERERS, __FILE__ ) end
-      def dir newdir    ; @@dirs << newdir                                 end
-      def load_dirs     ; @@dirs.each { |dir| load_dir dir }               end
+      #def dir newdir    ; @@dirs << newdir                                 end
+      #def load_dirs     ; @@dirs.each { |dir| load_dir dir }               end
 
       def load_sets
         [ SETS, Wagn::Conf[:pack_dirs].split( /,\s*/ ) ].flatten.each do |dirname|
@@ -106,7 +82,7 @@ module Wagn
       #
 
       def format fmt=nil
-        Renderer.renderer= fmt
+        Renderer.current_class = if fmt.nil? || fmt == :base then Renderer else Renderer.get_renderer fmt end
       end
 
       def define_view view, opts={}, &final
@@ -121,18 +97,19 @@ module Wagn
         end
 
         view_key = get_set_key view, opts
-        #warn "defining view method[#{Renderer.renderer}] _final_#{view_key}"
-        Renderer.renderer.class_eval { define_method "_final_#{view_key}", &final }
+        #warn "defining view method[#{Renderer.current_class}] _final_#{view_key}"
+        Renderer.current_class.class_eval { define_method "_final_#{view_key}", &final }
         Renderer.subset_views[view] = true if !opts.empty?
 
         if !method_defined? "render_#{view}"
-          #warn "defining view method[#{Renderer.renderer}] _render_#{view}"
-          Renderer.renderer.class_eval do
+          #warn "defining view method[#{Renderer.current_class}] _render_#{view}"
+          Renderer.current_class.class_eval do
             define_method "_render_#{view}" do |*a|
               begin
                 a = [{}] if a.empty?
                 if final_method = view_method(view)
                   with_inclusion_mode view do
+                    #Rails.logger.info( warn "rendering final method: #{final_method}" )
                     send final_method, *a
                   end
                 else
@@ -145,7 +122,7 @@ module Wagn
           end
 
           #Rails.logger.warn "define_method render_#{view}"
-          Renderer.renderer.class_eval do
+          Renderer.current_class.class_eval do
             define_method "render_#{view}" do |*a|
               send "_render_#{ ok_view view, *a }", *a
             end
@@ -174,8 +151,8 @@ module Wagn
               raise "Bad view #{alias_view.inspect}"
             end
 
-          #Rails.logger.warn "def view final_alias #{alias_view_key}, #{view_key}"
-          Renderer.renderer.class_eval do
+          #Rails.logger.info( warn "def view final_alias #{alias_view_key}, #{view_key}" )
+          Renderer.current_class.class_eval do
             define_method "_final_#{alias_view_key}".to_sym do |*a|
               send "_final_#{view_key}", *a
             end
@@ -194,7 +171,6 @@ module Wagn
         :perform_update    => :update,
         :perform_delete    => :delete,
         :perform_index     => :read,
-        :perform_read_file => :read_file,
       }
 
       def action event, opts={}, &final_action

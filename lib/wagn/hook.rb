@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 module Wagn
   class Hook
     cattr_reader :registry
@@ -44,12 +45,6 @@ module Wagn
           debug.call "   - #{s}: #{h.inspect}" if h && debug
           h
         end.flatten.compact
-      end
-
-      def ephemerally
-        old_hooks = @@registry.deep_clone
-        yield
-        @@registry = old_hooks
       end
     end
   end

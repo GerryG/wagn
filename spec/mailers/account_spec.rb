@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 require File.expand_path('../spec_helper', File.dirname(__FILE__))
 include AuthenticatedTestHelper
 include EmailSpec::Helpers
@@ -41,12 +42,12 @@ describe Mailer do
       end
 
       it "has subject" do
-        @email.should have_subject /^New password subject$/
+        @email.should have_subject( /^New password subject$/ )
       end
 
       it "sends the right email" do
         #@email.should have_body_text /Account Details\b.*\bPassword: *[0-9A-Za-z]{9}$/m
-        @email.should have_body_text /Account Details.*\bPassword: *[0-9A-Za-z]{9}$/m
+        @email.should have_body_text( /Account Details.*\bPassword: *[0-9A-Za-z]{9}$/m )
       end
     end
   end

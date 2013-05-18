@@ -1,4 +1,4 @@
-
+# -*- encoding : utf-8 -*-
 class Account
   # This will probably have a hash of possible account classes and a value for the class
   @@as_card = @@as_id = @@current = nil

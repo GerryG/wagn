@@ -1,7 +1,8 @@
+# -*- encoding : utf-8 -*-
 module Cardlib::Permissions
 
   def ydhpt
-    "#{Account.current.name}, You don't have permission to"
+    "You don't have permission to"
   end
 
   def approved?
@@ -32,7 +33,7 @@ module Cardlib::Permissions
   #      to fetch and the test is perfomed on the fetched card, therefore:
   #
   #      :trait=>:account         would fetch this card plus a tag codenamed :account
-  #      :trait=>:roles, :new=>{} would create a new card with default ({}) options.
+  #      :trait=>:roles, :new=>{} would initialize a new card with default ({}) options.
 
   def ok_with_fetch? operation, opts={}
     card = opts[:trait].nil? ? self : fetch(opts)
@@ -54,7 +55,7 @@ module Cardlib::Permissions
   end
   
   def update_account_ok? #FIXME - temporary API, I think this is fixed, can we cache any of this for speed, this is accessed for each header
-    id == Account.current_id || ok?( :create, :trait=>:account, :new=>{} )
+    id == Account.current_id || ok?( :update, :trait=>:account )
   end
 
   def who_can operation
@@ -65,13 +66,16 @@ module Cardlib::Permissions
   def permission_rule_card operation
     opcard = rule_card operation
     unless opcard
-      errors.add :permission_denied, "No #{operation} setting card for #{name}"
+      errors.add :permission_denied, "No #{operation} rule for #{name}"
       raise Card::PermissionDenied.new(self)
     end
 
     rcard = Account.as_bot do
       if opcard.content == '_left' && self.junction?
         lcard = loaded_left || left_or_new( :skip_virtual=>true, :skip_modules=>true )
+        if operation==:create && lcard.real? && !lcard.was_new_card
+          operation = :update
+        end
         lcard.permission_rule_card(operation).first
       else
         opcard
@@ -149,7 +153,7 @@ module Cardlib::Permissions
   def approve_comment
     approve_task :comment, 'comment on'
     if @operation_approved
-      deny_because "No comments allowed on template cards" if template?
+      deny_because "No comments allowed on template cards" if is_template?
       deny_because "No comments allowed on hard templated cards" if hard_template
     end
   end
@@ -243,7 +247,7 @@ module Cardlib::Permissions
 
   def update_ruled_cards
     if is_rule?
-#      warn "updating ruled cards for #{name}"
+      #warn "updating ruled cards for #{name}"
       self.class.clear_rule_cache
       left.reset_set_patterns
     

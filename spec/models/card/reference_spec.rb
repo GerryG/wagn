@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 require File.expand_path('../../spec_helper', File.dirname(__FILE__))
 
 
@@ -35,17 +36,15 @@ describe "Card::Reference" do
     end
 
     it "on template update" do
-      Account.as_bot do
-        Card.create! :name=>"JoeForm", :type=>'UserForm'
-        tmpl = Card["UserForm+*type+*structure"]
-        tmpl.content = "{{+monkey}} {{+banana}} {{+fruit}}";
-        tmpl.save!
-        Card["JoeForm"].references_expired.should be_true
-        Wagn::Renderer.new(Card["JoeForm"]).render(:core)
-        assert_equal ["joe_form+banana", "joe_form+fruit", "joe_form+monkey"],
-          Card["JoeForm"].includees.map(&:key).sort
-        Card["JoeForm"].references_expired.should_not == true
-      end
+      Card.create! :name=>"JoeForm", :type=>'UserForm'
+      tmpl = Card["UserForm+*type+*structure"]
+      tmpl.content = "{{+monkey}} {{+banana}} {{+fruit}}";
+      tmpl.save!
+      Card["JoeForm"].references_expired.should be_true
+      Wagn::Renderer.new(Card["JoeForm"]).render(:core)
+      assert_equal ["joe_form+banana", "joe_form+fruit", "joe_form+monkey"],
+        Card["JoeForm"].includees.map(&:key).sort
+      Card["JoeForm"].references_expired.should_not == true
     end
   end
 
@@ -148,16 +147,14 @@ describe "Card::Reference" do
   end
 
   it "template inclusion" do
-    Account.as_bot do
-      cardtype = Card.create! :name=>"ColorType", :type=>'Cardtype', :content=>""
-      Card.create! :name=>"ColorType+*type+*structure", :content=>"{{+rgb}}"
-      green = Card.create! :name=>"green", :type=>'ColorType'
-      rgb = newcard 'rgb'
-      green_rgb = Card.create! :name => "green+rgb", :content=>"#00ff00"
+    cardtype = Card.create! :name=>"ColorType", :type=>'Cardtype', :content=>""
+    Card.create! :name=>"ColorType+*type+*structure", :content=>"{{+rgb}}"
+    green = Card.create! :name=>"green", :type=>'ColorType'
+    rgb = newcard 'rgb'
+    green_rgb = Card.create! :name => "green+rgb", :content=>"#00ff00"
 
-      green.reload.includees.map(&:name).should == ["green+rgb"]
-      green_rgb.reload.includers.map(&:name).should == ['green']
-    end
+    green.reload.includees.map(&:name).should == ["green+rgb"]
+    green_rgb.reload.includers.map(&:name).should == ['green']
   end
 
   it "simple link" do

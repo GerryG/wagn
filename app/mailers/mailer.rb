@@ -16,7 +16,7 @@ class Mailer < ActionMailer::Base
     #Rails.logger.warn "ainfo #{caller[0..3]*', '}"
 
     arg_array = EMAIL_FIELDS.map { |f| args[f] }
-    return if arg_array.find(&:nil?)
+    raise("Missing email parameter: #{k}") if arg_array.find(&:nil?)
 
     @email, @subject, @message, @password = arg_array
 

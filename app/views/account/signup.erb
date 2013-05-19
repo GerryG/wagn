@@ -9,7 +9,7 @@
       <h1>Sign Up</h1>
 
     <div class="instruction">
-      <% if inst = card.rule_card(:add_help, :fallback=>:edit_help) %>
+      <% if inst = card.rule_card(:add_help, :fallback=>:help) %>
         <%= raw( slot.subrenderer(inst).render :core ) %>
       <% elsif !Account.create_ok? %>
         <p><strong>All Account Requests are subject to review.</strong></p><%#ENGLISH%>

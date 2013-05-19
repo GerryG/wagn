@@ -38,7 +38,8 @@ describe Mailer do
 
       it "is from Wag bot email" do  # I think logged in user is right here, so anon ...
         Account.current_id = Card::AnonID
-        @email.should deliver_from("Wagn Bot <no-reply@wagn.org>")
+        @email.should deliver_from("Sara <sara@user.com>")
+        #@email.should deliver_from("Wagn Bot <no-reply@wagn.org>")
       end
 
       it "has subject" do

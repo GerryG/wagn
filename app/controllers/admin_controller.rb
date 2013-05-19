@@ -10,10 +10,10 @@ class AdminController < CardController
   def setup
     raise(Wagn::Oops, "Already setup") if Account.first_login?
     Wagn::Conf[:recaptcha_on] = false
-    if request.post?
+    if request.post? and card_params = params[:card]
      begin
       Account.as_bot do
-        @card = Card.new params[:card].merge(:type=>Card::UserID)
+        @card = Card.new card_params.merge(:type=>Card::UserID)
         aparams = params[:account]
         aparams[:name] = @card.name
         acct = Account.new( aparams ).active

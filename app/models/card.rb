@@ -99,7 +99,7 @@ class Card < ActiveRecord::Base
     end
     
     def merge name, attribs={}, opts={}
-      Rails.logger.info "about to merge: #{name}, #{attribs}, #{opts}"
+      #Rails.logger.info "about to merge: #{name}, #{attribs}, #{opts}"
       card = fetch name, :new=>{}
       unless opts[:pristine] && !card.pristine?
         card.attributes = attribs
@@ -550,7 +550,7 @@ class Card < ActiveRecord::Base
   def account= acct; @account = acct end
 
   def save_account
-    Rails.logger.warn "save_account #{inspect} a:#{@account}"
+    #Rails.logger.warn "save_account #{inspect} a:#{@account}"
     #warn "save_account #{@account.inspect}, #{inspect} #{@account and right_id != AccountID}"
     if @account and right_id != AccountID
       acct_card = self.fetch(:trait => :account, :new=>{})
@@ -564,10 +564,9 @@ class Card < ActiveRecord::Base
       unless @account.save
         acct_card.errors.each { |k,v| errors.add k,v }
         @account.errors.each { |k,v| errors.add k,v }
-        Rails.logger.warn "sav errs #{errors.map { |k,v| "#{k} -> #{v }"}*"\n"}"
+        #Rails.logger.warn "sav errs #{errors.map { |k,v| "#{k} -> #{v }"}*"\n"}"
         return false
       end
-    #else warn "acct is #{@account.inspect}"
     end
     true
   end
@@ -587,13 +586,10 @@ class Card < ActiveRecord::Base
   # these should be done in a set module when we have the capacity to address the set of "cards with accounts"
   # in the meantime, they should probably be in a module.
 
-  def among? card_with_acct
-    prties = parties
-    Rails.logger.warn "among? cwacct:#{card_with_acct.inspect}, #{parties*', '}"
-    card_with_acct.each { |auth|
-      Rails.logger.warn "among? au: #{auth.inspect}"
-      return true if prties.member? auth }
-    card_with_acct.member? Card::AnyoneID
+  def among? access_tokens
+    return false if access_tokens.empty?
+    pts = parties
+    access_tokens.find { |auth| pts.member? auth } ? true : access_tokens.member?( Card::AnyoneID )
   end
 
   def parties

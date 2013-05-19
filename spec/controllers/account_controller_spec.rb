@@ -98,18 +98,12 @@ describe AccountController, "account functions" do
 
     it 'should send email' do
       post :signup, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
+      @msgs.size.should == 1
       login_as 'joe admin'
 
-      post :accept, :card=>{:key=>'joe_new'}, :email=>{:subject=>'Hey Joe!', :message=>'Can I Come on in?'}
-
-      @msgs.size.should == 1
-      # and the admin accepts
-      login_as 'joe_admin'
       post :accept, :card=>{:key=>'joe_new'}, :email=>{:subject=>'Hey Joe!', :message=>'Come on in?'}
 
       @msgs.size.should == 2
-      @msgs[0].should be_a Mail::Message
-      #warn "msg looks like #{@msgs[0].inspect}"
     end
 
     it "should create an account request" do
@@ -122,11 +116,11 @@ describe AccountController, "account functions" do
 
     it 'should detect duplicates' do
       post :signup, :account=>{:email=>'joe@user.com'}, :card=>{:name=>'Joe Scope'}
+      #Rails.logger.warn "first #{Card['Joe Scope'].inspect}"
+
       post :signup, :account=>{:email=>'joe@user.com'}, :card=>{:name=>'Joe Duplicate'}
-      
-      warn "first #{Card['Joe Scope'].inspect}"
       c=Card['Joe Duplicate']
-      warn "second #{c.inspect}"
+      #Rails.logger.warn "second #{c.inspect}"
       c.should be_nil
     end
   end

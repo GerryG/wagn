@@ -15,7 +15,6 @@ module Wagn
         end
         link_args[2] += ' cards'
         #type_link + 
-        warn "watch type view #{link_args.inspect}"
         watch_link( *link_args )
       end
     end

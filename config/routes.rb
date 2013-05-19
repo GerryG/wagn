@@ -6,7 +6,6 @@ Wagn::Application.routes.draw do
   if !Rails.env.production? && Object.const_defined?( :JasmineRails )
     mount Object.const_get(:JasmineRails).const_get(:Engine) => "/specs"
   end
-
   
   #most common
   root                               :to => 'card#read', :via=>:get

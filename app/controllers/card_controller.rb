@@ -85,7 +85,7 @@ class CardController < ApplicationController
       acct.update_attributes account_args if request.put? or request.post?
     end
 
-    render_errors || success
+    handle { card.errors.empty? }
   end
 
   # FIXME: make this part of create

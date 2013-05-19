@@ -21,25 +21,27 @@ describe "Card::Reference" do
       Card.create! :name=>"SpecialForm", :type=>'Cardtype'
       Card.create! :name=>"Form1", :type=>'SpecialForm', :content=>"foo"
       c = Card["Form1"]
-      warn "card #{c.references_expired.inspect} c:#{c.inspect}"
+      #warn "card #{c.references_expired.inspect} c:#{c.inspect}"
       c.references_expired.should be_nil
       Card.create! :name=>"SpecialForm+*type+*structure", :content=>"{{+bar}}"
       c = Card["Form1"]
-      warn "card #{c.inspect}"
+      #warn "card #{c.inspect}"
       c.references_expired.should be_true
       Wagn::Renderer.new(Card["Form1"]).render(:core)
       c = Card["Form1"]
-      warn "card #{c.inspect}"
+      #warn "card #{c.inspect}"
       c.references_expired.should be_nil
       Card["Form1"].includees.map(&:key).should == ["form1+bar"]
      end
     end
 
     it "on template update" do
-      Card.create! :name=>"JoeForm", :type=>'UserForm'
-      tmpl = Card["UserForm+*type+*structure"]
-      tmpl.content = "{{+monkey}} {{+banana}} {{+fruit}}";
-      tmpl.save!
+      Account.as 'joe admin' do
+        Card.create! :name=>"JoeForm", :type=>'UserForm'
+        tmpl = Card["UserForm+*type+*structure"]
+        tmpl.content = "{{+monkey}} {{+banana}} {{+fruit}}";
+        tmpl.save!
+      end
       Card["JoeForm"].references_expired.should be_true
       Wagn::Renderer.new(Card["JoeForm"]).render(:core)
       assert_equal ["joe_form+banana", "joe_form+fruit", "joe_form+monkey"],
@@ -147,14 +149,16 @@ describe "Card::Reference" do
   end
 
   it "template inclusion" do
-    cardtype = Card.create! :name=>"ColorType", :type=>'Cardtype', :content=>""
-    Card.create! :name=>"ColorType+*type+*structure", :content=>"{{+rgb}}"
-    green = Card.create! :name=>"green", :type=>'ColorType'
-    rgb = newcard 'rgb'
-    green_rgb = Card.create! :name => "green+rgb", :content=>"#00ff00"
+    Account.as_bot do
+      cardtype = Card.create! :name=>"ColorType", :type=>'Cardtype', :content=>""
+      Card.create! :name=>"ColorType+*type+*structure", :content=>"{{+rgb}}"
+      green = Card.create! :name=>"green", :type=>'ColorType'
+      rgb = newcard 'rgb'
+      green_rgb = Card.create! :name => "green+rgb", :content=>"#00ff00"
 
-    green.reload.includees.map(&:name).should == ["green+rgb"]
-    green_rgb.reload.includers.map(&:name).should == ['green']
+      green.reload.includees.map(&:name).should == ["green+rgb"]
+      green_rgb.reload.includers.map(&:name).should == ['green']
+    end
   end
 
   it "simple link" do

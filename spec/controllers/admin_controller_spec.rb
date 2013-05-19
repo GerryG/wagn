@@ -17,11 +17,13 @@ describe AdminController, "admin functions" do
     Account.as 'joe_user' do
       get :clear_cache
     end
+    # FIXME: doesn't test that the cache gets cleared, and it probably shouldn't since joe_user was deleted in the before
   end
 
   it "should show cache" do
     Account.as 'joe_user' do
       get :show_cache, :id=>"A"
     end
+    # FIXME: doesn't test that the cache gets fetched from cache, and it probably shouldn't since joe_user was deleted in the before
   end
 end

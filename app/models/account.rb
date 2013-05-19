@@ -116,9 +116,9 @@ Rails.logger.warn "firstlog new #{nval}"
       card_id = Account.as_id
  
       always = Card.cache.read('ALWAYS') || {}
-      if always[card_id].nil?
+      if always[card_id].nil? and as_card = Card[card_id]
         always = always.dup if always.frozen?
-        always[card_id] = !!Card[card_id].all_roles.detect{|r|r==Card::AdminID}
+        always[card_id] = !!as_card.all_roles.detect{|r|r==Card::AdminID}
         Card.cache.write 'ALWAYS', always
        end
      #warn "always #{card_id}, #{always[card_id].inspect}"

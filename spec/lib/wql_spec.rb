@@ -3,7 +3,7 @@ require File.expand_path('../spec_helper', File.dirname(__FILE__))
 
 A_JOINEES = ["B", "C", "D", "E", "F"]
 
-CARDS_MATCHING_TWO = ["Two","One+Two","One+Two+Three","Joe User","*plusses+*right+*structure"].sort
+CARDS_MATCHING_TWO = ["Two","One+Two","One+Two+Three","Joe User"].sort
 
 describe Wql do
   before do
@@ -121,7 +121,9 @@ describe Wql do
 
   describe "keyword" do
     it "should escape nonword characters" do
+    Rails.logger.warn "match two"
       Wql.new( :match=>"two :(!").run.map(&:name).sort.should==CARDS_MATCHING_TWO
+    Rails.logger.warn "match after"
     end
   end
 
@@ -312,7 +314,7 @@ describe Wql do
     end
 
     it "should get only content when content is explicit" do
-      Wql.new( :content=>[:match, "two"] ).run.map(&:name).sort.should==["Joe User",'*plusses+*right+*structure'].sort
+      Wql.new( :content=>[:match, "two"] ).run.map(&:name).sort.should==["Joe User"].sort
     end
 
     it "should get only name when name is explicit" do

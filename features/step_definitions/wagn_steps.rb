@@ -140,7 +140,7 @@ end
 
 When /^In (.*) I click "(.*)"$/ do |section, link|
   within scope_of(section) do
-    warn "page #{page.body}"
+    #warn "page #{page.body}"
     click_link link
   end
 end
@@ -194,7 +194,7 @@ end
 
 ## variants of standard steps to handle """ style quoted args
 Then /^I should see$/ do |text|
-  warn "page #{page.body}"
+  #warn "page #{page.body}"
   page.should have_content(text)
 end
 

@@ -273,6 +273,11 @@ describe CardController do
 
 
   describe "unit tests" do
+    before do
+      login_as 'joe_user'
+      @simple_card = Card['Sample Basic']
+    end
+
     include AuthenticatedTestHelper
 
     #it "invokes before_read hook" do
@@ -426,7 +431,7 @@ describe CardController, "test/integration card action tests" do
 
   it "should test_newcard_shows_edit_instructions" do
     given_card( {:type=>'cardtype', :name=>"YFoo", :content => ""} )
-    given_card( {:name=>"YFoo+*type+*edit help", :content => "instruct-me"} )
+    given_card( {:name=>"YFoo+*type+*help", :content => "instruct-me"} )
     get :read, :view=>'new', :card => {:type=>'YFoo'}
     assert_tag :tag=>'div', :attributes=>{ :class=>"instruction" },  :content=>/instruct-me/
   end

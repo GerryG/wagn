@@ -109,9 +109,7 @@ describe Card do
     before(:each) do
       Account.as_bot do
         @b = Card.create! :name=>"New Card", :content=>"Great Content"
-        Rails.logger.warn "lookup #{@b.inspect}"
         @c = Card.find(@b.id)
-        Rails.logger.warn "c is #{@c.inspect} #{@c.content}, v:#{@c.current_revision.inspect}"
       end
     end
 

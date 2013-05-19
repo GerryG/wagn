@@ -398,8 +398,8 @@ describe CardController, "test/integration card action tests" do
     Account.as_bot  do
       Card.create :name=>'A+*self+*comment', :type=>'Pointer', :content=>'[[Anyone]]'
     end
-    post :comment, :id=>"A", :card => { :comment=>"how come" }
-    assert_response :success
+    post :update, :id=>"A", :card => { :comment=>"how come" }
+    assert_response 302
   end
 
   it "should test_create_role_card" do
@@ -448,7 +448,7 @@ describe CardController, "test/integration card action tests" do
 
   it "should test_newcard_gives_reasonable_error_for_invalid_cardtype" do
     Account.as_bot do
-      get :read, :vew=>'new', :card => { :type=>'bananamorph' }  
+      get :read, :view=>'new', :card => { :type=>'bananamorph' }  
       assert_response 422
       assert_tag :tag=>'div', :attributes=>{:class=>/errors-view/}, :content=>/not a known type/
     end

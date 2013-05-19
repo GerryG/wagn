@@ -95,18 +95,15 @@ class Account
     end
 
     def first_login!
-Rails.logger.warn "firstlog clear"
       Card.cache.delete 'no_logins'
     end
 
     def first_login?
       cache = Card.cache
       !( if cval=cache.read('no_logins')
-Rails.logger.warn "firstlog #{cval}"
            cval
          else
            nval = Card.search({:right=>Card::AccountID, :left=>{:type=>Card::UserID }}).count == 0
-Rails.logger.warn "firstlog new #{nval}"
            cache.write( 'no_logins', nval )
          end )
     end

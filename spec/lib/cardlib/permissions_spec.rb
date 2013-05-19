@@ -6,7 +6,6 @@ require File.expand_path('../../packs/pack_spec_helper', File.dirname(__FILE__))
 describe "reader rules" do
   before do
     @perm_card =  Card.new(:name=>'Home+*self+*read', :type=>'Pointer', :content=>'[[Anyone Signed In]]')
-    Rails.logger.info "perm card #{@perm_card.inspect}"
   end
 
   it "should be *all+*read by default" do
@@ -94,13 +93,11 @@ describe "reader rules" do
   it "should get updated when trunk type change makes type-plus-right apply / unapply" do
     @perm_card.name = "Phrase+B+*type plus right+*read"
     Account.as_bot { @perm_card.save! }
-    Rails.logger.warn "renamed perm_card and saved #{@perm_card.inspect}"
     Card.fetch('A+B').read_rule_id.should == Card.fetch('*all+*read').id
     c = Card.fetch('A')
     c.type_id = Card::PhraseID
     Account.as_bot { c.save! }
     Card.fetch('A+B').read_rule_id.should == @perm_card.id
-    Rails.logger.warn "tested"
   end
 
   it "should work with relative settings" do
@@ -237,7 +234,7 @@ describe "Permission", ActiveSupport::TestCase do
       end
     end
 
-    Rails.logger.warn "u1 roles #{@u1.fetch(:trait=>:roles).item_names*', '}: c1#read: #{Card['c1+*self+*read'].item_names*', '}"
+    #Rails.logger.warn "u1 roles #{@u1.fetch(:trait=>:roles).item_cards.map(&:inspect)*', '}: c1#read: #{Card['c1+*self+*read'].item_cards.map(&:inspect)*', '}"
     assert_not_hidden_from( @u1, @c1 )
     assert_not_hidden_from( @u1, @c2 )
     assert_hidden_from( @u1, @c3 )

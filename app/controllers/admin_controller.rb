@@ -18,12 +18,12 @@ class AdminController < CardController
         aparams[:name] = @card.name
         acct = Account.new( aparams ).active
         @account = card.account = Account.new( aparams ).active
-        Rails.logger.warn "acct setup #{acct.inspect}, #{card.inspect}, #{@card.account}"
+        #Rails.logger.warn "acct setup #{acct.inspect}, #{card.inspect}, #{@card.account}"
         set_default_request_recipient
 
         card.save
 
-        Rails.logger.warn "ext id = #{@account.inspect}"
+        #Rails.logger.warn "ext id = #{@account.inspect}"
 
         if @card.errors.empty?
           roles_card = card.fetch :trait=>:roles, :new=>{}
@@ -35,7 +35,7 @@ class AdminController < CardController
           flash[:notice] = "You're good to go!"
           redirect_to Card.path_setting('/')
         else
-          Rails.logger.warn "setup error #{@card.errors.map {|e| e.to_s}*', '}"
+          #Rails.logger.warn "setup error #{@card.errors.map {|e| e.to_s}*', '}"
           flash[:notice] = "Durn, setup went awry..."
         end
       end

@@ -376,7 +376,7 @@ class Wql
       #Rails.logger.debug "wql perms? [#{inspect}] #{Account.current.inspect} #{Account.always_ok?} #{root?}" 
       unless Account.always_ok? or (Wql.root_perms_only && !root?)
         sql.conditions <<
-         "(#{table_alias}.read_rule_id IN (#{(rr=Account.current.read_rules).nil? ? 1 : rr*','}))"
+         "(#{table_alias}.read_rule_id IN (#{(rr=Account.as_card.read_rules).nil? ? 1 : rr*','}))"
       #  warn "wql perms? #{Account.always_ok?} #{Account.current.inspect}, #{rr.inspect} SqCond: #{sql.conditions.inspect}" 
       end
 

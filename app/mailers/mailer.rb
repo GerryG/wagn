@@ -28,6 +28,7 @@ class Mailer < ActionMailer::Base
     #FIXME - might want different "from" settings for different contexts?
     unless invite_from = Card.setting( '*invite+*from' )
       cur_card = Account.current
+      cur_card = Card[Card::WagnBotID] if [ Card::AnonID, cd_with_acct.id ].member? cur_card.id
       invite_from = "#{cur_card.name} <#{cur_card.account.email}>"
     end
     mail_from args, invite_from
@@ -92,14 +93,16 @@ class Mailer < ActionMailer::Base
   private
 
   def mail_from args, from
-    from_name, from_email = (from =~ /(.*)\<(.*)>/) ? [$1.strip, $2] : [nil, from]
-    if default_from=@@defaults[:from]
-      args[:from] = !from_email ? default_from : "#{from_name || from_email} <#{default_from}>"
-      args[:reply_to] ||= from
-    else
-      args[:from] = from
+    unless Wagn::Conf[:migration]
+      from_name, from_email = (from =~ /(.*)\<(.*)>/) ? [$1.strip, $2] : [nil, from]
+      if default_from=@@defaults[:from]
+        args[:from] = !from_email ? default_from : "#{from_name || from_email} <#{default_from}>"
+        args[:reply_to] ||= from
+      else
+        args[:from] = from
+      end
+      mail args
     end
-    mail args unless Wagn::Conf[:migration]
   end
 
 

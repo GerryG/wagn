@@ -6,7 +6,7 @@ class CardController < ApplicationController
 
   before_filter :load_id, :only => [ :read ]
   before_filter :load_card
-  before_filter :refresh_card, :only=> [ :create, :update, :delete, :comment, :rollback ]
+  before_filter :refresh_card, :only=> [ :create, :update, :delete, :rollback ]
   
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
   #  CORE METHODS

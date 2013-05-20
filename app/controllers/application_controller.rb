@@ -84,21 +84,21 @@ class ApplicationController < ActionController::Base
 
 
   def show view = nil, status = 200
-    ext = request.parameters[:format]
-    ext = :file if !FORMATS.split('|').member? ext
+    format = request.parameters[:format]
+    format = :file if !FORMATS.split('|').member? format
 
     opts = params[:slot] || {}
     opts[:view] = view || params[:view]      
 
-    renderer = Wagn::Renderer.new card, :controller=>self, :format=>ext
+    renderer = Wagn::Renderer.new card, :controller=>self, :format=>format
     result = renderer.render_show opts
     status = renderer.error_status || status
     
-    if ext==:file && status==200
+    if format==:file && status==200
       send_file *result
     else
       args = { :text=>result, :status=>status }
-      args[:content_type] = 'text/text' if ext == :file
+      args[:content_type] = 'text/text' if format == :file
       render args
     end
   end

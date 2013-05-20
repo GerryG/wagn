@@ -660,6 +660,9 @@ class Card < ActiveRecord::Base
     "#<#{self.class.name}" + "##{id}" +
     "###{object_id}" + #"l#{left_id}r#{right_id}" +
     "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
+    #(errors.any? ? '*Errors*' : 'noE') +
+    (errors.any? ? "<E*#{errors.full_messages*', '}*>" : '') +
+    #"{#{references_expired==1 ? 'Exp' : "noEx"}:" +
     "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{frozen? ? 'Fz' : readonly? ? 'RdO' : ''}" +
     "#{@virtual &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }:#{references_expired.inspect}}" +
     '>'

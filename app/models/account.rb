@@ -13,11 +13,35 @@ class Account
   class << self
     # can these just be delegations:
 
-    def [] id
-      @@account_class.find_by_card_id id or
-        @@account_class.find_by_account_id id
+    # Account caching
+
+    def cache
+      Wagn::Cache[Account]
     end
 
+    def [] mark
+      if mark
+        cache_key = Integer === mark ? "~#{mark}" : mark
+        cached_val = cache.read cache_key
+        #warn "acct cached: #{mark.inspect}, #{cached_val.inspect}, #{cache_key.inspect}"
+        case cached_val
+        when :missing; nil
+        when nil
+          val = if Integer === mark
+              @@account_class.find_by_card_id mark or
+                @@account_class.find_by_account_id mark
+            else
+              @@account_class.find_by_email mark
+            end
+          #warn "acct lookup: #{mark.inspect}, #{val.inspect}, #{cache_key.inspect}"
+          cache.write cache_key, ( val || :missing )
+          val
+        else
+          cached_val
+        end
+      end
+    end
+    
     def new *args            ; @@account_class.new(*args)            end
     def find_by_email email  ; @@account_class.find_by_email(email)  end
     #def find_by_login login  ; @@account_class.find_by_login(login)  end
@@ -138,7 +162,7 @@ class Account
             end
           end || false
         Card.cache.write 'OK', ok_hash
-        warn "write okh #{card_id}, #{ok_hash[card_id].inspect}"
+        #warn "write okh #{card_id}, #{ok_hash[card_id].inspect}"
       end
       #warn "okh #{card_id}, #{ok_hash[card_id].inspect}"
       ok_hash[card_id]

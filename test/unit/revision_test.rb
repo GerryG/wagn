@@ -8,8 +8,8 @@ class RevisionTest < ActiveSupport::TestCase
   end
 
   def test_revise
-    author1 = Account.find_by_email('joe@user.com')
-    author2 = Account.find_by_email('sara@user.com')
+    author1 = Account['joe@user.com']
+    author2 = Account['sara@user.com']
     author_cd1 = Card[author1.card_id]
     author_cd2 = Card[author2.card_id]
     Account.as_bot {

@@ -145,7 +145,7 @@ class AccountController < CardController
 
   def forgot_password
     if request.post? and email = params[:email]
-      @account = Account.find_by_email email.downcase
+      @account = Account[ email.downcase ]
 
       case 
       when @account.nil?

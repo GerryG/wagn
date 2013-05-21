@@ -29,7 +29,7 @@ class AccountRequestTest < ActiveSupport::TestCase
     Account.as 'joe_admin' do c.delete!  end
 
     assert_equal nil, Card.fetch('Ron Request')
-    assert_equal 'blocked', Account.find_by_email('ron@request.com').status
+    assert_equal 'blocked', Account['ron@request.com'].status
   end
 
 

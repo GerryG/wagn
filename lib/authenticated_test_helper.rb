@@ -55,7 +55,7 @@ module AuthenticatedTestHelper
   end
 
   def assert_status(email, status, msg='')
-    Rails.logger.warn "assert stat em:#{email}, S:#{status} afe:#{Account.find_by_email(email).inspect}"
-    assert_equal status, Account.find_by_email(email).status, msg
+    Rails.logger.warn "assert stat em:#{email}, S:#{status} afe:#{Account[email].inspect}"
+    assert_equal status, Account[email].status, msg
   end
 end

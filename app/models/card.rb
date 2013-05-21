@@ -539,11 +539,8 @@ class Card < ActiveRecord::Base
   # ACCOUNT / SESSION
 
   def account
-    # no id? try using the cardname to find the user Account.get_user_id
-    if @account.nil? and auth_id = id || Account.get_user_id(name)
-      @account = Account[auth_id]
-    end
-    @account
+    a=Account[id]
+    #warn "account #{id} #{a.inspect}"; a
   end
 
   def no_account?  ; account.nil?    end

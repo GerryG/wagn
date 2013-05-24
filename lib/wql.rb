@@ -222,8 +222,8 @@ class Wql
     def left(val)  merge field(:left_id) => subspec(val)                            end
     def right(val) merge field(:right_id  ) => subspec(val)                         end
     def part(val)
-      val = val.clone unless Integer===val
-      subcondition({ :left => val, :right => val }, :conj=>:or)
+      right_val = val.respond_to?( :clone ) ? val.clone : val
+      subcondition({ :left => val, :right => right_val }, :conj=>:or)
     end
 
     def left_plus(val)

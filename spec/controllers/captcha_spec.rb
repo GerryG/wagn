@@ -36,7 +36,7 @@ describe CardController, "captcha_required?" do
   end
 
   it "is false for joe user" do
-    login_as :joe_user
+    login_as 'joe_user'
     @controller.send(:captcha_required?).should be_false
   end
 

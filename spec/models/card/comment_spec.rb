@@ -18,9 +18,11 @@ describe Card, "record appender" do
   end
 
   it "should have appender immediately" do
-    Account.as(Card::WagnBotID) do Card['a'].ok?(:comment).should_not be_true end
-    Account.as_bot do @rule.save! end
-    Account.as(Card::WagnBotID) do Card['a'].ok?(:comment).should be_true end
+    Account.as_bot do
+      Card['a'].ok?(:comment).should_not be_true
+      @rule.save!
+      Card['a'].ok?(:comment).should be_true
+    end
   end
 end
 

@@ -5,86 +5,149 @@ class AccountController < CardController
   helper :wagn
 
   #ENGLISH many messages throughout this file
+
   def signup
     #FIXME - don't raise; handle it!
     raise(Wagn::Oops, "You have to sign out before signing up for a new Account") if logged_in?
-    
+
     card_params = ( params[:card] || {} ).symbolize_keys.merge :type_id=>Card::AccountRequestID
-    account_params = ( params[:account] || {} ).symbolize_keys.merge :status=>'pending'
-    
+
     @card = Card.new card_params
+
     #FIXME - don't raise; handle it!
     raise(Wagn::PermissionDenied, "Sorry, no Signup allowed") unless @card.ok? :create
 
-    if !request.post? #signup form
-      @account = User.new account_params
-    else
-      @account, @card = User.create_with_card account_params, card_params
-      if @card.errors.any?
-        render_errors
+    account_params = ( params[:account] || {} ).symbolize_keys
+    account_params[:name] = @card.name
+    @account = Account.new(account_params).pending
+    Rails.logger.warn "acct? #{params.inspect}, #{account_params.inspect}, #{@account}"
+
+    Rails.logger.warn "signup #{request.put?} #{params.inspect}, #{@account.inspect}, #{@card.inspect}"
+    if request.post?
+      @card.account= @account
+      #warn "signup post #{params.inspect}, #{@card.account.inspect}, #{@card.inspect}"
+
+      redirect_id = Card::SignupID 
+      if @card.ok?(:create, :trait=>:account) 
+        @account.active
+        @card.save
+
+        return if @card.errors.any? && render_errors
+
+        #Rails.logger.warn "invite: #{@card.inspect} #{@account.inspect}"
+        @card.send_account_info( { :password=>@account.password, :to => @account.email,
+              :message => Card.setting('*signup+*message') || "Thanks for signing up to #{Card.setting('*title')}!",
+              :subject => Card.setting('*signup+*subject') || "Account info for #{Card.setting('*title')}!" } )
+
+        redirect_id = Card::RequestID 
       else
-        if @card.ok?(:create, :new=>{}, :trait=>:account)      # automated approval
-          email_args = { :message => Card.setting('*signup+*message') || "Thanks for signing up to #{Card.setting('*title')}!",
-                         :subject => Card.setting('*signup+*subject') || "Account info for #{Card.setting('*title')}!" }
-          @account.accept @card, email_args
-          redirect_cardname = '*signup+*thanks'
-        else                                            # requires further approval
-          Account.as_bot do
-            Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'
-          end
-          #Rails.logger.warn "signup with/app #{@account}, #{@card}"
-          redirect_cardname = '*request+*thanks'
+
+        @account.pending
+        Account.as_bot { @card.save }
+
+        return if @card.errors.any? && render_errors
+
+        Account.as_bot do
+          Mailer.signup_alert(@card).deliver if Card.setting '*request+*to'
+
         end
-        wagn_redirect Card.setting( redirect_cardname )
+        #warn "errors #{@account.errors.full_messages*", "}"
+        Rails.logger.warn "errors? #{@card.inspect}"
       end
+      wagn_redirect Card.setting( redirect_id )
+
     end
   end
+
 
   def accept
     card_key=params[:card][:key]
     raise(Wagn::Oops, "I don't understand whom to accept") unless params[:card]
+
+    card_key=params[:card][:key]
     @card = Card[card_key] or raise(Wagn::NotFound, "Can't find this Account Request")
     @account = @card.account or raise(Wagn::Oops, "This card doesn't have an account to approve")
     @card.ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create accounts")
 
     if request.post?
-      @account.accept(@card, params[:email])
-      if @card.errors.empty? #SUCCESS
-        redirect_to Card.path_setting(Card.setting('*invite+*thanks'))
-        return
+      @account = @card.account
+      @account.active.generate_password
+      card.type_id = Card::UserID if @card.type_id == Card::AccountRequestID
+
+      if @card.save
+        eparams = params[:email] || {}
+        card.send_account_info eparams.merge( :password => @account.password, :to => @account.email )
+
+        redirect_to( target Card::InviteID )
+        #redirect_to Card.path_setting(Card.setting('*invite+*thanks'))
       end
+    else
+
+      render :action=>'invite'
     end
-    render :action=>'invite'
   end
 
   def invite
-    User.create_ok? or raise(Wagn::PermissionDenied, "You need permission to create")
-    @account, @card = request.post? ?
-      User.create_with_card( params[:account], params[:card] ) :
-      [User.new, Card.new()]
-    if request.post? and @card.errors.empty?
-      @account.send_account_info(params[:email])
-      redirect_to Card.path_setting(Card.setting('*invite+*thanks'))
+    cok=Card.new(:name=>'dummy+*account').ok?(:create) or raise(Wagn::PermissionDenied, "You need permission to create")
+
+    if request.post?
+      @card = Card.new params[:card]
+      account_params = (params[:account] || {})
+      account_params[:name] = @card.name
+      @account = card.account = ( Account.new( account_params ) )
+
+      @account.active.generate_password
+      #warn "User should be: #{@card.account} :: #{@card.inspect}, #{@account.inspect}"
+      if @card.save
+        # and @account.valid? should not need this now @card.save should do it
+
+        eparams = params[:email]
+        card.send_account_info eparams.merge( :password => @account.password, :to => @account.email )
+
+        redirect_to( target Card::InviteID )
+
+      else
+        Rails.logger.warn "errs #{@card.errors.map{|k,v| "#{k} -> #{v}"}*"\n"}"
+      end
+    else
+
+      @account = Account.new; @card = Card.new
     end
   end
 
 
   def signin
-    if params[:login]
-      password_authentication params[:login], params[:password]
+    if request.post?
+      #Rails.logger.warn "signin #{params.inspect}"
+
+      auth_args = { :email=>params[:login], :password=>params[:password] }
+      Rails.logger.warn "signin #{auth_args.inspect}"
+      unless failed_login!( auth_card=Account.authenticate(auth_args) )
+
+        #warn "authed #{auth_card.id}"
+        self.current_account_id = auth_card.id
+        Account.current_id = auth_card.id
+
+        flash[:notice] = "Successfully signed in"
+
+        redirect_to previous_location
+      end
     end
   end
 
   def signout
     self.current_account_id = nil
+    Account.current_id = Card::AnonID
     flash[:notice] = "Successfully signed out"
-    redirect_to Card.path_setting('/')  # previous_location here can cause infinite loop.  ##  Really?  Shouldn't.  -efm
+
+    redirect_to( Card.path_setting '/' )  # previous_location here can cause infinite loop.  ##  Really?  Shouldn't.  -efm
   end
 
   def forgot_password
     if request.post? and email = params[:email]
-      @account = User.find_by_email email.downcase
-      case
+      @account = Account[ email.downcase ]
+
+      case 
       when @account.nil?
         flash[:notice] = "Unrecognized email."
         render :action=>'signin', :status=>404
@@ -92,12 +155,20 @@ class AccountController < CardController
         flash[:notice] = "That account is not active."
         render :action=>'signin', :status=>403
       else
+        @card=Card[@account.card_id]
+
         @account.generate_password
-        @account.save!
-        subject = "Password Reset"
-        message = "You have been given a new temporary password.  " +
-           "Please update your password once you've signed in. "
-        @account.send_account_info(:subject => subject, :message => message)
+        Account.as_bot { @card.save! }
+
+        email_args = {
+            :password => @account.password,
+            :to => @account.email,
+            :subject=> "Password Reset",
+            :message=> "You have been given a new temporary password.  " +
+                       "Please update your password once you've signed in. "
+        }
+
+        @card.send_account_info email_args
         flash[:notice] = "Check your email for your new temporary password"
         redirect_to previous_location
       end
@@ -108,24 +179,19 @@ class AccountController < CardController
 
   protected
 
-  def password_authentication(login, password)
-    if self.current_account_id = User.authenticate( params[:login], params[:password] )
-      flash[:notice] = "Successfully signed in"
-      #warn Rails.logger.info("to prev #{previous_location}")
-      redirect_to previous_location
-    else
-      usr=User[ params[:login].strip.downcase ]
-      failed_login(
-        case
-        when usr.nil?     ; "Unrecognized email."
-        when usr.blocked? ; "Sorry, that account is blocked."
-        else              ; "Wrong password"
-        end
-      )
-    end
+  def target target_id
+    @card = Card.fetch( target_id, :trait=>:thanks ) and Card.path_setting( Card.setting card.name )
   end
 
-  def failed_login(message)
+  def failed_login! cd_with_acct
+    if cd_with_acct.nil?
+      message = "Email not recognized." 
+    elsif cd_with_acct.errors.any?
+      message = "Login failed: #{cd_with_acct.errors.full_messages*', '}"
+    else
+      return
+    end
+
     flash[:notice] = "Oops: #{message}"
     render :action=>'signin', :status=>403
   end

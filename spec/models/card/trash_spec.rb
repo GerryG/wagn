@@ -22,7 +22,7 @@ end
 
 describe Card, "in trash" do
   it "should be retrieved by fetch with new" do
-    Account.as :joe_user do
+    Account.as 'joe_user' do
       Card.create(:name=>"Betty").delete
       c=Card.fetch "Betty", :new=>{}
       c.save
@@ -34,7 +34,7 @@ end
 
 describe Card, "plus cards" do
   it "should be deleted when root is" do
-    Account.as :joe_admin do
+    Account.as 'joe admin' do
       c = Card.create! :name=>'zz+top'
       root = Card['zz']
       root.delete
@@ -55,12 +55,10 @@ end
 
 describe User, "without revisions" do
   before do
-    Account.as_bot do
-      @c = Card.create! :name=>'User Must Die', :type=>'User'
-    end
+    Account.as_bot { @c = Card.create! :name=>'User Must Die', :type=>'User' }
   end
   it "should be removable" do
-    @c.delete!.should be_true
+    Account.as_bot { @c.delete!.should be_true }
   end
 end
 
@@ -70,11 +68,13 @@ end
 #NOT WORKING, BUT IT SHOULD
 #describe Card, "a part of an unremovable card" do
 #  before do
-#     Account.as(Card::WagnBotID)
+#    Account.as_bot do
 #     # this ugly setup makes it so A+Admin is the actual user with edits..
 #     Card["Wagn Bot"].update_attributes! :name=>"A+Wagn Bot"
+#    end
 #  end
 #  it "should not be removable" do
+#    Account.as_bot do
 #    @a = Card['A']
 #    @a.delete.should_not be_true
 #  end
@@ -82,7 +82,7 @@ end
 
 describe Card, "dependent removal" do
   before do
-    Account.as :joe_user
+    Account.as 'joe_user'
     @a = Card['A']
     @a.delete!
     @c = Card.find_by_key "A+B+C".to_name.key
@@ -169,7 +169,7 @@ end
 
 describe Card, "recreate trashed card via new" do
 #  before do
-#    Account.as(Card::WagnBotID)
+#    Account.as_bot
 #    @c = Card.create! :type=>'Basic', :name=>"BasicMe"
 #  end
 
@@ -205,6 +205,21 @@ describe Card, "junction revival" do
 
   it "should have a new revision" do
     @c.content.should == 'revived content'
+  end
+end
+
+#
+# code should be prevented from damaging the system by removing critical cards.
+#
+ 
+describe Card, "indestructables" do
+  it "should not destroy" do
+    Account.as_bot do
+      [:all, :default, '*all+*default'].each do |key|
+        card = Card[key] and card.destroy
+        Card[key].should be
+      end
+    end
   end
 end
 

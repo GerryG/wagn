@@ -191,7 +191,7 @@ module Cardlib::TrackedAttributes
 
   def self.included base
     super
-    base.after_create :set_initial_content #call from update..._on_create
+    #base.after_create :set_initial_content call from update..._on_create
     base.after_save :cascade_name_changes
   end
 

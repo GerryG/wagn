@@ -10,7 +10,7 @@ end
 describe "Card (Cardtype)" do
 
   before do
-    Account.as :joe_user
+    Account.as 'joe_user'
   end
 
   it "should not allow cardtype remove when instances present" do
@@ -168,9 +168,9 @@ describe User, "Joe User" do
       Card.create :name=>'Cardtype F+*type+*create', :type=>'Pointer', :content=>'[[r3]]'
     end
 
-    Account.as :joe_user
-    @user = User.user
-    @ucard = Card[@user.card_id]
+    Account.as 'joe_user'
+    @account = Card[Account.as_id].account
+    @ucard = Card[@account.account_id]
     @type_names = Account.createable_types
   end
 
@@ -195,6 +195,7 @@ describe Card, "Cardtype with Existing Cards" do
     @ct = Card['Cardtype F']
   end
   it "should have existing cards of that type" do
+    Card.search(:type=>@ct.id).should_not be_empty
     Card.search(:type=>@ct.name).should_not be_empty
   end
 

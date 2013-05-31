@@ -3,6 +3,7 @@
 module Wagn
   class Renderer
 
+    Card::Reference
     include LocationHelper
     
     cattr_accessor :current_slot, :ajax_call, :perms, :denial_views, :subset_views, :error_codes, :view_tags, :current_class
@@ -249,7 +250,7 @@ module Wagn
       if focal? && error_code = @@error_codes[view]
         root.error_status = error_code
       end
-      #warn "ok_view[#{original_view}] #{view}, #{args.inspect}, Cd:#{card.inspect}" #{caller[0..20]*"\n"}"
+      #Rails.logger.info "ok_view[#{original_view}] #{view}, #{args.inspect}, Cd:#{card.inspect}" #{caller[0..20]*"\n"}"
       view
     end
     
@@ -455,17 +456,18 @@ module Wagn
 
   end
 
-  class Renderer::Html < Renderer                ; end
-  
-  class Renderer::File < Renderer                ; end
 
-  class Renderer::Text < Renderer                ; end
-  class Renderer::Csv < Renderer::Text           ; end
-  class Renderer::Css < Renderer::Text           ; end
+  class Renderer::Html < Renderer         ; end
   
-  class Renderer::Data < Renderer                ; end
-  class Renderer::Json < Renderer::Data          ; end
-  class Renderer::Xml < Renderer::Data           ; end
+  class Renderer::File < Renderer         ; end
+
+  class Renderer::Text < Renderer         ; end
+  class Renderer::Csv  < Renderer::Text   ; end
+  class Renderer::Css  < Renderer::Text   ; end
+  
+  class Renderer::Data < Renderer         ; end
+  class Renderer::Json < Renderer::Data   ; end
+  class Renderer::Xml  < Renderer::Data   ; end
 
 end
 

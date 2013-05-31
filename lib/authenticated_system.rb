@@ -7,17 +7,9 @@ module AuthenticatedSystem
 
   # Accesses the current user from the session.
   def current_account_id
-    @current_account_id ||= begin
-      if card_id = session[:user]
-        if User[ card_id ]
-          card_id
-        else
-          session[:user] = nil
-        end
-      end
-    end
+    @current_account_id ||= session[:user]
   rescue Exception => e
-    #warn "except #{e.inspect}, #{e.backtrace*"\n"}"
+    Rails.logger.warn "except #{e.inspect}, #{e.backtrace*"\n"}"
     session[:user] = nil
     raise e
   end

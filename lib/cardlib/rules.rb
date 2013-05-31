@@ -83,6 +83,7 @@ module Cardlib::Rules
           hash[party_id] ||= []
           hash[party_id] << read_rule_id
         end
+        #Rails.logger.warn "readrules #{hash.map{ |k,v| "#{Card[k].name} => #{v.map{|i| "#{Card[i].name}"}*', '}" } *"\n" }"
         Card.cache.write 'READRULES', hash
       end
     end

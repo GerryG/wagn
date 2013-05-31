@@ -30,7 +30,7 @@ end
 
 describe Card, "Case Variant" do
   before do
-    Account.as :joe_user
+    Account.as 'joe_user'
     @c = Card.create! :name=>'chump'
   end
 
@@ -54,15 +54,16 @@ end
 
 describe SmartName, "changing from plus card to simple" do
   before do
-    Account.as :joe_user
+    Account.as 'joe_user'
     @c = Card.create! :name=>'four+five'
     @c.name = 'nine'
     @c.save
   end
 
   it "should erase left and right ids" do
-    @c.left_id.should== nil
-    @c.right_id.should== nil
+    @c = Card['nine']
+    @c.left_id.should be_nil
+    @c.right_id.should be_nil
   end
 
   it "test fetch with new when present" do
@@ -273,7 +274,7 @@ describe "renaming" do
 
   it "test_rename_should_not_fail_when_updating_inaccessible_referencer" do
     Card.create! :name => "Joe Card", :content => "Whattup"
-    Account.as :joe_admin do
+    Account.as 'joe admin' do
       Card.create! :name => "Admin Card", :content => "[[Joe Card]]"
     end
     c = Card["Joe Card"]

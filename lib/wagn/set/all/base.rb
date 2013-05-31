@@ -8,8 +8,7 @@ module Wagn
 
     action :create do |*a|
       #card.errors.add(:name, "must be unique; '#{card.name}' already exists.") unless card.new_card?
-      card.save
-      render_errors || success
+      card.save ? success : render_errors
     end
 
     action :read do |*a|
@@ -117,6 +116,7 @@ module Wagn
     end
 
     # The below have HTML!?  should not be any html in the base renderer
+    # Is the one change to '' correct?  Should the rest be same and originals in rich_html?
 
 
     define_view :closed_missing, :perms=>:none do |args|

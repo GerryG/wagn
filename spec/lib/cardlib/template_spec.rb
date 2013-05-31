@@ -28,13 +28,18 @@ end
 describe Card, "with right content template" do
   before do
     Account.as_bot do
+      #warn "create 1"
       @bt = Card.create! :name=>"birthday+*right+*structure", :type=>'Date', :content=>"Today!"
+      #warn "create 2"
     end
-    Account.as :joe_user
-    @jb = Card.create! :name=>"Jim+birthday"
+    Account.as 'joe_user' do
+      @jb = Card.create! :name=>"Jim+birthday"
+      #warn "card #{@jb.inspect}"
+    end
   end
 
   it "should have default content" do
+    #warn "render #{@jb.inspect}"
     Wagn::Renderer.new(@jb)._render_raw.should == 'Today!'
   end
 
@@ -65,8 +70,9 @@ describe Card, "with right default template" do
     Account.as_bot  do
       @bt = Card.create! :name=>"birthday+*right+*default", :type=>'Date', :content=>"Today!"
     end
-    Account.as :joe_user
+    Account.as "joe_user" do
     @jb = Card.create! :name=>"Jim+birthday"
+    end
   end
 
   it "should have default cardtype" do
@@ -74,7 +80,8 @@ describe Card, "with right default template" do
   end
 
   it "should have default content" do
-    Card['Jim+birthday'].content.should == 'Today!'
+    (c=Card[@jb.name]).should be
+    c.content.should == 'Today!'
   end
 end
 

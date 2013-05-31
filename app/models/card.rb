@@ -16,7 +16,7 @@ class Card < ActiveRecord::Base
     :error_view, :error_status #yuck
 
   before_save :set_stamper, :base_before_save, :set_read_rule, :set_tracked_attributes
-  after_save :base_after_save, :update_ruled_cards, :process_read_rule_update_queue, :expire_related
+  after_save :base_after_save, :save_account, :update_ruled_cards, :process_read_rule_update_queue, :expire_related
 
   cache_attributes 'name', 'type_id' #Review - still worth it in Rails 3?
 
@@ -56,8 +56,8 @@ class Card < ActiveRecord::Base
       else
         super
       end
-#    rescue NameError
-#      warn "ne: const_miss #{e.inspect}, #{const}" #if const.to_sym==:Card
+      #rescue NameError
+        #warn "ne: const_miss #{e.inspect}, #{const}" #if const.to_sym==:Card
     end
 
     def setting name
@@ -97,7 +97,7 @@ class Card < ActiveRecord::Base
     end
     
     def merge name, attribs={}, opts={}
-      Rails.logger.info "about to merge: #{name}, #{attribs}, #{opts}"
+      #Rails.logger.info "about to merge: #{name}, #{attribs}, #{opts}"
       card = fetch name, :new=>{}
       unless opts[:pristine] && !card.pristine?
         card.attributes = attribs
@@ -146,7 +146,6 @@ class Card < ActiveRecord::Base
       when args[:type]     ;  Card.fetch_id args[:type]
       else :noop
       end
-
 
     case type_id
     when :noop 
@@ -258,7 +257,6 @@ class Card < ActiveRecord::Base
     @virtual    = false
     @from_trash = false
     Wagn::Hook.call :after_create, self if @was_new_card
-    #Rails.logger.warn "base after save #{inspect}"
     send_notifications
     true
   rescue Exception=>e
@@ -477,8 +475,14 @@ class Card < ActiveRecord::Base
     @selected_revision_id || current_revision_id || 0
   end
 
+  def current_revision= current_rev
+    self.current_revision_id = current_rev.id
+    @cached_revison = current_rev
+  end
+
   def current_revision
     #return current_revision || Card::Revision.new
+    #warn "crev #{inspect} #{@cached_revision}, #{current_revision_id}"
     if @cached_revision and @cached_revision.id==current_revision_id
     elsif ( Card::Revision.cache &&
        @cached_revision=Card::Revision.cache.read("#{cardname.safe_key}-content") and
@@ -529,14 +533,58 @@ class Card < ActiveRecord::Base
 
   public
 
+  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  # ACCOUNT / SESSION
+
+  def account
+    a=Account[id]
+    #warn "account #{id} #{a.inspect}"; a
+  end
+
+  def no_account?  ; account.nil?    end
+  def account= acct; @account = acct end
+
+  def save_account
+    #Rails.logger.warn "save_account #{inspect} a:#{@account}"
+    #warn "save_account #{@account.inspect}, #{inspect} #{@account and right_id != AccountID}"
+    if @account and right_id != AccountID
+      acct_card = self.fetch(:trait => :account, :new=>{})
+      # make sure it has an account card and store both ids
+      acct_card.save if acct_card.new_card?
+      #Rails.logger.warn "save_account A:#{@account.inspect}, #{inspect}, Ac:#{acct_card.inspect}"
+      @account.card_id = id
+      @account.account_id = acct_card.id
+      @account.active if type_id != AccountRequestID && @account.pending?
+      #Rails.logger.warn "save_account B:#{@account.inspect}, #{inspect}, Ac:#{acct_card.inspect}"
+      unless @account.save
+        acct_card.errors.each { |k,v| errors.add k,v }
+        @account.errors.each { |k,v| errors.add k,v }
+        #Rails.logger.warn "sav errs #{errors.map { |k,v| "#{k} -> #{v }"}*"\n"}"
+        return false
+      end
+    end
+    true
+  end
+
+  def send_account_info args
+    begin
+      Mailer.account_info(self, args).deliver
+    rescue Exception=>e
+      self.errors.add(:email, "Exception sending email: #{e.inspect}")
+      warn "ACCOUNT INFO DELIVERY FAILED: \n #{args.inspect}\n   #{e.message}"
+      Rails.logger.info "ACCOUNT INFO DELIVERY FAILED: \n #{args.inspect}\n   #{e.message}, #{e.backtrace*"\n"}"
+      false
+    end
+  end
+
   #~~~~~~~~~~~~~~ USER-ISH methods ~~~~~~~~~~~~~~#
   # these should be done in a set module when we have the capacity to address the set of "cards with accounts"
   # in the meantime, they should probably be in a module.
 
-  def among? card_with_acct
-    prties = parties
-    card_with_acct.each { |auth| return true if prties.member? auth }
-    card_with_acct.member? Card::AnyoneID
+  def among? access_tokens
+    return false if access_tokens.empty?
+    pts = parties
+    access_tokens.find { |auth| pts.member? auth } ? true : access_tokens.member?( Card::AnyoneID )
   end
 
   def parties
@@ -572,10 +620,6 @@ class Card < ActiveRecord::Base
     end
     #warn "aroles #{inspect}, #{@all_roles.inspect}"
     @all_roles
-  end
-
-  def account
-    User[ id ]
   end
 
   def accountable?

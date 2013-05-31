@@ -10,23 +10,28 @@ class Mailer < ActionMailer::Base
 
   include LocationHelper
 
+  EMAIL_FIELDS = [ :to, :subject, :message, :password ]
 
   def account_info cd_with_acct, args
-    @email, subject, @message, @password = [:to, :subject, :message, :password].map do |k|
-      args[k] or raise "Missing email parameter: #{k}"
-    end
+    #Rails.logger.warn "ainfo #{caller[0..3]*', '}"
 
-    @pw_url   = wagn_url "#{cd_with_acct.cardname.url_key}?view=options"
+    arg_array = EMAIL_FIELDS.map { |f| args[f] }
+    raise("Missing email parameter: #{k}") if arg_array.find(&:nil?)
+
+    @email, @subject, @message, @password = arg_array
+
+    @card_url = wagn_url cd_with_acct
+    @pw_url   = wagn_url "/card/options/#{cd_with_acct.cardname.url_key}"
     @login_url= wagn_url "/account/signin"
+    @message  = @message.clone
 
     #FIXME - might want different "from" settings for different contexts?
-    invite_from = Card.setting( '*invite+*from' ) || begin
-      from_card_id = Account.current_id
-      from_card_id = Card::WagnBotID if [ Card::AnonID, cd_with_acct.id ].member? from_card_id
-      from_card = Card[from_card_id]
-      "#{from_card.name} <#{from_card.account.email}>"
+    unless invite_from = Card.setting( '*invite+*from' )
+      cur_card = Account.current
+      cur_card = Card[Card::WagnBotID] if [ Card::AnonID, cd_with_acct.id ].member? cur_card.id
+      invite_from = "#{cur_card.name} <#{cur_card.account.email}>"
     end
-    mail_from( { :to=>@email, :subject=>subject }, invite_from )
+    mail_from args, invite_from
   end
 
   def signup_alert invite_request

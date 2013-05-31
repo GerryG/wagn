@@ -1,7 +1,6 @@
 # -*- encoding : utf-8 -*-
 module Wagn
-  module Set::Right::TemplateRight
-
+  module Set::Right::Template
     include Wagn::Sets
 
     format :base
@@ -33,6 +32,7 @@ module Wagn
           end
         subrenderer( Card.fetch(set_name) ).render_template_link args
       end
+
     end
   end
 end

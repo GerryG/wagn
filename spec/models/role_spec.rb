@@ -49,8 +49,6 @@ end
 describe User, 'Joe User' do
   before do
     Account.current_id = Card['joe_user'].id
-#    User.cache.delete 'joe_user'
-    @ju = Account.user
     @jucard = Account.current
     @r1 = Card['r1']
     @roles_card=@jucard.fetch(:new=>{},:trait=>:roles)
@@ -77,7 +75,7 @@ describe User, 'Joe User' do
     @ju = Card['joe_user'].account
     @roles_card = Card[@jucard.fetch(:new=>{},:trait=>:roles).id]
     @roles_card.item_names.length.should==1
-    @jucard.parties.should == [Card::AuthID, Card['r1'].id, @ju.card_id]
+    @jucard.parties.should == [Card::AuthID, Card['r1'].id, Card[@ju.account_id].left_id]
   end
 
   it "should be 'among' itself" do

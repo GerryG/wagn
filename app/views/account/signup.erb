@@ -8,10 +8,13 @@
     <div class="card-header">
       <h1>Sign Up</h1>
 
-      <% if card.rule_card(:add_help, :fallback=>:help) %>
-        <%= raw( slot._render :help, :setting=>:add_help ) %>
+    <div class="instruction">
+      <% if inst = card.rule_card(:add_help, :fallback=>:help) %>
+        <%= raw( slot.subrenderer(inst).render :core ) %>
+      <% elsif !Account.create_ok? %>
+        <p><strong>All Account Requests are subject to review.</strong></p><%#ENGLISH%>
       <% else %>
-        <%= raw( slot._render :help, :text => ( User.create_ok? ? 
+        <%= raw( slot._render :help, :text => ( Account.create_ok? ? 
           'Send us the following, and we\'ll send you a password.' : 
           'All Account Requests are subject to review.' ) ) %>
       <% end %>

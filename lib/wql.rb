@@ -38,7 +38,8 @@ class Wql
   def sql()                @sql ||= @card_spec.to_sql            end
 
   def run
-    rows = ActiveRecord::Base.connection.select_all( sql )
+    #warn "run wql[#{sql}] #{query.inspect} #{caller*"\n"}"
+    rows = ActiveRecord::Base.connection.select_all sql
     qr=query[:return]
     case qr = qr.nil? ? 'card' : qr.to_s
     when 'card'
@@ -127,6 +128,8 @@ class Wql
 
       self
     end
+
+    def inspect() %{<#{self.class}:#{@sql}>} end
 
     def table_alias
       case
@@ -218,7 +221,10 @@ class Wql
 
     def left(val)  merge field(:left_id) => subspec(val)                            end
     def right(val) merge field(:right_id  ) => subspec(val)                         end
-    def part(val)  subcondition({ :left => val, :right => (Integer===val) ? val : val.clone }, :conj=>:or)  end
+    def part(val)
+      right_val = val.respond_to?( :clone ) ? val.clone : val
+      subcondition({ :left => val, :right => right_val }, :conj=>:or)
+    end
 
     def left_plus(val)
       part_spec, junc_spec = val.is_a?(Array) ? val : [ val, {} ]
@@ -370,11 +376,12 @@ class Wql
       return "(" + sql.conditions.last + ")" if @mods[:return]=='condition'
 
       # Permissions
+      #Rails.logger.debug "wql perms? [#{inspect}] #{Account.current.inspect} #{Account.always_ok?} #{root?}" 
       unless Account.always_ok? or (Wql.root_perms_only && !root?)
         sql.conditions <<
          "(#{table_alias}.read_rule_id IN (#{(rr=Account.as_card.read_rules).nil? ? 1 : rr*','}))"
+      #  warn "wql perms? #{Account.always_ok?} #{Account.current.inspect}, #{rr.inspect} SqCond: #{sql.conditions.inspect}" 
       end
-      #warn "wql perms? #{Account.always_ok?} #{Account.as_id}, #{Account.as_card.read_rules*','} SqCond: #{sql.conditions.inspect}"
 
       sql.fields.unshift fields_to_sql
       sql.order = sort_to_sql  # has side effects!
@@ -508,11 +515,9 @@ class Wql
 
     def to_sql(field)
       op,v = @spec
-      #warn "to_sql(#{field}), #{op}, #{v}, #{@cardspec.inspect}"
       v=@cardspec.selfname if v=='_self'
       table = @cardspec.table_alias
 
-      #warn "to_sql #{field}, #{v} (#{op})"
       field, v = case field
         when "cond";     return "(#{sqlize(v)})"
         when "name";     ["#{table}.key",      [v].flatten.map(&:to_name).map(&:key)]
@@ -523,7 +528,7 @@ class Wql
         else;            ["#{table}.#{safe_sql(field)}", v]
         end
 
-      v = v[0] if Array===v && v.length==1
+      v = v[0] if Array===v && v.length==1 && Array===v[0]
       if op=='~'
         cxn, v = match_prep(v,@cardspec)
         %{#{field} #{cxn.match(sqlize(v))}}

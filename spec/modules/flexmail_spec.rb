@@ -36,7 +36,7 @@ describe Flexmail do
         Card.create! :name => "mailconfig+*cc", :content => "[[Joe User+*email]]", :type=>'Pointer'
         Card.create! :name => "mailconfig+*bcc", :content => '{"name":"Joe Admin","append":"*email"}', :type=>'Search'
       end
-      Account.as(:joe_user) do
+      Account.as('joe_user') do
         c = Card.new(:name=>'Kiwi+emailtest')
         conf = Flexmail.configs_for(c)[0]
         conf[:cc].should == 'joe@user.com'
@@ -126,6 +126,7 @@ describe Flexmail do
           Card.create! :name => "emailtest+*right+*send", :type => "Pointer", :content => "[[mailconfig]]"
           Card.create! :name => "mailconfig+*to", :content => "joe@user.com"
         }
+        Account.current_id = Card['john'].id
       end
 
       it "calls to mailer on Card#create" do
@@ -135,8 +136,10 @@ describe Flexmail do
 
       it "handles case of referring to self for content" do
         Card.create! :name => "Email", :type => "Cardtype"
-        Card.create! :name => "Email+*type+*send", :type => "Pointer", :content => "[[mailconfig]]"
-        Card.create! :name => "mailconfig+*message", :content => "this {{_self|core}}"
+        Account.as_bot {
+          Card.create! :name => "Email+*type+*send", :type => "Pointer", :content => "[[mailconfig]]"
+          Card.create! :name => "mailconfig+*message", :content => "this {{_self|core}}"
+        }
 
         Rails.logger.level = ActiveSupport::BufferedLogger::Severity::DEBUG
         mock(Mailer).flexmail(hash_including(:message=>"this had betta work"))
@@ -152,6 +155,7 @@ describe Flexmail do
             :content => "[[mailconfig]]"
           Card.create! :name => "mailconfig+*to", :content => "joe@user.com"
         end
+        Account.current_id = Card['john'].id
       end
 
       it "doesn't call to mailer on Card#create" do

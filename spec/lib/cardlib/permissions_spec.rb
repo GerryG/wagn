@@ -36,8 +36,8 @@ describe "reader rules" do
     card.read_rule_id.should == @perm_card.id
     card.who_can(:read).should == [Card['joe_admin'].id]
     Account.as(:anonymous) { card.ok?(:read).should be_false }
-    Account.as(:joe_user)  { card.ok?(:read).should be_false }
-    Account.as(:joe_admin) { card.ok?(:read).should be_true  }
+    Account.as('joe_user')  { card.ok?(:read).should be_false }
+    Account.as('joe_admin') { card.ok?(:read).should be_true  }
     Account.as_bot         { card.ok?(:read).should be_true  }
   end
 
@@ -96,7 +96,7 @@ describe "reader rules" do
     Card.fetch('A+B').read_rule_id.should == Card.fetch('*all+*read').id
     c = Card.fetch('A')
     c.type_id = Card::PhraseID
-    c.save!
+    Account.as_bot { c.save! }
     Card.fetch('A+B').read_rule_id.should == @perm_card.id
   end
 
@@ -109,7 +109,7 @@ describe "reader rules" do
     c = Card.new(:name=>'Home+Heart')
     c.who_can(:read).should == [Card::AuthID]
     c.permission_rule_card(:read).first.id.should == @perm_card.id
-    c.save
+    Account.as_bot { c.save }
     c.read_rule_id.should == @perm_card.id
   end
 
@@ -121,7 +121,7 @@ describe "reader rules" do
     c = Card.new(:name=>'Home+Heart')
     c.who_can(:read).should == [Card::AnyoneID]
     c.permission_rule_card(:read).first.id.should == Card.fetch('*all+*read').id
-    c.save
+    Account.as_bot { c.save }
     c.read_rule_id.should == Card.fetch('*all+*read').id
     Account.as_bot { @perm_card.save! }
     c2 = Card.fetch('Home+Heart')
@@ -157,7 +157,6 @@ end
 describe "Permission", ActiveSupport::TestCase do
   before do
     Account.as_bot do
-#      User.cache.reset
       @u1, @u2, @u3, @r1, @r2, @r3, @c1, @c2, @c3 =
         %w( u1 u2 u3 r1 r2 r3 c1 c2 c3 ).map do |x| Card[x] end
     end
@@ -168,10 +167,10 @@ describe "Permission", ActiveSupport::TestCase do
     Account.as_bot do
       Account.always_ok?.should == true
     end
-    Account.as(:joe_user) do
+    Account.as('joe_user') do
       Account.always_ok?.should == false
     end
-    Account.as(:joe_admin) do
+    Account.as('joe_admin') do
       Account.always_ok?.should == true
       Card.create! :name=>"Hidden"
       Card.create(:name=>'Hidden+*self+*read', :type=>'Pointer', :content=>'[[Anyone Signed In]]')
@@ -235,6 +234,7 @@ describe "Permission", ActiveSupport::TestCase do
       end
     end
 
+    #Rails.logger.warn "u1 roles #{@u1.fetch(:trait=>:roles).item_cards.map(&:inspect)*', '}: c1#read: #{Card['c1+*self+*read'].item_cards.map(&:inspect)*', '}"
     assert_not_hidden_from( @u1, @c1 )
     assert_not_hidden_from( @u1, @c2 )
     assert_hidden_from( @u1, @c3 )
@@ -356,7 +356,7 @@ end
 
 
 describe Card, "new permissions" do
-  Account.as :joe_user
+  Account.current_id= Card['joe_user'].id
 
   it "should let joe view new cards" do
     @c = Card.new
@@ -368,7 +368,7 @@ end
 
 describe Card, "default permissions" do
   before do
-    Account.as :joe_user do
+    Account.as 'joe_user' do
       @c = Card.create! :name=>"sky blue"
     end
   end
@@ -380,7 +380,7 @@ describe Card, "default permissions" do
   end
 
   it "should let joe view basic cards" do
-    Account.as :joe_user do
+    Account.as 'joe_user' do
       @c.ok?(:read).should be_true
     end
   end
@@ -402,10 +402,10 @@ describe Card, "settings based permissions" do
   it "should handle delete as a setting" do
     c = Card.new :name=>'whatever'
     c.who_can(:delete).should == [Card['joe_user'].id]
-    Account.as(:joe_user) do
+    Account.as('joe_user') do
       c.ok?(:delete).should == true
     end
-    Account.as(:u1) do
+    Account.as('u1') do
       c.ok?(:delete).should == false
     end
     Account.as(:anonymous) do

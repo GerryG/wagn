@@ -1,11 +1,11 @@
 # -*- encoding : utf-8 -*-
 require File.expand_path('../../test_helper', File.dirname(__FILE__))
-class Wagn::Set::Type::AccountRequestTest < ActiveSupport::TestCase
+class AccountRequestTest < ActiveSupport::TestCase
 
 
   def setup
     super
-    setup_default_user
+    setup_default_account
     # make sure all this stuff works as anonymous user
     Account.current_id = Card::AnonID
   end
@@ -24,12 +24,12 @@ class Wagn::Set::Type::AccountRequestTest < ActiveSupport::TestCase
   end
 
 
-  def test_should_block_user
+  def test_should_block_account
     c=Card.fetch('Ron Request')
     Account.as 'joe_admin' do c.delete!  end
 
     assert_equal nil, Card.fetch('Ron Request')
-    assert_equal 'blocked', User['ron@request.com'].status
+    assert_equal 'blocked', Account['ron@request.com'].status
   end
 
 

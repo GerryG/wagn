@@ -114,20 +114,20 @@ describe "Card::Reference" do
 
   it "should not update references when not requested" do
 
-   Account.as 'joe user' do
-    watermelon = newcard('watermelon', 'mmmm')
-    watermelon_seeds = newcard('watermelon+seeds', 'black')
-    lew = newcard('Lew', "likes [[watermelon]] and [[watermelon+seeds|seeds]]")
+    Account.as 'joe user' do
+      watermelon = newcard('watermelon', 'mmmm')
+      watermelon_seeds = newcard('watermelon+seeds', 'black')
+      lew = newcard('Lew', "likes [[watermelon]] and [[watermelon+seeds|seeds]]")
 
-    assert_equal [1,1], lew.out_references.map(&:present), "links should not be Wanted before"
-    watermelon = Card['watermelon']
-    watermelon.update_referencers = false
-    watermelon.name="grapefruit"
-    watermelon.save!
-    lew.reload.content.should == "likes [[watermelon]] and [[watermelon+seeds|seeds]]"
-    assert_equal [ 'L', 'L' ], lew.out_references.map(&:ref_type), "links should be a LINK"
-    assert_equal [ 0, 0 ], lew.out_references.map(&:present), "links should not be present"
-   end
+      assert_equal [1,1], lew.references_to.map(&:present), "links should not be Wanted before"
+      watermelon = Card['watermelon']
+      watermelon.update_referencers = false
+      watermelon.name="grapefruit"
+      watermelon.save!
+      lew.reload.content.should == "likes [[watermelon]] and [[watermelon+seeds|seeds]]"
+      assert_equal [ 'L', 'L' ], lew.references_to.map(&:ref_type), "links should be a LINK"
+      assert_equal [ 0, 0 ], lew.references_to.map(&:present), "links should not be present"
+    end
   end
 
   it "update referencing content on rename junction card" do
@@ -162,21 +162,19 @@ describe "Card::Reference" do
   end
 
   it "simple link" do
-   Account.as 'joe user' do
-    alpha = Card.create :name=>'alpha'
-    beta = Card.create :name=>'beta', :content=>"I link to [[alpha]]"
-    Card['alpha'].referencers.map(&:name).should == ['beta']
-    Card['beta'].referencees.map(&:name).should == ['alpha']
-   end
+    Account.as 'joe user' do
+      alpha = Card.create :name=>'alpha'
+      beta = Card.create :name=>'beta', :content=>"I link to [[alpha]]"
+      Card['alpha'].referencers.map(&:name).should == ['beta']
+      Card['beta'].referees.map(&:name).should == ['alpha']
+    end
   end
 
   it "link with spaces" do
-    Account.as_bot do
-      alpha = Card.create! :name=>'alpha card'
-      beta =  Card.create! :name=>'beta card', :content=>"I link to [[alpha_card|ALPHA CARD]]"
-      Card['beta card'].referencees.map(&:name).should == ['alpha card']
-      Card['alpha card'].referencers.map(&:name).should == ['beta card']
-    end
+    alpha = Card.create! :name=>'alpha card'
+    beta =  Card.create! :name=>'beta card', :content=>"I link to [[alpha_card|ALPHA CARD]]"
+    Card['beta card'].referees.map(&:name).should == ['alpha card']
+    Card['alpha card'].referencers.map(&:name).should == ['beta card']
   end
 
 
@@ -193,7 +191,7 @@ describe "Card::Reference" do
     Account.as_bot do
       alpha = Card.create :name=>'alpha'
       beta = Card.create :name=>'beta', :content=>"I link to [[alpha|ALPHA]]"
-      Card['beta'].referencees.map(&:name).should == ['alpha']
+      Card['beta'].referees.map(&:name).should == ['alpha']
       Card['alpha'].referencers.map(&:name).should == ['beta']
     end
   end

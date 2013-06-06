@@ -104,10 +104,4 @@ module Cardlib::Rules
     end
 
   end
-
-  def self.included(base)
-    super
-    base.extend(ClassMethods)
-  end
-
 end

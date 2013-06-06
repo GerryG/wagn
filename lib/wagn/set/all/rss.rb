@@ -1,7 +1,7 @@
 # -*- encoding : utf-8 -*-
 module Wagn
   module Set::All::Rss
-    include Sets
+    extend Sets
 
     format :rss
 
@@ -10,6 +10,7 @@ module Wagn
       render_feed
     end
 
+    # FIXME: integrate this with common XML features when it is added
     define_view :feed do |args|
       xml = Builder::XmlMarkup.new
       xml.instruct! :xml, :version => "1.0"

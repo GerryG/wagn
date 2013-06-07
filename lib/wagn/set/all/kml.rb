@@ -34,6 +34,7 @@ module Wagn
             if geocard && geocard.ok?(:read)
               xml.Placemark do
                 xml.name cardname
+                # FIXME: should have codenames
                 if desc_card = Card.fetch("#{cardname}+*geodescription") and desc_card.ok? :read
                   xml.description Wagn::Renderer.new(desc_card).render_core(args)
                 end

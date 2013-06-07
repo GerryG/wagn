@@ -80,22 +80,33 @@ class CardController < ApplicationController
       else
         card.fetch(:trait=>:account).ok! :update
       end
-      acct.update_attributes account_args
-      acct.errors.each do |key,err|
-        card.errors.add key,err
-      end
+
+      acct.update_attributes account_args if request.put? or request.post?
     end
 
     handle { card.errors.empty? }
   end
 
+  # FIXME: make this part of create
   def create_account
-    raise Wagn::PermissionDenied, "can't add account to this card" unless card.accountable?
-    email_args = { :subject => "Your new #{Card.setting :title} account.",   #ENGLISH
-                   :message => "Welcome!  You now have an account on #{Card.setting :title}." } #ENGLISH
-    @account, @card = User.create_with_card params[:account], card, email_args
-    
-    handle { card.errors.empty? }
+    card.ok! :create, :new=>{}, :trait=>:account
+    acct = card.account = Account.new( params[:account] ).active
+
+    Rails.logger.info "create_account 1 #{acct.inspect}, #{card.inspect}"
+    if card.save
+      Rails.logger.info "create_account #{params.inspect}"
+      card.send_account_info :to => acct.email, :password => acct.password,
+             :subject  => "Your new #{Card.setting :title} account.",   #ENGLISH
+             :message  => "Welcome!  You now have an account on #{Card.setting :title}." #ENGLISH
+    end
+
+    Rails.logger.warn "create_account error: #{acct.errors.map{|k,v|"#{k} -> #{v}"}*', '}" if acct.errors.any?
+    # FIXME: don't raise, handle it
+    raise ActiveRecord::RecordInvalid.new(acct) if acct.errors.any?
+#    flash[:notice] ||= "Done.  A password has been sent to that email." #ENGLISH
+    params[:attribute] = :account
+
+    wagn_redirect( previous_location )
   end
 
 
@@ -112,14 +123,14 @@ class CardController < ApplicationController
     @card =  card.refresh
   end
 
-  def load_id    
+  def load_id
     params[:id] = case
       when params[:id]
         params[:id].gsub '_', ' '
         # with unknown cards, underscores in urls assumed to indicate spaces.
         # with known cards, the key look makes this irrelevant
-        # (note that this is not performed on params[:card][:name])          
-      when Account.no_logins?
+        # (note that this is not performed on params[:card][:name])
+      when !Account.first_login?
         return wagn_redirect( '/admin/setup' )
       when params[:card] && params[:card][:name]
         params[:card][:name]
@@ -192,11 +203,8 @@ class CardController < ApplicationController
       end
 
     case
-    when redirect
-      target = page_path target.cardname, new_params if Card === target
-      wagn_redirect target
-    when String===target
-      render :text => target
+    when  redirect        ; wagn_redirect ( Card===target ? page_path( target.cardname, new_params ) : target )
+    when  String===target ; render :text => target
     else
       @card = target
       self.params = self.params.merge new_params #need tests.  insure we get slot, main...

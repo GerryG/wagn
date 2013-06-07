@@ -3,15 +3,18 @@ require 'uri'
 require 'cgi'
 require File.expand_path(File.join(File.dirname(__FILE__), "..", "support", "paths"))
 
-Given /^I log in as (.+)$/ do |account_name|
+Given /^I log in as (.+)$/ do |acct_name|
   # FIXME: define a faster simulate method ("I am logged in as")
-  @current_id = ucid = Card[account_name].id
-  user_object = User[ ucid ]
+  acct=Card[acct_name]
+  @current_id = acct.id
+  acct=acct.fetch :trait => :account
+  user = acct.account
+  email = user.email
   visit "/account/signin"
-  fill_in("login", :with=> user_object.email )
-  fill_in("password", :with=> user_object.login.split("_")[0]+"_pass")
+  fill_in("login", :with=> email )
+  fill_in("password", :with=> user.login.split("_")[0]+"_pass")
   click_button("Sign in")
-  page.should have_content(account_name)
+  page.should have_content(acct_name)
 end
 
 Given /^I log out/ do
@@ -119,12 +122,12 @@ end
 def logged_in_as(username)
   sameuser = (username == "I" or @current_id && Card[@current_id].name == username)
   unless sameuser
-    @saved_user = @current_id
+    @saved_account = @current_id
     step "I log in as #{username}"
   end
   yield
   unless sameuser
-    step( @saved_user ? "I log in as #{Card[@saved_user].name}" : "I log out" )
+    step( @saved_account ? "I log in as #{Card[@saved_account].name}" : "I log out" )
   end
 end
 
@@ -137,6 +140,7 @@ end
 
 When /^In (.*) I click "(.*)"$/ do |section, link|
   within scope_of(section) do
+    #warn "page #{page.body}"
     click_link link
   end
 end
@@ -161,6 +165,7 @@ end
 
 Then /^In (.*) I should see "([^\"]*)"$/ do |section, text|
   within scope_of(section) do
+    #warn "page #{page.body}"
     page.should have_content(text)
   end
 end
@@ -189,6 +194,7 @@ end
 
 ## variants of standard steps to handle """ style quoted args
 Then /^I should see$/ do |text|
+  #warn "page #{page.body}"
   page.should have_content(text)
 end
 

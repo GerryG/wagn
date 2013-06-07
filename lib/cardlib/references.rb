@@ -97,6 +97,7 @@ module Cardlib::References
 
   def update_references_on_create
     Card::Reference.update_existing_key self
+    set_initial_content
 
     # FIXME: bogus blank default content is set on hard_templated cards...
     Account.as_bot do

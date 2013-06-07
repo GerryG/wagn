@@ -77,6 +77,7 @@ class ApplicationController < ActionController::Base
 
   def render_errors
     view   = card.error_view   || :errors
+    Rails.logger.warn "re #{view} #{caller[0..5]*", "}"
     status = card.error_status || 422
     show view, status
   end
@@ -84,7 +85,7 @@ class ApplicationController < ActionController::Base
 
   def show view = nil, status = 200
     format = request.parameters[:format]
-    format = :file if !FORMATS.split('|').member? format #unknown format
+    format = :file if !FORMATS.split('|').member? format
 
     opts = params[:slot] || {}
     opts[:view] = view || params[:view]      
@@ -120,6 +121,7 @@ class ApplicationController < ActionController::Base
         [ :bad_address, 404 ]
       when Wagn::Oops
         card.errors.add :exception, exception.message 
+        Rails.logger.warn "Error: #{ exception.message }"
         # Wagn:Oops error messages are visible to end users and are generally not treated as bugs.
         # Probably want to rename accordingly.
         [ :errors, 422]

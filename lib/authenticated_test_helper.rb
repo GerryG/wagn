@@ -4,6 +4,7 @@ module AuthenticatedTestHelper
   def login_as user
     Account.current_id = @request.session[:user] = (uc=Card[user.to_s] and uc.id)
     #warn "(ath)login_as #{user.inspect}, #{Account.current_id}, #{@request.session[:user]}"
+    Account.current_id
   end
 
   def signout
@@ -35,31 +36,26 @@ module AuthenticatedTestHelper
     assert_response :success
   end
 
-  # http://project.ioni.st/post/217#post-217
-  #
-  #  def test_new_publication
-  #    assert_difference(Publication, :count) do
-  #      post :create, :publication => {...}
-  #      # ...
-  #    end
-  #  end
-  #
-
+  def assert_auth email, password
+    user = Account.authenticate(:email=>email, :password=>password)
+    assert user, "#{email} should authenticate"
+    #assert User === user, "#{email} should locate a user"
+  end
 
   def assert_new_account(&block)
-    assert_difference(User, :count, 1) do
-      assert_difference Card.where(:type_id=>Card::UserID), :count, 1, &block
+    assert_difference User, :count, 1, 'Users' do
+      assert_difference Card, :count, 2, 'User Cards', &block
     end
   end
 
   def assert_no_new_account(&block)
     assert_no_difference(User, :count) do
-      assert_no_difference Card.where(:type_id=>Card::UserID), :count, &block
+      assert_no_difference Card, :count, &block
     end
   end
 
-  def assert_status(email, status)
-    u = User.find_by_email(email)
-    assert_equal status, u.status
+  def assert_status(email, status, msg='')
+    Rails.logger.warn "assert stat em:#{email}, S:#{status} afe:#{Account[email].inspect}"
+    assert_equal status, Account[email].status, msg
   end
 end

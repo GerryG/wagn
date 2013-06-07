@@ -17,8 +17,6 @@ end
 Spork.prefork do
   require File.expand_path File.dirname(__FILE__) + "/../config/environment"
   require File.expand_path File.dirname(__FILE__) + "/../lib/authenticated_test_helper"
-
-  #require File.expand_path File.dirname(__FILE__) + "/../lib/util/card_builder"
   require 'rspec/rails'
 
   require_dependency 'chunks/chunk'
@@ -28,6 +26,8 @@ Spork.prefork do
   Dir[Rails.root.join("spec/support/**/*.rb")].each {|f| require f}
 
   FIXTURES_PATH = File.dirname(__FILE__) + '/../fixtures'
+
+  ORIGINAL_RULE_CACHE = Card.rule_cache
 
   RSpec.configure do |config|
 
@@ -50,6 +50,7 @@ Spork.prefork do
 
 
     config.before(:each) do
+      Account.reset
       Wagn::Cache.restore
     end
     config.after(:each) do
@@ -76,6 +77,7 @@ end
     end
   end
 
+=end
 
   def assert_difference(object, method = nil, difference = 1)
     initial_value = object.send(method)
@@ -83,6 +85,7 @@ end
     assert_equal initial_value + difference, object.send(method), "#{object}##{method}"
   end
 
+=begin
   def assert_no_difference(object, method, &block)
     assert_difference object, method, 0, &block
   end
@@ -95,7 +98,7 @@ end
 
   def integration_login_as(user, functional=nil)
     raise "Don't know email & password for #{user}" unless uc=Card[user] and
-        u=User[ uc.id ] and
+        u=Account[ uc.id ] and
         login = u.email and pass = USERS[login]
 
     if functional

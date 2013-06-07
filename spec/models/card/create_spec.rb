@@ -4,7 +4,7 @@ require File.expand_path('../../spec_helper', File.dirname(__FILE__))
 # FIXME this shouldn't be here
 describe Wagn::Set::Type::Cardtype, ".create with :codename" do
   before do
-    Account.as :joe_user
+    Account.as 'joe_user'
   end
   it "should work" do
     Card.create!(:name=>"Foo Type", :codename=>"foo", :type=>'Cardtype').typecode.should==:cardtype
@@ -53,10 +53,10 @@ describe Card, "created by Card.create with valid attributes" do
     end
   end
 
-  it "should not have errors"        do @b.errors.size.should == 0        end
-  it "should have the right class"   do @c.class.should    == Card end
-  it "should have the right key"     do @c.key.should      == "new_card"  end
-  it "should have the right name"    do @c.name.should     == "New Card"  end
+  it "should not have errors"        do @b.errors.size.should == 0            end
+  it "should have the right class"   do @c.class.should    == Card            end
+  it "should have the right key"     do @c.key.should      == "new_card"      end
+  it "should have the right name"    do @c.name.should     == "New Card"      end
   it "should have the right content" do @c.content.should  == "Great Content" end
 
   it "should have a revision with the right content" do
@@ -71,24 +71,33 @@ end
 describe Card, "created with autoname" do
   before do
     Account.as_bot do
-      @b1 = Card.create! :name=>'Book+*type+*autoname', :content=>'b1'
+      Card.create! :name=>'Book+*type+*autoname', :content=>'b1'
+      #warn "created rule #{Card['Book+*type+*autoname'].inspect}"
     end
   end
 
   it "should handle cards without names" do
-    c = Card.create! :type=>'Book'
+    c = Account.as_bot { Card.create! :type=>'Book' }
     c.name.should== 'b1'
   end
 
   it "should increment again if name already exists" do
+    c = Account.as_bot do
+      Card.create :name=>'b1'
+      Card.create! :type=>'Book'
+    end
+    c.name.should== 'b2'
+  end
+
+  it "should auto-increment" do
     b1 = Card.create! :type=>'Book'
     b2 = Card.create! :type=>'Book'
     b2.name.should== 'b2'
   end
-  
+
   it "should handle trashed names" do
     b1 = Card.create! :type=>'Book'
-    Account.as_bot { b1.delete }
+    b1.delete
     b1 = Card.create! :type=>'Book'
     b1.name.should== 'b1'
   end
@@ -97,8 +106,9 @@ end
 
 describe Card, "create junction" do
   before(:each) do
-    Account.as :joe_user
-    @c = Card.create! :name=>"Peach+Pear", :content=>"juicy"
+    Account.as 'joe_user' do
+      @c = Card.create! :name=>"Peach+Pear", :content=>"juicy"
+    end
   end
 
   it "should not have errors" do
@@ -148,6 +158,7 @@ describe Card, "types" do
 
     Wagn::Codename.reset_cache
   end
+
   it "should accept classname as typecode" do
     ct = Card.create! :name=>"BFoo", :type=>'Cardtype', :codename=>'b_foo'
     Wagn::Codename.reset_cache

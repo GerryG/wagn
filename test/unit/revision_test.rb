@@ -4,24 +4,29 @@ class RevisionTest < ActiveSupport::TestCase
 
   def setup
     super
-    setup_default_user
+    setup_default_account
   end
 
   def test_revise
-    author1 = User.find_by_email('joe@user.com')
-    author2 = User.find_by_email('sara@user.com')
+    author1 = Account['joe@user.com']
+    author2 = Account['sara@user.com']
     author_cd1 = Card[author1.card_id]
     author_cd2 = Card[author2.card_id]
-    #author1, author2 = User.find(:all, :limit=>2)
-    Account.current_id = Card::WagnBotID
-    rc1=author_cd1.fetch(:new=>{}, :trait=>:roles)
-    rc1 << Card::AdminID
-    rc2 = author_cd2.fetch(:new=>{}, :trait=>:roles)
-    rc2 << Card::AdminID
-    author_cd1.save
-    author_cd2.save
+    Account.as_bot {
+      rc1=author_cd1.fetch(:new=>{}, :trait=>:roles)
+      rc1 << Card::AdminID
+      rc2 = author_cd2.fetch(:new=>{}, :trait=>:roles)
+      #author1, author2 = User.find(:all, :limit=>2)
+      rc1 << Card::AdminID
+      rc2 << Card::AdminID
+      author_cd1.save
+      author_cd2.save
+    }
     Account.current_id = author_cd1.id
+    Rails.logger.warn "a1 #{author1.inspect}, #{author_cd1.inspect}, #{author2.inspect}"
     card = Card.create! :name=>'alpha', :content=>'stuff'
+    assert_equal 1, card.revisions.length, 'Should have first revisions'
+
     Account.current_id = author_cd2.id
     card.content = 'boogy'
     card.save
@@ -50,7 +55,7 @@ class RevisionTest < ActiveSupport::TestCase
 =begin #FIXME - don't think this is used by any controller. we'll see what breaks
   def test_rollback
     @card = newcard("alhpa", "some test content")
-    @user = User[ Card['quentin'].id ]
+    @user = Card['quentin'].account
     @card.content = "spot two"; @card.save
     @card.content = "spot three"; @card.save
     assert_equal 3, @card.revisions(true).length, "Should have three revisions"

@@ -6,13 +6,15 @@ module WagnTestHelper
 
 #  include CardBuilderMethods
 
-  def setup_default_user
+  def setup_default_account
     Account.current_id = Card::WagnBotID
     @account = Account.current.account
 
     @account.update_column 'crypted_password', '610bb7b564d468ad896e0fe4c3c5c919ea5cf16c'
 
     Account.current_id = Card['joe_user'].id
+    Rails.logger.warn "setup default user #{Account.as_card.inspect}, #{Account.current.inspect}, #{Account.current_id}"
+
     nil
   end
 
@@ -33,10 +35,10 @@ module WagnTestHelper
     r.process_content
   end
 
-  def assert_difference(object, method = nil, difference = 1)
+  def assert_difference(object, method = nil, difference = 1, name=nil)
     initial_value = object.send(method)
     yield
-    assert_equal initial_value + difference, object.send(method), "#{object}##{method}"
+    assert_equal initial_value+difference, object.send(method), "#{name || object}##{method}"
   end
 
   def assert_no_difference(object, method, &block)
@@ -49,9 +51,10 @@ module WagnTestHelper
     'u3@user.com' => 'u3_pass'
   }
 
-  def integration_login_as(user, functional=nil)
-    raise "Don't know email & password for #{user}" unless uc=Card[user] and
-        u = User[ uc.id ] and
+  def integration_login_as(user_login, functional=nil)
+
+    raise "Don't know email & password for #{user_login}" unless uc=Card[user_login] and
+        u = Account[ uc.id ] and
         login = u.email and pass = USERS[login]
 
     if functional
@@ -61,7 +64,7 @@ module WagnTestHelper
       #warn "integration login #{login}, #{pass}"
       post 'account/signin', :login=>login, :password=>pass, :controller=>:account
     end
-    assert_response :redirect
+    assert_response :redirect, "integration login broken"
 
     if block_given?
       yield
@@ -71,7 +74,7 @@ module WagnTestHelper
 
   def post_invite(options = {})
     action = options[:action] || :invite
-    post action,
+    post action, 
       :account => { :email => 'new@user.com' }.merge(options[:account]||{}),
       :card    => { :name => "New User" }.merge(options[:card]||{}),
       :email   => { :subject => "mailit",  :message => "baby"  }

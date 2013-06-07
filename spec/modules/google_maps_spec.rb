@@ -4,7 +4,7 @@ require File.expand_path('../spec_helper', File.dirname(__FILE__))
 
 describe GoogleMapsAddon do
   before(:each) do
-    Account.as :joe_user
+    Account.as 'joe_user'
     @geotest = Card.new(:name=>"Geotest")
   end
 

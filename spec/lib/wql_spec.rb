@@ -78,7 +78,7 @@ describe Wql do
     end
 
     it "should not give duplicate results for multiple edits" do
-      Account.as(:joe_user){ c=Card["JoeNow"]; c.content="testagagin"; c.save!; c.content="test3"; c.save! }
+      Account.as('joe_user'){ c=Card["JoeNow"]; c.content="testagagin"; c.save!; c.content="test3"; c.save! }
       Wql.new(:edited_by=>"Joe User").run.map(&:name).sort.should == ["JoeLater","JoeNow"]
     end
 
@@ -89,7 +89,7 @@ describe Wql do
 
   describe "created_by/creator_of" do
     before do
-      Account.as :joe_user do
+      Account.as 'joe_user' do
         Card.create :name=>'Create Test', :content=>'sufficiently distinctive'
       end
     end
@@ -121,7 +121,9 @@ describe Wql do
 
   describe "keyword" do
     it "should escape nonword characters" do
+    Rails.logger.warn "match two"
       Wql.new( :match=>"two :(!").run.map(&:name).sort.should==CARDS_MATCHING_TWO
+    Rails.logger.warn "match after"
     end
   end
 
@@ -312,7 +314,7 @@ describe Wql do
     end
 
     it "should get only content when content is explicit" do
-      Wql.new( :content=>[:match, "two"] ).run.map(&:name).sort.should==["Joe User"]
+      Wql.new( :content=>[:match, "two"] ).run.map(&:name).sort.should==["Joe User"].sort
     end
 
     it "should get only name when name is explicit" do

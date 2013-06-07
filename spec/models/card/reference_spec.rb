@@ -5,39 +5,43 @@ require File.expand_path('../../spec_helper', File.dirname(__FILE__))
 describe "Card::Reference" do
   include MySpecHelpers
 
-  before do
-    #setup_default_user
-    Account.as(Card::WagnBotID) # FIXME: as without a block deprecated
-  end
-
   describe "references on hard templated cards should get updated" do
     it "on templatee creation" do
+     Account.as 'joe user' do
       Card.create! :name=>"JoeForm", :type=>'UserForm'
       Wagn::Renderer.new(Card["JoeForm"]).render(:core)
       assert_equal ["joe_form+age", "joe_form+description", "joe_form+name"],
         Card["JoeForm"].includees.map(&:key).sort
       Card["JoeForm"].references_expired.should_not == true
+     end
     end
 
     it "on template creation" do
+     Account.as 'joe admin' do
       Card.create! :name=>"SpecialForm", :type=>'Cardtype'
       Card.create! :name=>"Form1", :type=>'SpecialForm', :content=>"foo"
       c = Card["Form1"]
+      #warn "card #{c.references_expired.inspect} c:#{c.inspect}"
       c.references_expired.should be_nil
       Card.create! :name=>"SpecialForm+*type+*structure", :content=>"{{+bar}}"
       c = Card["Form1"]
+      #warn "card #{c.inspect}"
       c.references_expired.should be_true
       Wagn::Renderer.new(Card["Form1"]).render(:core)
       c = Card["Form1"]
+      #warn "card #{c.inspect}"
       c.references_expired.should be_nil
       Card["Form1"].includees.map(&:key).should == ["form1+bar"]
+     end
     end
 
     it "on template update" do
-      Card.create! :name=>"JoeForm", :type=>'UserForm'
-      tmpl = Card["UserForm+*type+*structure"]
-      tmpl.content = "{{+monkey}} {{+banana}} {{+fruit}}";
-      tmpl.save!
+      Account.as 'joe admin' do
+        Card.create! :name=>"JoeForm", :type=>'UserForm'
+        tmpl = Card["UserForm+*type+*structure"]
+        tmpl.content = "{{+monkey}} {{+banana}} {{+fruit}}";
+        tmpl.save!
+      end
       Card["JoeForm"].references_expired.should be_true
       Wagn::Renderer.new(Card["JoeForm"]).render(:core)
       assert_equal ["joe_form+banana", "joe_form+fruit", "joe_form+monkey"],
@@ -47,101 +51,123 @@ describe "Card::Reference" do
   end
 
   it "in references should survive cardtype change" do
-    newcard("Banana","[[Yellow]]")
-    newcard("Submarine","[[Yellow]]")
-    newcard("Sun","[[Yellow]]")
-    newcard("Yellow")
-    Card["Yellow"].referencers.map(&:name).sort.should == %w{ Banana Submarine Sun }
-    y=Card["Yellow"];
-    y.type_id= Card.fetch_id "UserForm";
-    y.save!
-    Card["Yellow"].referencers.map(&:name).sort.should == %w{ Banana Submarine Sun }
+    Account.as_bot do
+      newcard("Banana","[[Yellow]]")
+      newcard("Submarine","[[Yellow]]")
+      newcard("Sun","[[Yellow]]")
+      newcard("Yellow")
+      Card["Yellow"].referencers.map(&:name).sort.should == %w{ Banana Submarine Sun }
+      y=Card["Yellow"];
+      y.type_id= Card.fetch_id "UserForm";
+      y.save!
+      Card["Yellow"].referencers.map(&:name).sort.should == %w{ Banana Submarine Sun }
+    end
   end
 
   it "container inclusion" do
-    Card.create :name=>'bob+city'
-    Card.create :name=>'address+*right+*default',:content=>"{{_L+city}}"
-    Card.create :name=>'bob+address'
-    Card.fetch('bob+address').includees.map(&:name).should == ["bob+city"]
-    Card.fetch('bob+city').includers.map(&:name).should == ["bob+address"]
+    Account.as_bot do
+      Card.create :name=>'bob+city'
+      Card.create :name=>'address+*right+*default',:content=>"{{_L+city}}"
+      Card.create( :name=>'bob+address' ).should be
+      Card['address+*right+*default'].content.should == "{{_L+city}}"
+      Card.create :name=>'bob+address'
+      Card.fetch('bob+address').includees.map(&:name).should == ["bob+city"]
+      Card.fetch('bob+city').includers.map(&:name).should == ["bob+address"]
+    end
   end
 
   it "pickup new links on rename" do
-    @l = newcard("L", "[[Ethan]]")  # no Ethan card yet...
-    @e = newcard("Earthman")
-    @e.update_attributes! :name => "Ethan"  # NOW there is an Ethan card
-    # @e.referencers.map(&:name).include("L")  as the test was originally written, fails
-    #  do we need the links to be caught before reloading the card?
-    Card["Ethan"].referencers.map(&:name).include?("L").should_not == nil
+    Account.as_bot do
+      @l = newcard("L", "[[Ethan]]")  # no Ethan card yet...
+      @e = newcard("Earthman")
+      @e.update_attributes! :name => "Ethan"  # NOW there is an Ethan card
+      # @e.referencers.map(&:name).include("L")  as the test was originally written, fails
+      #  do we need the links to be caught before reloading the card?
+      Card["Ethan"].referencers.map(&:name).include?("L").should_not == nil
+    end
   end
 
   it "should update references on rename when requested" do
-    watermelon = newcard('watermelon', 'mmmm')
-    watermelon_seeds = newcard('watermelon+seeds', 'black')
-    lew = newcard('Lew', "likes [[watermelon]] and [[watermelon+seeds|seeds]]")
+    Account.as_bot do
+      watermelon = newcard('watermelon', 'mmmm')
+      watermelon_seeds = newcard('watermelon+seeds', 'black')
+      lew = newcard('Lew', "likes [[watermelon]] and [[watermelon+seeds|seeds]]")
 
-    watermelon = Card['watermelon']
-    watermelon.update_referencers = true
-    watermelon.name="grapefruit"
-    watermelon.save!
-    lew.reload.content.should == "likes [[grapefruit]] and [[grapefruit+seeds|seeds]]"
+      watermelon = Card['watermelon']
+      watermelon.update_referencers = true
+      watermelon.name="grapefruit"
+      watermelon.save!
+      lew.reload.content.should == "likes [[grapefruit]] and [[grapefruit+seeds|seeds]]"
+    end
   end
 
   it "should update referencers on rename when requested (case 2)" do
-    card = Card['Administrator links+*self+*read']
-    refs = Card::Reference.where(:referee_id => Card::AdminID).map(&:referer_id).sort
-    card.update_referencers = true
-    card.name='Administrator links+*type+*read'
-    card.save
-    Card::Reference.where(:referee_id => Card::AdminID).map(&:referer_id).sort.should == refs
+    Account.as_bot do
+      card = Card['Administrator links+*self+*read']
+      refs = Card::Reference.where(:referee_id => Card::AdminID).map(&:referer_id).sort
+      card.update_referencers = true
+      card.name='Administrator links+*type+*read'
+      card.save
+      Card::Reference.where(:referee_id => Card::AdminID).map(&:referer_id).sort.should == refs
+    end
   end
 
   it "should not update references when not requested" do
 
-    watermelon = newcard('watermelon', 'mmmm')
-    watermelon_seeds = newcard('watermelon+seeds', 'black')
-    lew = newcard('Lew', "likes [[watermelon]] and [[watermelon+seeds|seeds]]")
+    Account.as 'joe user' do
+      watermelon = newcard('watermelon', 'mmmm')
+      watermelon_seeds = newcard('watermelon+seeds', 'black')
+      lew = newcard('Lew', "likes [[watermelon]] and [[watermelon+seeds|seeds]]")
 
-    assert_equal [1,1], lew.references_to.map(&:present), "links should not be Wanted before"
-    watermelon = Card['watermelon']
-    watermelon.update_referencers = false
-    watermelon.name="grapefruit"
-    watermelon.save!
-    lew.reload.content.should == "likes [[watermelon]] and [[watermelon+seeds|seeds]]"
-    assert_equal [ 'L', 'L' ], lew.references_to.map(&:ref_type), "links should be a LINK"
-    assert_equal [ 0, 0 ], lew.references_to.map(&:present), "links should not be present"
+      assert_equal [1,1], lew.references_to.map(&:present), "links should not be Wanted before"
+      watermelon = Card['watermelon']
+      watermelon.update_referencers = false
+      watermelon.name="grapefruit"
+      watermelon.save!
+      lew.reload.content.should == "likes [[watermelon]] and [[watermelon+seeds|seeds]]"
+      assert_equal [ 'L', 'L' ], lew.references_to.map(&:ref_type), "links should be a LINK"
+      assert_equal [ 0, 0 ], lew.references_to.map(&:present), "links should not be present"
+    end
   end
 
   it "update referencing content on rename junction card" do
-    @ab = Card["A+B"] #linked to from X, included by Y
-    @ab.update_attributes! :name=>'Peanut+Butter', :update_referencers => true
-    @x = Card['X']
-    @x.content.should == "[[A]] [[Peanut+Butter]] [[T]]"
+    Account.as_bot do
+      @ab = Card["A+B"] #linked to from X, included by Y
+      @ab.update_attributes! :name=>'Peanut+Butter', :update_referencers => true
+      @x = Card['X']
+      @x.content.should == "[[A]] [[Peanut+Butter]] [[T]]"
+    end
   end
 
   it "update referencing content on rename junction card" do
-    @ab = Card["A+B"] #linked to from X, included by Y
-    @ab.update_attributes! :name=>'Peanut+Butter', :update_referencers=>false
-    @x = Card['X']
-    @x.content.should == "[[A]] [[A+B]] [[T]]"
+    Account.as_bot do
+      @ab = Card["A+B"] #linked to from X, included by Y
+      @ab.update_attributes! :name=>'Peanut+Butter', :update_referencers=>false
+      @x = Card['X']
+      @x.content.should == "[[A]] [[A+B]] [[T]]"
+    end
   end
 
   it "template inclusion" do
-    cardtype = Card.create! :name=>"ColorType", :type=>'Cardtype', :content=>""
-    Card.create! :name=>"ColorType+*type+*structure", :content=>"{{+rgb}}"
-    green = Card.create! :name=>"green", :type=>'ColorType'
-    rgb = newcard 'rgb'
-    green_rgb = Card.create! :name => "green+rgb", :content=>"#00ff00"
+    Account.as_bot do
+      cardtype = Card.create! :name=>"ColorType", :type=>'Cardtype', :content=>""
+      Card.create! :name=>"ColorType+*type+*structure", :content=>"{{+rgb}}"
+      green = Card.create! :name=>"green", :type=>'ColorType'
+      rgb = newcard 'rgb'
+      green_rgb = Card.create! :name => "green+rgb", :content=>"#00ff00"
 
-    green.reload.includees.map(&:name).should == ["green+rgb"]
-    green_rgb.reload.includers.map(&:name).should == ['green']
+      green.reload.includees.map(&:name).should == ["green+rgb"]
+      green_rgb.reload.includers.map(&:name).should == ['green']
+    end
   end
 
   it "simple link" do
-    alpha = Card.create :name=>'alpha'
-    beta = Card.create :name=>'beta', :content=>"I link to [[alpha]]"
-    Card['alpha'].referencers.map(&:name).should == ['beta']
-    Card['beta'].referees.map(&:name).should == ['alpha']
+    Account.as 'joe user' do
+      alpha = Card.create :name=>'alpha'
+      beta = Card.create :name=>'beta', :content=>"I link to [[alpha]]"
+      Card['alpha'].referencers.map(&:name).should == ['beta']
+      Card['beta'].referees.map(&:name).should == ['alpha']
+    end
   end
 
   it "link with spaces" do
@@ -153,36 +179,46 @@ describe "Card::Reference" do
 
 
   it "simple inclusion" do
-    alpha = Card.create :name=>'alpha'
-    beta = Card.create :name=>'beta', :content=>"I include to {{alpha}}"
-    Card['beta'].includees.map(&:name).should == ['alpha']
-    Card['alpha'].includers.map(&:name).should == ['beta']
+    Account.as_bot do
+      alpha = Card.create :name=>'alpha'
+      beta = Card.create :name=>'beta', :content=>"I include to {{alpha}}"
+      Card['beta'].includees.map(&:name).should == ['alpha']
+      Card['alpha'].includers.map(&:name).should == ['beta']
+    end
   end
 
   it "non simple link" do
-    alpha = Card.create :name=>'alpha'
-    beta = Card.create :name=>'beta', :content=>"I link to [[alpha|ALPHA]]"
-    Card['beta'].referees.map(&:name).should == ['alpha']
-    Card['alpha'].referencers.map(&:name).should == ['beta']
+    Account.as_bot do
+      alpha = Card.create :name=>'alpha'
+      beta = Card.create :name=>'beta', :content=>"I link to [[alpha|ALPHA]]"
+      Card['beta'].referees.map(&:name).should == ['alpha']
+      Card['alpha'].referencers.map(&:name).should == ['beta']
+    end
   end
   
   it "should handle commented inclusion" do
+   Account.as 'joe user' do
     c = Card.create :name=>'inclusion comment test', :content=>'{{## hi mom }}'
     c.errors.any?.should be_false
+   end
   end
 
 
   it "pickup new links on create" do
-    @l = newcard("woof", "[[Lewdog]]")  # no Lewdog card yet...
-    @e = newcard("Lewdog")              # now there is
-    # NOTE @e.referencers does not work, you have to reload
-    @e.reload.referencers.map(&:name).include?("woof").should_not == nil
+    Account.as_bot do
+      @l = newcard("woof", "[[Lewdog]]")  # no Lewdog card yet...
+      @e = newcard("Lewdog")              # now there is
+      # NOTE @e.referencers does not work, you have to reload
+      @e.reload.referencers.map(&:name).include?("woof").should_not == nil
+    end
   end
 
   it "pickup new inclusions on create" do
-    @l = Card.create! :name=>"woof", :content=>"{{Lewdog}}"  # no Lewdog card yet...
-    @e = Card.new(:name=>"Lewdog", :content=>"grrr")              # now there is
-    @e.name_referencers.map(&:name).include?("woof").should_not == nil
+    Account.as_bot do
+      @l = Card.create! :name=>"woof", :content=>"{{Lewdog}}"  # no Lewdog card yet...
+      @e = Card.new(:name=>"Lewdog", :content=>"grrr")              # now there is
+      @e.name_referencers.map(&:name).include?("woof").should_not == nil
+    end
   end
 
 =begin

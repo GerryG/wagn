@@ -6,10 +6,11 @@ class Wagn::Set::Type::ImageTest < ActiveSupport::TestCase
 
   def setup
     super
-    setup_default_user
+    setup_default_account
   end
 
   def test_image_creation
+
     card=Card.create :name => "Bananamaster", :typecode=>'image',
                    :attach=>File.new("#{Rails.root}/test/fixtures/mao2.jpg")
     assert_match /^\/files\/Bananamaster-original-\d+/, card.attach.url

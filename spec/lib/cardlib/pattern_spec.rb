@@ -77,7 +77,7 @@ describe Cardlib::Pattern do
     it "returns correct set names for simple cards" do
       card = Card.new( :name => "AnewCard" )
       card.method_keys.should == [ "basic_type", ""]
-      card.save!
+      Account.as_bot { card.save! }
       card = Card.fetch("AnewCard")
       card.method_keys.should == [ "basic_type",""]
     end
@@ -105,7 +105,7 @@ describe Cardlib::Pattern do
     it "returns set names for junction cards" do
       card=Card.new( :name=>"Iliad+author" )
       card.safe_keys.should == "ALL ALL_PLUS TYPE-basic RIGHT-author TYPE_PLUS_RIGHT-book-author"
-      card.save!
+      Account.as_bot { card.save! }
       card = Card.fetch("Iliad+author")
       card.safe_keys.should == "ALL ALL_PLUS TYPE-basic RIGHT-author TYPE_PLUS_RIGHT-book-author SELF-iliad-author"
     end

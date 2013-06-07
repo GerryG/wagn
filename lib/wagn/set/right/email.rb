@@ -6,9 +6,9 @@ module Wagn
     format :base
 
     define_view  :raw, :right=>'email'  do |args|
-      account = User[ card.left.id ]
+      account = Account[ card.left.id ]
       account ? account.send('email') : ''
     end
-    alias_view :raw, {:right=>'email'}, :core
+    alias_view :raw, {:right=>:email}, :core
   end
 end

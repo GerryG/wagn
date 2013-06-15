@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 require File.expand_path('../spec_helper', File.dirname(__FILE__))
 
 describe Mailer do
@@ -35,7 +36,7 @@ describe Mailer do
         assert_equal ["sara@user.com"],  @mail.to
       end
       it "is from Wag bot email" do
-        assert_equal [User.admin.email], @mail.from
+        assert_equal [Account.admin.email], @mail.from
       end
     end
   end

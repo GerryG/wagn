@@ -1,16 +1,19 @@
+# -*- encoding : utf-8 -*-
 module Cardlib::References
+  extend Wagn::Set
+  
   def name_referencers link_name=nil
     link_name = link_name.nil? ? key : link_name.to_name.key
-    Card.all :joins => :out_references, :conditions => { :card_references => { :referee_key => link_name } }
+    Card.all :joins => :references_to, :conditions => { :card_references => { :referee_key => link_name } }
   end
-
+  
   def extended_referencers
     # FIXME .. we really just need a number here.
     (dependents + [self]).map(&:referencers).flatten.uniq
   end
 
   def replace_references old_name, new_name
-    obj_content = ObjectContent.new content, {:card=>self}
+    obj_content = Card::Content.new content, {:card=>self}
     
     obj_content.find_chunks( Chunks::Reference ).select do |chunk|
       if old_ref_name = chunk.referee_name and new_ref_name = old_ref_name.replace_part(old_name, new_name)
@@ -31,18 +34,19 @@ module Cardlib::References
     #Card.update( id, :references_expired=>nil )
     #  or just this and save it elsewhere?
     #references_expired=nil
+    
     connection.execute("update cards set references_expired=NULL where id=#{id}")
   #  references_expired = nil
     expire if refresh
 
-    rendered_content ||= ObjectContent.new(content, {:card=>self} )
-      
+    rendered_content ||= Card::Content.new(content, {:card=>self} )
+    
     rendered_content.find_chunks(Chunks::Reference).each do |chunk|
       if referee_name = chunk.referee_name # name is referenced (not true of commented inclusions)
         referee_id = chunk.referee_id   
         if id != referee_id               # not self reference
           
-          #update_references chunk.referee_name if ObjectContent === chunk.referee_name
+          #update_references chunk.referee_name if Card::Content === chunk.referee_name
           # for the above to work we will need to get past delete_all!
           
           Card::Reference.create!(
@@ -58,66 +62,41 @@ module Cardlib::References
   end
 
 
-  # ---------- Referenced cards --------------
 
   def referencers
-    return [] unless refs = references
+    return [] unless refs = references_from
     refs.map(&:referer_id).map( &Card.method(:fetch) ).compact
   end
 
   def includers
-    return [] unless refs = includes
+    return [] unless refs = references_from.where( :ref_type => 'I' )
     refs.map(&:referer_id).map( &Card.method(:fetch) ).compact
   end
 
-
-  # ---------- Referencing cards --------------
-
-  def referencees
-    return [] unless refs = out_references
+  def referees
+    return [] unless refs = references_to
     refs.map { |ref| Card.fetch ref.referee_key, :new=>{} }.compact
   end
 
   def includees
-    return [] unless refs = out_includes
+    return [] unless refs = references_to.where( :ref_type => 'I' )
     refs.map { |ref| Card.fetch ref.referee_key, :new=>{} }.compact
   end
 
-  def self.included base
-
-    super
-
-    base.class_eval do
-      # ---------- Reference associations -----------
-      has_many :references,     :class_name => :Reference, :foreign_key => :referee_id
-      has_many :includes,       :class_name => :Reference, :foreign_key => :referee_id, :conditions => { :ref_type => 'I' }
-
-      has_many :out_references, :class_name => :Reference, :foreign_key => :referer_id
-      has_many :out_includes,   :class_name => :Reference, :foreign_key => :referer_id, :conditions => { :ref_type => 'I' }
-
-      after_create  :update_references_on_create
-#      after_destroy :update_references_on_destroy
-      after_update  :update_references_on_update
-    end
-  end
 
   protected
 
-  def update_references_on_create
-    Card::Reference.update_existing_key self
 
-    # FIXME: bogus blank default content is set on hard_templated cards...
-    Account.as_bot do
-      self.update_references
-    end
-    expire_templatee_references
-    #obj_content.to_s
-  end
-
-  def update_references_on_update
+  event :refresh_references, :after=>:store, :on=>:save do
     self.update_references
     expire_templatee_references
   end
+
+  event :refresh_references_on_create, :before=>:refresh_references, :on=>:create do
+    Card::Reference.update_existing_key self
+    # FIXME: bogus blank default content is set on hard_templated cards...
+  end
+
 
   def update_references_on_delete
     Card::Reference.update_on_delete self

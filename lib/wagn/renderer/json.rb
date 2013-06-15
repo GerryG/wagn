@@ -4,7 +4,8 @@ module Wagn
               'none' => "{{_main}}"
             }
 
- class Renderer::Json < Renderer
+warn "loading json #{Renderer.class}"
+ class Renderer::Json
 
   cattr_accessor :set_actions
   attr_accessor  :options_need_save, :js_queue_initialized,

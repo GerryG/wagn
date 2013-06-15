@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 require File.expand_path('../../spec_helper', File.dirname(__FILE__))
 require File.expand_path('../../permission_spec_helper', File.dirname(__FILE__))
 require File.expand_path('../../packs/pack_spec_helper', File.dirname(__FILE__))
@@ -134,7 +135,7 @@ describe "reader rules" do
 
   it "should insure that class overrides work with relative settings" do
     Account.as_bot do
-      all_plus = Card.fetch '*all plus+*read', :new=>{:content=>'_left'}
+      all_plus = Card.fetch '*all plus+*read', :new => { :content=>'_left' }
       all_plus.save
       Account.as_bot { @perm_card.save! }
       c = Card.create(:name=>'Home+Heart')
@@ -156,7 +157,7 @@ end
 describe "Permission", ActiveSupport::TestCase do
   before do
     Account.as_bot do
-#      User.cache.reset
+#      Account.cache.reset
       @u1, @u2, @u3, @r1, @r2, @r3, @c1, @c2, @c3 =
         %w( u1 u2 u3 r1 r2 r3 c1 c2 c3 ).map do |x| Card[x] end
     end

@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 require File.expand_path('../spec_helper', File.dirname(__FILE__))
 
 describe Card do
@@ -55,18 +56,6 @@ describe Card do
     end
   end
 
-
-  describe "#create" do
-    it "calls :after_create hooks" do
-      # We disabled these for the most part, what replaces them?
-      #[:before_save, :before_create, :after_save, :after_create].each do |hookname|
-      pending "mock rr seems to be broken, maybe 'call' collides with internal methode"
-      mock(Wagn::Hook).call(:after_create, instance_of(Card))
-      Account.as_bot do
-        Card.create :name => "testit"
-      end
-    end
-  end
 
   describe "test data" do
     it "should be findable by name" do

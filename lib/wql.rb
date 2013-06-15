@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 class Wql
   include ActiveRecord::QuotingAndMatching
 
@@ -160,7 +161,7 @@ class Wql
           val = @vars[$1.to_sym].to_s.strip
         end
         absolute_name val
-      when SmartName              ; clean_val val.s
+      when Card::Name              ; clean_val val.s
       when Hash                   ; clean val
       when Array                  ; val.map { |v| clean_val v }
       when Integer, Float, Symbol ; val
@@ -186,7 +187,8 @@ class Wql
           content = [key,val]
         elsif MODIFIERS.has_key?(key)
           next if spec[key].is_a? Hash
-          @mods[key] = spec.delete(key).to_s
+          val = spec.delete key
+          @mods[key] = Array === val ? val : val.to_s
         end
       end
       spec[:content] = content if content
@@ -257,7 +259,7 @@ class Wql
     end
 
     def found_by(val)
-      cards = (String===val ? [ Card.fetch( absolute_name(val), :new=>{} ) ] : Wql.new(val).run)
+      cards = ( String===val ? [ Card.fetch( absolute_name(val), :new=>{} ) ] : Wql.new(val).run )
       cards.each do |c|
         raise %{"found_by" value needs to be valid Search card #{c.inspect}} unless c && [Card::SearchTypeID,Card::SetID].include?(c.type_id)
         found_by_spec = CardSpec.new(c.get_spec).rawspec
@@ -271,18 +273,21 @@ class Wql
     end
 
     def match(val)
-      cxn, v = match_prep(val)
-      return nil if v.empty?
-      v.gsub!(/\W+/,' ')
+      cxn, val = match_prep val
+      val.gsub! /[^#{Card::Name::OK4KEY_RE}]+/, ' '
+      return nil if val.strip.empty?
+      
 
       cond = begin
         join_alias = add_revision_join
         # FIXME: OMFG this is ugly
-        '(' +
-        ["replace(#{self.table_alias}.name,'+',' ')","#{join_alias}.content"].collect do |f|
-          v.split(/\s+/).map{ |x| %{#{f} #{cxn.match(quote("[[:<:]]#{x}[[:>:]]"))}} }.join(" AND ")
-        end.join(" OR ") +
-        ')'
+        val_list = val.split(/\s+/).map do |v|
+          name_or_content = ["replace(#{self.table_alias}.name,'+',' ')","#{join_alias}.content"].map do |field|
+            %{#{field} #{ cxn.match quote("[[:<:]]#{v}[[:>:]]") }}
+          end
+          "(#{name_or_content.join ' OR '})"
+        end
+        "(#{val_list.join ' AND '})"
       end
 
       merge field(:cond)=>SqlCond.new(cond)
@@ -401,11 +406,21 @@ class Wql
     end
 
     def sort_to_sql
+      #fail "order_key = #{@mods[:sort]}, class = #{order_key.class}"
+      
       return nil if @parent or @mods[:return]=='count'
       order_key ||= @mods[:sort].blank? ? "update" : @mods[:sort]
-      dir = @mods[:dir].blank? ? (DEFAULT_ORDER_DIRS[order_key.to_sym]||'asc') : safe_sql(@mods[:dir])
+      
+      order_directives = [order_key].flatten.map do |key|
+        dir = @mods[:dir].blank? ? (DEFAULT_ORDER_DIRS[key.to_sym]||'asc') : safe_sql(@mods[:dir]) #wonky
+        sort_field key, @mods[:sort_as], dir
+      end.join ', '
+      "ORDER BY #{order_directives}"
 
-      order_field = case order_key
+    end
+    
+    def sort_field key, as, dir
+      order_field = case key
         when "id";              "#{table_alias}.id"
         when "update";          "#{table_alias}.updated_at"
         when "create";          "#{table_alias}.created_at"
@@ -421,11 +436,11 @@ class Wql
             "#{table_alias}.updated_at"
           end
         else
-          safe_sql(order_key)
+          safe_sql(key)
         end
-      order_field = "CAST(#{order_field} AS #{cast_type(@mods[:sort_as])})" if @mods[:sort_as]
-      "ORDER BY #{order_field} #{dir}"
-
+      order_field = "CAST(#{order_field} AS #{cast_type(as)})" if as
+      "#{order_field} #{dir}"
+      
     end
   end
 

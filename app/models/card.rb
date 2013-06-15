@@ -1,32 +1,41 @@
 # -*- encoding : utf-8 -*-
-
-require_dependency 'smart_name'
-
 class Card < ActiveRecord::Base
+  
+  RUBY18 = !!(RUBY_VERSION =~ /^1\.8/)
 
-  SmartName.codes= Wagn::Codename
-  SmartName.params= Wagn::Conf
-  SmartName.lookup= Card
-  SmartName.session= proc { Account.current.name }
+  extend Wagn::Set
+  extend Wagn::Loader
+  
+  has_many :revisions, :order => :id  
+  has_many :references_from, :class_name => :Reference, :foreign_key => :referee_id
+  has_many :references_to,   :class_name => :Reference, :foreign_key => :referer_id
 
-  has_many :revisions, :order => :id #, :foreign_key=>'card_id'
-
-  attr_accessor :comment, :comment_author, :selected_rev_id,
-    :update_referencers, :was_new_card, # seems like wrong mechanisms for these
+  cattr_accessor :set_patterns
+  attr_accessor :selected_revision_id,
     :cards, :loaded_left, :nested_edit, # should be possible to merge these concepts
-    :error_view, :error_status #yuck
-
-  attr_writer :update_read_rule_list
-
-  before_save :set_stamper, :base_before_save, :set_read_rule, :set_tracked_attributes
-  after_save :base_after_save, :update_ruled_cards, :update_queue, :expire_related
-
+    :update_referencers, :was_new_card, # wrong mechanisms for these  
+    :comment, :comment_author,          # obviated soon
+    :error_view, :error_status          # yuck
+  
+  before_save :approve
+  around_save :store
+  after_save :extend
+  
   cache_attributes 'name', 'type_id' #Review - still worth it in Rails 3?
+
 
   #~~~~~~  CLASS METHODS ~~~~~~~~~~~~~~~~~~~~~
 
   class << self
     JUNK_INIT_ARGS = %w{ missing skip_virtual id }
+
+    ID_CONST_ALIAS = {
+      :default_type => :basic, #this should not be hardcoded (not a constant -- should come from *all+*default)
+      :anon         => :anonymous,
+      :auth         => :anyone_signed_in,
+      :admin        => :administrator
+    }
+    
 
     def cache
       Wagn::Cache[Card]
@@ -37,16 +46,8 @@ class Card < ActiveRecord::Base
       JUNK_INIT_ARGS.each { |a| args.delete(a) }
       %w{ type typecode }.each { |k| args.delete(k) if args[k].blank? }
       args.delete('content') if args['attach'] # should not be handled here!
-
       super args
     end
-
-    ID_CONST_ALIAS = {
-      :default_type => :basic, #this should not be hardcoded (not a constant -- should come from *all+*default)
-      :anon         => :anonymous,
-      :auth         => :anyone_signed_in,
-      :admin        => :administrator
-    }
 
     def const_missing const
       if const.to_s =~ /^([A-Z]\S*)ID$/ and code=$1.underscore.to_sym
@@ -59,8 +60,8 @@ class Card < ActiveRecord::Base
       else
         super
       end
-    rescue NameError
-      warn "ne: const_miss #{e.inspect}, #{const}" if const.to_sym==:Card
+#    rescue NameError
+#      warn "ne: const_miss #{e.inspect}, #{const}" #if const.to_sym==:Card
     end
 
     def setting name
@@ -69,7 +70,7 @@ class Card < ActiveRecord::Base
       end
     end
 
-    def path_setting name
+    def path_setting name #shouldn't this be in location helper?
       name ||= '/'
       return name if name =~ /^(http|mailto)/
       Wagn::Conf[:root_path] + name
@@ -78,6 +79,7 @@ class Card < ActiveRecord::Base
     def toggle val
       val == '1'
     end
+    
   end
 
 
@@ -114,9 +116,12 @@ class Card < ActiveRecord::Base
     return if args[:type_id] # type_id was set explicitly.  no need to set again.
 
     type_id = case
-      when args[:typecode] ;  code=args[:typecode] and (
-                              Wagn::Codename[code] || (c=Card[code] and c.id))
-      when args[:type]     ;  Card.fetch_id args[:type]
+      when args[:typecode]
+        if code=args[:typecode]
+          Wagn::Codename[code] || ( c=Card[code] and c.id)
+        end
+      when args[:type]
+        Card.fetch_id args[:type]
       else :noop
       end
 
@@ -124,8 +129,6 @@ class Card < ActiveRecord::Base
     when :noop 
     when false, nil
       errors.add :type, "#{args[:type] || args[:typecode]} is not a known type."
-      @error_view = :not_found
-      @error_status = 404
     else
       return type_id
     end
@@ -142,13 +145,13 @@ class Card < ActiveRecord::Base
   def include_set_modules
     unless @set_mods_loaded
       set_modules.each do |m|
-        #warn "ism #{m}"
         singleton_class.send :include, m
       end
       @set_mods_loaded=true
     end
     self
   end
+
 
   # reset_mods: resets with patterns in model/pattern
 
@@ -166,6 +169,11 @@ class Card < ActiveRecord::Base
   def real?
     !new_card?
   end
+  
+  def pristine?
+    # has not been edited directly by human users.  bleep blorp.
+    new_card? || !revisions.map(&:creator_id).find { |id| id != Card::WagnBotID }
+  end
 
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   # SAVING
@@ -179,16 +187,7 @@ class Card < ActiveRecord::Base
     super args, options
   end
 
-  def set_stamper
-    self.updater_id = Account.current_id
-    self.creator_id = self.updater_id if new_card?
-  end
 
-  after_validation :on => :create do
-    pull_from_trash if new_record?
-    self.trash = !!trash
-    true
-  end
 
   after_validation do
     begin
@@ -200,80 +199,54 @@ class Card < ActiveRecord::Base
       raise e
     end
   end
-
-  def save
-    super
-  rescue Exception => e
-    expire_pieces
-    raise e
-  end
-
-  def save!
-    super
-  rescue Exception => e
-    expire_pieces
-    raise e
-  end
-
-  def base_before_save
-    if self.respond_to?(:before_save) and self.before_save == false
-      errors.add(:save, "could not prepare card for destruction") #fixme - screwy error handling!!
-      return false
+  
+  define_callbacks :approve, :store, :extend
+  
+  def approve
+    @was_new_card = self.new_card?
+    @action = case
+      when trash     ; :delete
+      when new_card? ; :create
+      else             :update
     end
-  end
-
-  def base_after_save
-    save_subcards
-    @virtual    = false
-    @from_trash = false
-    Wagn::Hook.call :after_create, self if @was_new_card
-    send_notifications
-    true
+    run_callbacks :approve
   rescue Exception=>e
+    rescue_event e
+  end
+
+  def store
+#    puts "commit called: #{name}"
+    run_callbacks :store do
+      #set_read_rule #move to action
+      yield
+      @virtual = false
+    end
+  rescue Exception=>e
+    rescue_event e
+  ensure
+    @from_trash = nil
+  end
+
+  def extend
+#    puts "extend called"
+    run_callbacks :extend 
+  rescue Exception=>e
+    rescue_event e
+  ensure
+    @action = nil
+  end
+  
+  def rescue_event e
+    @action = nil
     expire_pieces
-    @subcards.each{ |card| card.expire_pieces }
+    if @subcards
+      @subcards.each{ |card| card.expire_pieces }
+    end
     raise e
   end
 
-  def save_subcards
-    @subcards = []
-    return unless cards
-    cards.each_pair do |sub_name, opts|
-      opts[:nested_edit] = self
-      absolute_name = sub_name.to_name.post_cgi.to_name.to_absolute_name cardname
-      next if absolute_name.key == key # don't resave self!
 
-      if card = Card[absolute_name]
-        card = card.refresh
-        card.update_attributes opts
-      elsif opts[:content].present? and opts[:content].strip.present?
-        opts[:name] = absolute_name
-        opts[:loaded_left] = self
-        card = Card.create opts
-      end
 
-      @subcards << card if card
-      if card and card.errors.any?
-        card.errors.each do |field, err|
-          self.errors.add card.name, err
-        end
-        raise ActiveRecord::Rollback, "broke save_subcards"
-      else
-        cards = nil
-        true
-      end
-    end
-  end
-
-  def pull_from_trash
-    return unless key
-    return unless trashed_card = Card.find_by_key_and_trash(key, true)
-    #could optimize to use fetch if we add :include_trashed_cards or something.
-    #likely low ROI, but would be nice to have interface to retrieve cards from trash...
-    self.id = trashed_card.id
-    @from_trash = @trash_changed = true
-    @new_record = false
-  end
 
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   # DESTROY
@@ -336,15 +309,17 @@ class Card < ActiveRecord::Base
   def junction?()      cardname.junction?                   end
 
   def left *args
-    unless !simple? and updates.for? :name and name_without_tracking.to_name.key == cardname.left_name.key
-      #the ugly code above is to prevent recursion when, eg, renaming A+B to A+B+C
-      #it should really be testing for any trunk
-      Card.fetch cardname.left, *args
+    if !simple?
+      unless updates.for? :name and name_without_tracking.to_name.key == cardname.left_name.key
+        #the ugly code above is to prevent recursion when, eg, renaming A+B to A+B+C
+        #it should really be testing for any trunk
+        Card.fetch cardname.left, *args
+      end
     end
   end
 
   def right *args
-    simple? ? nil : Card.fetch( cardname.right, *args )
+    Card.fetch( cardname.right, *args ) if !simple?
   end
 
   def trunk *args
@@ -439,8 +414,8 @@ class Card < ActiveRecord::Base
     hard_template ? template.content : content
   end
   
-  def selected_rev_id
-    @selected_rev_id or ( ( cr = current_revision ) ? cr.id : 0 )
+  def selected_revision_id
+    @selected_revision_id || current_revision_id || 0
   end
 
   def current_revision
@@ -541,7 +516,7 @@ class Card < ActiveRecord::Base
   end
 
   def account
-    User[ id ]
+    Account[ id ]
   end
 
   def accountable?
@@ -550,53 +525,95 @@ class Card < ActiveRecord::Base
     fetch( :trait=>:account, :new=>{} ).ok?( :create)
   end
 
-  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  # METHODS FOR OVERRIDE
-  # pretty much all of these should be done differently -efm
-
-  def post_render( content )     content  end
-  def clean_html?()                 true  end
-  def collection?()                false  end
-  def on_type_change()                    end
-  def validate_type_change()        true  end
-  def validate_content( content )         end
-
 
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  # MISCELLANEOUS
+  # Include Card Libraries
 
-  #def debug_type() type_id end
-  def debug_type() "#{typecode||'no code'}:#{type_id}" end
-  #def debug_type() "#{type_name}:#{type_id}" end # this can cause infinite recursion
 
-  def to_s
-    "#<#{self.class.name}[#{debug_type}]#{self.attributes['name']}>"
+  load_cardlib
+  Cardlib.constants.each do |const|
+    lib = Cardlib.const_get( const )
+    include lib
+    extend lib.const_get( :ClassMethods) if lib.const_defined? :ClassMethods
+  end
+  Wagn::SetPatterns
+
+
+
+
+
+  event :set_stamper, :before=>:store do #|args|
+#    puts "stamper called: #{name}"
+    self.updater_id = Account.current_id
+    self.creator_id = self.updater_id if new_card?
   end
 
-  def inspect
-    "#<#{self.class.name}" + "##{id}" +
-    "###{object_id}" + #"l#{left_id}r#{right_id}" +
-    "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
-    #(errors.any? ? '*Errors*' : 'noE') +
-    (errors.any? ? "<E*#{errors.full_messages*', '}*>" : '') +
-    #"{#{references_expired==1 ? 'Exp' : "noEx"}:" +
-    "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{frozen? ? 'Fz' : readonly? ? 'RdO' : ''}" +
-    "#{@virtual &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }:#{references_expired.inspect}}" +
-    '>'
+  event :pull_from_trash, :before=>:store, :on=>:create do
+    if trashed_card = Card.find_by_key_and_trash(key, true)
+      # a. (Rails way) tried Card.where(:key=>'wagn_bot').select(:id), but it wouldn't work.  This #select 
+      #    generally breaks on cardsI think our initialization process screws with something
+      # b. (Wagn way) we could get card directly from fetch if we add :include_trashed (eg).
+      #    likely low ROI, but would be nice to have interface to retrieve cards from trash...
+      self.id = trashed_card.id
+      @from_trash = @trash_changed = true
+      @new_record = false
+    end
+    self.trash = false
+    true
   end
 
-  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  # INCLUDED MODULES
+  set_callback :store, :after, :update_ruled_cards, :prepend=>true
+  set_callback :store, :after, :process_read_rule_update_queue, :prepend=>true
 
-  include Cardlib
+  event :expire_related, :after=>:store do
+    self.expire
 
-  after_save :after_save_hooks
-  # moved this after Cardlib inclusions because aikido module needs to come after Paperclip triggers,
-  # which are set up in attach model.  CLEAN THIS UP!!!
-
-  def after_save_hooks # don't move unless you know what you're doing, see above.
-    Wagn::Hook.call :after_save, self
+    if self.is_hard_template?
+      self.hard_templatee_names.each do |name|
+        Card.expire name
+      end
+    end
+    # FIXME really shouldn't be instantiating all the following bastards.  Just need the key.
+    # fix in id_cache branch
+    self.dependents.each       { |c| c.expire }
+    self.referencers.each      { |c| c.expire }
+    self.name_referencers.each { |c| c.expire }
+    # FIXME: this will need review when we do the new defaults/templating system
+    #if card.changed?(:content)
   end
+  
+  event :store_subcards, :after=>:store do #|args|
+    #puts "store subcards"
+    @subcards = []
+    return unless cards
+    cards.each_pair do |sub_name, opts|
+      opts[:nested_edit] = self
+      absolute_name = sub_name.to_name.post_cgi.to_name.to_absolute_name cardname
+      next if absolute_name.key == key # don't resave self!
+
+      if card = Card[absolute_name]
+        card = card.refresh
+        card.update_attributes opts
+      elsif opts[:content].present? and opts[:content].strip.present?
+        opts[:name] = absolute_name
+        opts[:loaded_left] = self
+        card = Card.create opts
+      end
+
+      @subcards << card if card
+      if card and card.errors.any?
+        card.errors.each do |field, err|
+          self.errors.add card.name, err
+        end
+        raise ActiveRecord::Rollback, "broke commit_subcards"
+      else
+        cards = nil
+        true
+      end
+    end
+  end
+
+
 
   # Because of the way it chains methods, 'tracks' needs to come after
   # all the basic method definitions, and validations have to come after
@@ -635,9 +652,6 @@ class Card < ActiveRecord::Base
   # VALIDATIONS
 
 
-
-  protected
-
   validate do |card|
     return true if @nested_edit
     return true unless Wagn::Conf[:recaptcha_on] && Card.toggle( card.rule(:captcha) )
@@ -666,7 +680,7 @@ class Card < ActiveRecord::Base
 
       unless cdname.valid?
         card.errors.add :name,
-          "may not contain any of the following characters: #{ SmartName.banned_array * ' ' }"
+          "may not contain any of the following characters: #{ Card::Name.banned_array * ' ' }"
       end
       # this is to protect against using a plus card as a tag
       if cdname.junction? and card.simple? and Account.as_bot { Card.count_by_wql :right_id=>card.id } > 0
@@ -733,8 +747,44 @@ class Card < ActiveRecord::Base
     end
   end
 
-  # these old_modules should be refactored out
-  require_dependency 'flexmail.rb'
-  require_dependency 'google_maps_addon.rb'
-  require_dependency 'notification.rb'
+
+  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  # METHODS FOR OVERRIDE
+  # pretty much all of these should be done differently -efm
+
+  def post_render( content )     content  end
+  def clean_html?()                 true  end
+  def collection?()                false  end
+  def on_type_change()                    end
+  def validate_type_change()        true  end
+  def validate_content( content )         end
+
+
+  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  # MISCELLANEOUS
+
+  def debug_type() "#{typecode||'no code'}:#{type_id}" end
+    
+  def to_s
+    "#<#{self.class.name}[#{debug_type}]#{self.attributes['name']}>"
+  end
+
+  def inspect
+    "#<#{self.class.name}" + "##{id}" +
+    "###{object_id}" + #"l#{left_id}r#{right_id}" +
+    "[#{debug_type}]" + "(#{self.name})" + #"#{object_id}" +
+    #(errors.any? ? '*Errors*' : 'noE') +
+    (errors.any? ? "<E*#{errors.full_messages*', '}*>" : '') +
+    #"{#{references_expired==1 ? 'Exp' : "noEx"}:" +
+    "{#{trash&&'trash:'||''}#{new_card? &&'new:'||''}#{frozen? ? 'Fz' : readonly? ? 'RdO' : ''}" +
+    "#{@virtual &&'virtual:'||''}#{@set_mods_loaded&&'I'||'!loaded' }:#{references_expired.inspect}}" +
+    '>'
+  end
+
+
+  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  # LOAD Renderers and Sets
+
+  load_renderers
+  load_sets
 end

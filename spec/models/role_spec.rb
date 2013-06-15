@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 require File.expand_path('../spec_helper', File.dirname(__FILE__))
 
 #FIXME: all this belongs someplace else (or delete it)
@@ -48,7 +49,7 @@ end
 describe User, 'Joe User' do
   before do
     Account.current_id = Card['joe_user'].id
-#    User.cache.delete 'joe_user'
+#    Account.cache.delete 'joe_user'
     @ju = Account.user
     @jucard = Account.current
     @r1 = Card['r1']
@@ -62,7 +63,9 @@ describe User, 'Joe User' do
     @roles_card.item_names.length.should==0
   end
   it "should immediately set new roles and return auth, anon, and the new one" do
-    Account.as_bot { @roles_card << @r1 }
+    Account.as_bot do
+      @roles_card << @r1
+    end
     @roles_card.item_names.length.should==1
   end
   it "should save new roles and reload correctly" do

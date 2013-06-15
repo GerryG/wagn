@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 module Cardlib::AttributeTracking
   class Updates
     include Enumerable
@@ -83,8 +84,4 @@ module Cardlib::AttributeTracking
     end
   end
 
-  def self.included(base)
-    super
-    base.extend(ClassMethods)
-  end
 end

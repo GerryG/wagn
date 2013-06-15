@@ -25,12 +25,6 @@ h1, h2 {
   font-weight: bold;
   margin: 0px;
 }
-/* headers outside of cards */
-h1.page-header,
-h2.page-header {
-  font-weight: normal;
-  margin: 0 0 10px 0;
-}
 a {
   color: #279;
 }
@@ -45,10 +39,7 @@ a:focus {
 
 
 
-table {
-  border-collapse: collapse;
-  padding: 0;
-}
+
 th {
   color: #666;
   font-weight: normal;
@@ -58,10 +49,6 @@ td, th {
   vertical-align: top;
   padding: 0px;
 }
-.table-row-odd {
-  background: #cce;
-}
-
 
 /*---- headers --------*/
 input[type=text],

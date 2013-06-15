@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 module AuthenticatedTestHelper
   # Sets the current user in the session from the user fixtures.
   def login_as user
@@ -58,7 +59,7 @@ module AuthenticatedTestHelper
   end
 
   def assert_status(email, status)
-    u = User.find_by_email(email)
+    u = Account[ email ]
     assert_equal status, u.status
   end
 end

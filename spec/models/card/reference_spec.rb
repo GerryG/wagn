@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 require File.expand_path('../../spec_helper', File.dirname(__FILE__))
 
 
@@ -23,7 +24,7 @@ describe "Card::Reference" do
       Card.create! :name=>"Form1", :type=>'SpecialForm', :content=>"foo"
       c = Card["Form1"]
       c.references_expired.should be_nil
-      Card.create! :name=>"SpecialForm+*type+*content", :content=>"{{+bar}}"
+      Card.create! :name=>"SpecialForm+*type+*structure", :content=>"{{+bar}}"
       c = Card["Form1"]
       c.references_expired.should be_true
       Wagn::Renderer.new(Card["Form1"]).render(:core)
@@ -34,7 +35,7 @@ describe "Card::Reference" do
 
     it "on template update" do
       Card.create! :name=>"JoeForm", :type=>'UserForm'
-      tmpl = Card["UserForm+*type+*content"]
+      tmpl = Card["UserForm+*type+*structure"]
       tmpl.content = "{{+monkey}} {{+banana}} {{+fruit}}";
       tmpl.save!
       Card["JoeForm"].references_expired.should be_true
@@ -101,14 +102,14 @@ describe "Card::Reference" do
     watermelon_seeds = newcard('watermelon+seeds', 'black')
     lew = newcard('Lew', "likes [[watermelon]] and [[watermelon+seeds|seeds]]")
 
-    assert_equal [1,1], lew.out_references.map(&:present), "links should not be Wanted before"
+    assert_equal [1,1], lew.references_to.map(&:present), "links should not be Wanted before"
     watermelon = Card['watermelon']
     watermelon.update_referencers = false
     watermelon.name="grapefruit"
     watermelon.save!
     lew.reload.content.should == "likes [[watermelon]] and [[watermelon+seeds|seeds]]"
-    assert_equal [ 'L', 'L' ], lew.out_references.map(&:ref_type), "links should be a LINK"
-    assert_equal [ 0, 0 ], lew.out_references.map(&:present), "links should not be present"
+    assert_equal [ 'L', 'L' ], lew.references_to.map(&:ref_type), "links should be a LINK"
+    assert_equal [ 0, 0 ], lew.references_to.map(&:present), "links should not be present"
   end
 
   it "update referencing content on rename junction card" do
@@ -127,7 +128,7 @@ describe "Card::Reference" do
 
   it "template inclusion" do
     cardtype = Card.create! :name=>"ColorType", :type=>'Cardtype', :content=>""
-    Card.create! :name=>"ColorType+*type+*content", :content=>"{{+rgb}}"
+    Card.create! :name=>"ColorType+*type+*structure", :content=>"{{+rgb}}"
     green = Card.create! :name=>"green", :type=>'ColorType'
     rgb = newcard 'rgb'
     green_rgb = Card.create! :name => "green+rgb", :content=>"#00ff00"
@@ -140,13 +141,13 @@ describe "Card::Reference" do
     alpha = Card.create :name=>'alpha'
     beta = Card.create :name=>'beta', :content=>"I link to [[alpha]]"
     Card['alpha'].referencers.map(&:name).should == ['beta']
-    Card['beta'].referencees.map(&:name).should == ['alpha']
+    Card['beta'].referees.map(&:name).should == ['alpha']
   end
 
   it "link with spaces" do
     alpha = Card.create! :name=>'alpha card'
     beta =  Card.create! :name=>'beta card', :content=>"I link to [[alpha_card|ALPHA CARD]]"
-    Card['beta card'].referencees.map(&:name).should == ['alpha card']
+    Card['beta card'].referees.map(&:name).should == ['alpha card']
     Card['alpha card'].referencers.map(&:name).should == ['beta card']
   end
 
@@ -161,7 +162,7 @@ describe "Card::Reference" do
   it "non simple link" do
     alpha = Card.create :name=>'alpha'
     beta = Card.create :name=>'beta', :content=>"I link to [[alpha|ALPHA]]"
-    Card['beta'].referencees.map(&:name).should == ['alpha']
+    Card['beta'].referees.map(&:name).should == ['alpha']
     Card['alpha'].referencers.map(&:name).should == ['beta']
   end
   

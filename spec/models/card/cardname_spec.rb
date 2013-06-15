@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 require File.expand_path('../../spec_helper', File.dirname(__FILE__))
 
 module RenameMethods
@@ -7,7 +8,7 @@ module RenameMethods
       #:updater_id  => card.updater_id,
       :revisions   => card.revisions.count,
       :referencers => card.referencers.map(&:name).sort,
-      :referencees => card.referencees.map(&:name).sort,
+      :referees => card.referees.map(&:name).sort,
       :dependents  => card.dependents.map(&:id)
     }
   end
@@ -42,7 +43,7 @@ describe Card, "Case Variant" do
 end
 
 
-describe SmartName, "Underscores" do
+describe Card::Name, "Underscores" do
   it "should be treated like spaces when making keys" do
     'weird_ combo'.to_name.key.should == 'weird  combo'.to_name.key
   end
@@ -51,7 +52,7 @@ describe SmartName, "Underscores" do
   end
 end
 
-describe SmartName, "changing from plus card to simple" do
+describe Card::Name, "changing from plus card to simple" do
   before do
     Account.as :joe_user
     @c = Card.create! :name=>'four+five'
@@ -158,13 +159,13 @@ describe "renaming" do
     c = Card['Menu']
     c.name = 'manure'
     c.save!
-    Card['manure'].references.size.should == 0
+    Card['manure'].references_from.size.should == 0
   end
   
   it "picks up new references" do
     Card.create :name=>'kinds of poop', :content=>'[[manure]]'
     assert_rename Card['Menu'], 'manure'
-    Card['manure'].references.size.should == 2
+    Card['manure'].references_from.size.should == 2
   end
 
   it "test_rename_same_key_with_dependents" do
@@ -284,7 +285,7 @@ describe "renaming" do
     Account.as_bot do
       c=Card.create! :name => "Pit"
       Card.create! :name => "Orange", :type=>"Fruit", :content => "[[Pit]]"
-      Card.create! :name => "Fruit+*type+*content", :content=>"this [[Pit]]"
+      Card.create! :name => "Fruit+*type+*structure", :content=>"this [[Pit]]"
 
       assert_equal "this [[Pit]]", Card["Orange"].raw_content
       c.update_attributes! :name => "Seed", :update_referencers => true

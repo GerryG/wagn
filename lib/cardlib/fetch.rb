@@ -1,9 +1,11 @@
+# -*- encoding : utf-8 -*-
 # = Card#fetch
 #
 # A multipurpose retrieval operator that incorporates caching, "virtual" card retrieval
 
 
 module Cardlib::Fetch
+  extend Wagn::Set
   mattr_accessor :cache
 
   module ClassMethods
@@ -80,9 +82,14 @@ module Cardlib::Fetch
         end
       end
 
-      if Card.cache && needs_caching
-        Card.cache.write card.key, card
-        Card.cache.write "~#{card.id}", card.key if card.id and card.id != 0
+      begin
+        if Card.cache && needs_caching
+          Card.cache.write card.key, card
+          Card.cache.write "~#{card.id}", card.key if card.id and card.id != 0
+        end
+      rescue TypeError
+        # I believe this only happens in development
+        Rails.logger.info "TypeError rescued"
       end
 
       if card.new_card?
@@ -170,22 +177,6 @@ module Cardlib::Fetch
     end
   end
 
-  def expire_related
-    self.expire
-
-    if self.is_hard_template?
-      self.hard_templatee_names.each do |name|
-        Card.expire name
-      end
-    end
-    # FIXME really shouldn't be instantiating all the following bastards.  Just need the key.
-    # fix in id_cache branch
-    self.dependents.each       { |c| c.expire }
-    self.referencers.each      { |c| c.expire }
-    self.name_referencers.each { |c| c.expire }
-    # FIXME: this will need review when we do the new defaults/templating system
-    #if card.changed?(:content)
-  end
 
   def expire
     #Rails.logger.warn "expiring i:#{id}, #{inspect}"
@@ -203,10 +194,6 @@ module Cardlib::Fetch
     end
   end
 
-  def self.included(base)
-    super
-    base.extend Cardlib::Fetch::ClassMethods
-  end
 end
 
 

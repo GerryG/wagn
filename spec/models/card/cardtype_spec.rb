@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 require File.expand_path('../../spec_helper', File.dirname(__FILE__))
 
 class Card
@@ -37,7 +38,8 @@ describe "Card (Cardtype)" do
     assert_instance_of Card, c=Card.fetch("BananaPudding")
 
     # you have to have a module to include or it's just a Basic (typecode fielde excepted)
-    assert Card.create(:typecode=>'banana_pudding',:name=>"figgy" ).type_name == 'BananaPudding'
+    cd = Card.create(:type=>'banana_pudding',:name=>"figgy" )
+    assert cd.type_name == 'BananaPudding'
     assert Card.find_by_type_id(c.id)
   end
 
@@ -167,7 +169,7 @@ describe User, "Joe User" do
     end
 
     Account.as :joe_user
-    @user = User.user
+    @user = Account.user
     @ucard = Card[@user.card_id]
     @type_names = Account.createable_types
   end

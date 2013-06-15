@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 require File.expand_path('../spec_helper', File.dirname(__FILE__))
 include AuthenticatedTestHelper
 require 'rr'
@@ -27,7 +28,7 @@ describe AccountController do
         :email=> @email_args
 
       @cd_with_acct = Card['Joe New']
-      @new_user = User[ 'joe@new.com' ]
+      @new_user = Account[ 'joe@new.com' ]
 
     end
 
@@ -60,7 +61,7 @@ describe AccountController do
     it 'should create a user' do
       #warn "who #{Account.current.inspect}"
       post :signup, :account=>{:email=>'joe@new.com'}, :card=>{:name=>'Joe New'}
-      new_user = User[ 'joe@new.com' ]
+      new_user = Account[ 'joe@new.com' ]
       
       @cd_with_acct = Card['Joe New']
       new_user.should be
@@ -104,7 +105,7 @@ describe AccountController do
         mock(@mail = m).deliver }
 
       @email='joe@user.com'
-      @juser = User[ @email ]
+      @juser = Account[ @email ]
       post :forgot_password, :email=>@email
     end
 

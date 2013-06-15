@@ -6,18 +6,19 @@ class User < ActiveRecord::Base
   # Virtual attribute for the unencrypted password
   attr_accessor :password, :name
 
-  validates_presence_of     :card_id
-  validates_uniqueness_of   :card_id
-  validates_presence_of     :account_id
-  validates_uniqueness_of   :account_id
-  validates_presence_of     :email, :if => :email_required?
-  validates_format_of       :email, :with => /^([^@\s]+)@((?:[-a-z0-9]+\.)+[a-z]{2,})$/i  , :if => :email_required?
-  validates_length_of       :email, :within => 3..100,   :if => :email_required?
-  validates_uniqueness_of   :email, :scope=>:login,      :if => :email_required?
-  validates_presence_of     :password,                   :if => :password_required?
-  validates_presence_of     :password_confirmation,      :if => :password_required?
-  validates_length_of       :password, :within => 5..40, :if => :password_required?
-  validates_confirmation_of :password,                   :if => :password_required?
+  validates :card_id,    :presence=>true, :uniqueness=>true
+  validates :account_id, :presence=>true, :uniqueness=>true
+
+  validates :email, :presence=>true, :if=>:email_required?,
+    :uniqueness => { :scope   => :login                                      },
+    :format     => { :with    => /^([^@\s]+)@((?:[-a-z0-9]+\.)+[a-z]{2,})$/i },
+    :length     => { :maximum => 100                                         }
+  
+  validates :password, :presence=>true, :confirmation=>true, :if=>:password_required?,
+    :length => { :within => 5..40 }
+  validates :password_confirmation, :presence=>true, :if=>:password_required?
+  
+    
 
   before_validation :downcase_email!
   before_save :encrypt_password
@@ -28,8 +29,6 @@ class User < ActiveRecord::Base
     def as_user()        self[ Account.as_id      ]   end
     def user()           self[ Account.current_id ]   end
 
-    def cache()          Wagn::Cache[User]            end
-
     def create_ok?
       base  = Card.new :name=>'dummy*', :type_id=>Card::UserID
       trait = Card.new :name=>"dummy*+#{Card[:account].name}"
@@ -39,7 +38,7 @@ class User < ActiveRecord::Base
     # FIXME: args=params.  should be less coupled..
     def create_with_card user_args, card_args, email_args={}
       card_args[:type_id] ||= Card::UserID
-      @card = Card.fetch(card_args[:name], :new=>card_args)
+      @card = Card.fetch card_args[:name], :new => card_args
       Account.as_bot do
         @account = User.new(user_args)
         @account.status = 'active' unless user_args.has_key? :status
@@ -51,44 +50,20 @@ class User < ActiveRecord::Base
       [@account, @card]
     end
 
-    # Authenticates a user by their login name and unencrypted password.  Returns the user or nil.
-    def authenticate(email, password)
-      u = self.find_by_email(email.strip.downcase)
-      u && u.authenticated?(password.strip) ? u.card_id : nil
-    end
-
     # Encrypts some data with the salt.
     def encrypt(password, salt)
       Digest::SHA1.hexdigest("#{salt}--#{password}--")
     end
 
-    # User caching
-    def [] mark
-      if mark
-        cache_key = Integer === mark ? "~#{mark}" : mark
-        cached_val = cache.read cache_key
-        case cached_val
-        when :missing; nil
-        when nil
-          val = if Integer === mark
-            find_by_card_id mark
-          else
-            find_by_email mark
-          end
-          cache.write cache_key, ( val || :missing )
-          val
-        else
-          cached_val
-        end
-      end
+    def delete_cardless
+      where( Card.where( :id=>arel_table[:card_id] ).exists.not ).delete_all
     end
   end
 
 #~~~~~~~ Instance
 
   def reset_instance_cache
-    self.class.cache.write "~#{card_id}", nil
-    self.class.cache.write email, nil if email
+    Account.reset_cache_item card_id, email
   end
 
   def save_with_card card
@@ -151,7 +126,7 @@ class User < ActiveRecord::Base
 
   # blocked methods for legacy boolean status
   def blocked= block
-    if block != '0'
+    if block == true
       self.status = 'blocked'
     elsif !built_in?
       self.status = 'active'
@@ -184,7 +159,7 @@ class User < ActiveRecord::Base
     end
   end
 
-protected
+#protected
 
   # Encrypts the password with the user salt
   def encrypt(password)

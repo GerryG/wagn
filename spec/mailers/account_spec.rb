@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 require File.expand_path('../spec_helper', File.dirname(__FILE__))
 include AuthenticatedTestHelper
 include EmailSpec::Helpers
@@ -24,7 +25,7 @@ describe Mailer do
     before do
       user_id =  Card['sara'].id
       Account.as_bot do
-        @user = User[ user_id ]
+        @user = Account[ user_id ]
         @user.generate_password
         @email = @user.send_account_info(:subject => "New password subject", :message => "Forgot my password")
       end
@@ -36,7 +37,7 @@ describe Mailer do
       end
 
       it "is from Wagn Bot email" do
-        #warn "test from #{User.admin.inspect}, #{User.admin.email}"
+        #warn "test from #{Account.admin.inspect}, #{Account.admin.email}"
         @email.should deliver_from("Wagn Bot <no-reply@wagn.org>")
       end
 

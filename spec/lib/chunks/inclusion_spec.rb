@@ -1,4 +1,4 @@
-# encoding: utf-8
+# -*- encoding : utf-8 -*-
 require File.expand_path('../../spec_helper', File.dirname(__FILE__))
 require File.expand_path('../../packs/pack_spec_helper', File.dirname(__FILE__))
 
@@ -40,22 +40,22 @@ describe Chunks::Include, "include chunk tests" do
      template = Card['*template']
      specialtype = Card.create :typecode=>'Cardtype', :name=>'SpecialType'
 
-     specialtype_template = specialtype.fetch(:trait=>:type,:new=>{}).fetch(:trait=>:content,:new=>{})
-     specialtype_template.content = "{{#{SmartName.joint}age}}"
+     specialtype_template = specialtype.fetch(:trait=>:type,:new=>{}).fetch(:trait=>:structure,:new=>{})
+     specialtype_template.content = "{{#{Card::Name.joint}age}}"
      Account.as_bot { specialtype_template.save! }
-     assert_equal "{{#{SmartName.joint}age}}", Wagn::Renderer.new(specialtype_template).render_raw
+     assert_equal "{{#{Card::Name.joint}age}}", Wagn::Renderer.new(specialtype_template).render_raw
 
      wooga = Card.create! :name=>'Wooga', :type=>'SpecialType'
-     wooga_age = Card.create!( :name=>"#{wooga.name}#{SmartName.joint}age", :content=> "39" )
+     wooga_age = Card.create!( :name=>"#{wooga.name}#{Card::Name.joint}age", :content=> "39" )
      Wagn::Renderer.new(wooga_age).render_core.should == "39"
      #warn "cards #{wooga.inspect}, #{wooga_age.inspect}"
      wooga_age.includers.map(&:name).should == ['Wooga']
    end
 
   it "should test_relative_include" do
-    alpha = newcard 'Alpha', "{{#{SmartName.joint}Beta}}"
+    alpha = newcard 'Alpha', "{{#{Card::Name.joint}Beta}}"
     beta = newcard 'Beta'
-    alpha_beta = Card.create :name=>"#{alpha.name}#{SmartName.joint}Beta", :content=>"Woot"
+    alpha_beta = Card.create :name=>"#{alpha.name}#{Card::Name.joint}Beta", :content=>"Woot"
     assert_view_select Wagn::Renderer.new(alpha).render_core, 'span[class~=content]', "Woot"
   end
 
@@ -86,7 +86,7 @@ describe Chunks::Include, "include chunk tests" do
   it "should test_container_inclusion" do
     #pending "base:parent not supported now, can we make a similare test with _left ?"
     bob_city = Card.create! :name=>'bob+city', :content=> "Sparta"
-    Account.as_bot { address_tmpl = Card.create! :name=>'address+*right+*content', :content =>"{{_left+city}}" }
+    Account.as_bot { address_tmpl = Card.create! :name=>'address+*right+*structure', :content =>"{{_left+city}}" }
     bob_address = Card.create! :name=>'bob+address'
     #FIXME -- does not work retroactively if template is created later.
 

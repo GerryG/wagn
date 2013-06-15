@@ -1,3 +1,4 @@
+# -*- encoding : utf-8 -*-
 #!/usr/bin/env ruby
 
 require File.expand_path('../test_helper', File.dirname(__FILE__))
@@ -5,7 +6,7 @@ require 'diff'
 
 class DiffTest < ActiveSupport::TestCase
 
-  include HTMLDiff
+  include Card::Diff
 
   def setup
     super

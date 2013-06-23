@@ -1,9 +1,12 @@
 # -*- encoding : utf-8 -*-
+
 class Card < ActiveRecord::Base
+  require_dependency 'card/query' #need to load explicitly because of AR name conflict
+  require_dependency 'card/set'
+  require_dependency 'card/format'
+  
 
-  RUBY18 = !!(RUBY_VERSION =~ /^1\.8/)
-
-  extend Wagn::Set
+  extend Card::Set
   extend Wagn::Loader
 
   cattr_accessor :set_patterns
@@ -23,7 +26,7 @@ class Card < ActiveRecord::Base
     def const_missing const
       if const.to_s =~ /^([A-Z]\S*)ID$/ and code=$1.underscore.to_sym
         code = ID_CONST_ALIAS[code] || code
-        if card_id = Wagn::Codename[code]
+        if card_id = Card::Codename[code]
           const_set const, card_id
         else
           raise "Missing codename #{code} (#{const}) #{caller*"\n"}"
@@ -31,20 +34,16 @@ class Card < ActiveRecord::Base
       else
         super
       end
-#    rescue NameError
-#      warn "ne: const_miss #{e.inspect}, #{const}" #if const.to_sym==:Card
     end
   end
 
-  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  # Include Card Libraries
 
-  Wagn::SetPatterns
 
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  # LOAD Renderers and Sets
+  # LOAD Card::Formats and Sets
 
-  load_renderers
+  load_set_patterns
+  load_formats
   load_sets
 
   # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -136,7 +135,7 @@ class Card < ActiveRecord::Base
     type_id = case
       when args[:typecode]
         if code=args[:typecode]
-          Wagn::Codename[code] || ( c=Card[code] and c.id)
+          Card::Codename[code] || ( c=Card[code] and c.id)
         end
       when args[:type]
         Card.fetch_id args[:type]
@@ -406,7 +405,7 @@ Rails.logger.warn "revent #{e.inspect}"
   end
 
   def typecode # FIXME - change to "type_code"
-    Wagn::Codename[ type_id.to_i ]
+    Card::Codename[ type_id.to_i ]
   end
 
   def type_name

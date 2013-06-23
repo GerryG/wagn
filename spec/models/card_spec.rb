@@ -1,5 +1,5 @@
 # -*- encoding : utf-8 -*-
-require File.expand_path('../spec_helper', File.dirname(__FILE__))
+require 'wagn/spec_helper'
 
 describe Card do
   context "new" do
@@ -118,7 +118,7 @@ describe Card do
     end
 
     it "should have updates" do
-      Wagn::Set::All::AttributeTracking::Updates.should === @c.updates
+      Card::Set::All::AttributeTracking::Updates.should === @c.updates
     end
 
     it "should return original value" do

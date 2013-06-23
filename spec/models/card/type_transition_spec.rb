@@ -1,37 +1,37 @@
 # -*- encoding : utf-8 -*-
-require File.expand_path('../../spec_helper', File.dirname(__FILE__))
+require 'wagn/spec_helper'
 
 class Card
   cattr_accessor :count
 end
 
-module Wagn::Set::Type::CardtypeA
+module Card::Set::Type::CardtypeA
   def approve_delete
     deny_because("not allowed to delete card a")
   end
 end
 
 
-module Wagn::Set::Type::CardtypeC
+module Card::Set::Type::CardtypeC
   def validate_type_change
     errors.add :delete_error, "card c is indestructible"
   end
 end
 
-module Wagn::Set::Type::CardtypeD
+module Card::Set::Type::CardtypeD
   def valid?
     errors.add :create_error, "card d always has errors"
     errors.empty?
   end
 end
 
-module Wagn::Set::Type::CardtypeE
+module Card::Set::Type::CardtypeE
   def self.included(base) Card.count = 2   end
   def on_type_change()    decrement_count  end
   def decrement_count()   Card.count -= 1  end
 end
 
-module Wagn::Set::Type::CardtypeF
+module Card::Set::Type::CardtypeF
   def self.included(base) Card.count = 2   end
   # FIXME: create_extension doesn't exist anymore, need another hook
   def create_extension()  increment_count  end
@@ -150,7 +150,7 @@ end
 def change_card_to_type(name, type)
   Account.as :joe_user do
     card = Card.fetch(name)
-    tid=card.type_id = Symbol===type ? Wagn::Codename[type] : Card.fetch_id(type)
+    tid=card.type_id = Symbol===type ? Card::Codename[type] : Card.fetch_id(type)
     #warn "card[#{name.inspect}, T:#{type.inspect}] is #{card.inspect}, TID:#{tid}"
     r=card.save
     #warn "saved #{card.inspect} R#{r}"

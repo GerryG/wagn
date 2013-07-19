@@ -82,9 +82,9 @@ module ClassMethods
         Card.cache.write card.key, card
         Card.cache.write "~#{card.id}", card.key if card.id and card.id != 0
       end
-    rescue TypeError
+    rescue TypeError => e
       # I believe this only happens in development
-      Rails.logger.info "TypeError rescued"
+      Rails.logger.info "TypeError rescued: #{e.backtrace*"\n"}"
     end
 
     if card.new_card?

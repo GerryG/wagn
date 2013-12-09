@@ -2,7 +2,8 @@ source 'http://rubygems.org'
 #source "http://gems.github.com"
 
 # DEFAULT
-gem 'smartname',    '0.2.3' #, :path=>'~/dev/smartname/main'
+gem 'smartname',    :path => '../smartname'
+#gem 'smartname',    '0.2.3' #, :path=>'~/dev/smartname/main'
 
 gem 'rails',        '~> 3.2.14'
 gem 'htmlentities', '~> 4.3'

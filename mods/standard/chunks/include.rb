@@ -27,11 +27,16 @@ module Card::Chunk
               process_options level_options, prev_level
             end
           else {} end
-          @options.merge! :inc_name => name, :inc_syntax => in_brackets
+          @options[:inc_name] = name
           @name = name
         end
+      @options[:inc_syntax] = in_brackets
 
       @process_chunk = result if !@name
+    end
+
+    def as_json
+      !@name ? { :comment => @process_chunk, :options => @options } : { :name => @name, :options => @options }
     end
 
     def strip_tags string

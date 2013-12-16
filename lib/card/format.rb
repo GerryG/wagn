@@ -413,9 +413,7 @@ class Card
       sub.inclusion_opts = opts[:items] 
 
       view = canonicalize_view opts.delete :view
-      opts[:home_view] = if [:closed, :edit].member?(view) ; :open
-        elsif :live_closed == view ; :live
-        else view end
+      opts[:home_view] = [:closed, :edit].member?(view) ? :open : view
       # FIXME: special views should be represented in view definitions
 
       view = case
@@ -427,8 +425,7 @@ class Card
         end
       when @mode == :template   ; :template_rule
       when @@perms[view]==:none ; view
-      when @mode == :closed     ; !tcard.known? ? :closed_missing : :closed_content
-      when @mode == :live       ; view == :titled ? :livetitled : :live
+      when @mode == :closed     ; !tcard.known?  ? :closed_missing : :closed_content
       else                      ; view
       end
       

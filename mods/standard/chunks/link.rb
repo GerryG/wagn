@@ -49,12 +49,6 @@ module Card::Chunk
       end
     end
 
-    def as_json
-      object = { :link_text => @link_text, :options => @options }
-      object[:name] = @name if @name
-      object[:explicit_link] = @explicit_link if @explicit_link
-      object
-    end
 
     def render_link
       @link_text = render_obj @link_text

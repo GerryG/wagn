@@ -12,8 +12,7 @@ class Card::HtmlFormat < Card::Format
 
   INCLUSION_DEFAULTS = {
     :layout => { :view => :core },
-    :normal => { :view => :content },
-    :live   => { :view => :live }
+    :normal => { :view => :content }
   }
   
   

@@ -44,7 +44,6 @@ $.extend wagn,
   initTinyMCE: (el_id) ->
     # verify_html: false -- note: this option needed for empty paragraphs to add space.
     conf = {
-      forced_root_block: ''
       plugins: 'autoresize'
       autoresize_max_height: 500
     }
@@ -187,66 +186,8 @@ $.extend wagn,
       text = i.text || i.view
       '<a href="' + path + '" data-remote="true" class="slotter">' + text + '</a>'
 
-  finishEdit: (newElement) ->
-    if (wagn.editElement && newElement != wagn.editElement)
-      $(wagn.editElement).attr('contenteditable', true)
-      console.log('changed element?')
-      # send update on this element
-    wagn.editElement = null
-
-
 
 $(window).ready ->
-  $("div.live-title").hover( (event) ->
-      $(this).find(".live-title-function").attr("style", "visibility: visible")
-      false
-    , (event) ->
-      $(this).find(".live-title-function").attr("style", "visibility: hidden")
-      false
-    )
-
-  $('.live-type-field').focusout (event) ->
-    console.log('focusout')
-    selection = $(this).parent().parent().find(".live-type-selection")
-    selection.attr("style", "display:none")
-    display = $(this).parent().parent().find(".live-type-display")
-    display.attr("style", "display:visible")
-    display.html( selection.find('select').attr('value') )
-    wagn.finishEdit(this)
-
-  $('.live-edit, .live-title, .live-type').on 'mouseup click', (event) ->
-    thisq = $(this)
-    wagn.finishEdit(this)
-    if thisq.hasClass('live-type')
-      console.log('enable type selection')
-      selection = thisq.find(".live-type-selection")
-      selection.attr("style", "display:visible")
-      if selection.hasClass('no-edit')
-        timeout_function = ->
-           console.log('no edit (timeout expired)')
-           console.log(selection)
-           selection.attr("style", "display:none")
-        console.log('no edit (timeout)')
-        setTimeout( timeout_function, 5000 )
-        return false
-      else
-        thisq.find(".live-type-display").attr("style", "display:none")
-
-    else
-      thisq.attr('contenteditable', true)
-      console.log("add editable")
-
-    wagn.editElement = this
-    wagn.editElementContent = this.innerHTML
-    console.log(wagn.editElement)
-    #console.log(wagn.editElementContent)
-    console.log(event)
-    false
-
-  $('body').on 'click', (event) ->
-    console.log(event)
-    wagn.finishEdit()
-    true
 
   $('body').on 'click', '.cancel-upload', ->
     editor = $(this).closest '.card-editor'
@@ -425,15 +366,15 @@ navbox_results = (request, response) ->
   formData = f.serialize() + '&view=complete'
   
   this.xhr = $.ajax {
-    url: wagn.prepUrl wagn.rootPath + '/:search.json'
-    data: formData
-    dataType: "json"
-    wagReq: ++reqIndex
-    success: ( data, status ) ->
-      response navboxize(request.term, data) if this.wagReq == reqIndex
-    error: () ->
-      response [] if this.wagReq == reqIndex
-    }
+		url: wagn.prepUrl wagn.rootPath + '/:search.json'
+		data: formData
+		dataType: "json"
+		wagReq: ++reqIndex
+		success: ( data, status ) ->
+			response navboxize(request.term, data) if this.wagReq == reqIndex
+		error: () ->
+		  response [] if this.wagReq == reqIndex
+	  }
 
 navboxize = (term, results)->
   items = []

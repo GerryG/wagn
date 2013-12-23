@@ -4,7 +4,7 @@ require_dependency 'card/chunk'
 # you could make the case that Card::Chunk should be Card::Content::Chunk, which would make the above unnecessary (but create noise elsewhere)
 
 class Card
-  class Content < SimpleDelegator      
+  class Content < SimpleDelegator
     attr_reader :revision, :format, :chunks
 
     def initialize content, format_or_card
@@ -13,7 +13,7 @@ class Card
       else
         format_or_card
       end
-      
+
       unless Array === content
         content = parse_content content
       end
@@ -56,7 +56,7 @@ class Card
       each_chunk { |chunk| chunk.process_chunk &block }
       self
     end
-    
+
     def parse_content content
       @chunks = []
 
@@ -64,12 +64,12 @@ class Card
         position = last_position = 0
         prefix_regexp = Chunk.get_prefix_regexp card.chunk_list
         interval_string = ''
-        
+
         while prefix_match = content[position..-1].match( prefix_regexp )
           prefix = prefix_match[0]                                                 # prefix of matched chunk
           chunk_start = prefix_match.begin(0) + position                           # content index of beginning of chunk
 
-          if prefix_match.begin(0) > 0                                             # if matched chunk is not beginning of test string  
+          if prefix_match.begin(0) > 0                                             # if matched chunk is not beginning of test string
             interval_string += content[ position..chunk_start-1 ]                  # hold onto the non-chunk part of the string
           end
 
@@ -77,7 +77,7 @@ class Card
           match, offset = chunk_class.full_match content[chunk_start..-1], prefix  # see whether the full chunk actually matches (as opposed to bogus prefix)
           context_ok = chunk_class.context_ok? content, chunk_start                # make sure there aren't contextual reasons for ignoring this chunk
           position = chunk_start                                                   # move scanning position up to beginning of chunk
-          
+
           if match                                                                 # we have a chunk match
             position += ( match.end(0) - offset.to_i )                             # move scanning position up to end of chunk
             if context_ok                                                          #
@@ -89,7 +89,7 @@ class Card
           else
             position += 1                                                          # no match.  look at the next character
           end
-          
+
           if !match || !context_ok
             interval_string += content[chunk_start..position-1]                    # moving beyond the alleged chunk.  append failed string to "nonchunk" string
           end
@@ -107,17 +107,17 @@ class Card
       end
     end
 
-    
-    
-  
-    @@allowed_tags = {}
-    %w{ 
-      br i b pre cite caption strong em ins sup sub del ol hr ul li p 
+
+
+
+    ALLOWED_TAGS = {}
+    %w{
+      br i b pre cite caption strong em ins sup sub del ol hr ul li p
       div h1 h2 h3 h4 h5 h6 span table tr td th tbody thead tfoot
-    }.each { |tag| @@allowed_tags[tag] = [] }
-  
+    }.each { |tag| ALLOWED_TAGS[tag] = [] }
+
     # allowed attributes
-    @@allowed_tags.merge!(
+    ALLOWED_TAGS.merge!(
       'a' => ['href', 'title', 'target' ],
       'img' => ['src', 'alt', 'title'],
       'code' => ['lang'],
@@ -125,66 +125,65 @@ class Card
     )
 
     if Wagn::Conf[:allow_inline_styles]
-      @@allowed_tags['table'] += %w[ cellpadding align border cellspacing ]
+      ALLOWED_TAGS['table'] += %w[ cellpadding align border cellspacing ]
     end
 
-    @@allowed_tags.each_key {|k|
-      @@allowed_tags[k] << 'class'
-      @@allowed_tags[k] << 'style' if Wagn::Conf[:allow_inline_styles]
-    }
-  
-    PURPLE_TAGS = %w{ 
+    PURPLE_ATTR = 'data-purple'
+    PURPLE_TAGS = %w{
       i b pre caption strong em ol ul li p div h1 h2 h3 h4 h5 h6 span
       table tr td th tbody thead tfoot }.to_set.freeze
+
+    PURPLE_TAGS.each {|k|
+      ALLOWED_TAGS[k] << PURPLE_ATTR
+    }
+    ALLOWED_TAGS.each_key {|k|
+      ALLOWED_TAGS[k] << 'class'
+      ALLOWED_TAGS[k] << 'style' if Wagn::Conf[:allow_inline_styles]
+      ALLOWED_TAGS[k].freeze
+    }
+    ALLOWED_TAGS.freeze
+
+    ATTR_VALUE_RE = [ /[^']+'/, /[^"]+"/, /\S+/ ]
 
     class << self
 
       ## Method that cleans the String of HTML tags
       ## and attributes outside of the allowed list.
 
-      # this has been hacked for wagn to allow classes in spans if
+      # this has been hacked for wagn to allow classes if
       # the class begins with "w-"
-      def clean!( string, tags = @@allowed_tags )
-        string.gsub!( /<(\/*)(\w+)([^>]*)>/ ) do
+      def clean!( string, purple=false, tags = ALLOWED_TAGS )
+        string.gsub( /<(\/*)(\w+)([^>]*)>/ ) do
           raw = $~
           tag = raw[2].downcase
-          if tags.has_key? tag
-            pcs = [tag]
-            (tags[tag] << 'data-purple').each do |prop|
-              ['"', "'", ''].each do |q|
-                q2 = ( q != '' ? q : '\s' )
-                if prop=='class'
-                  if raw[3] =~ /#{prop}\s*=\s*#{q}(w-[^#{q2}]+)#{q}/i
-                    pcs << "#{prop}=\"#{$1.gsub('"', '\\"')}\""
-                    break
+          if attrs = tags[tag]
+            "<#{raw[1]}#{
+              attrs.inject([tag]) do |pcs, attr|
+                q='"'
+                rest_value=nil
+                if raw[3] =~ /\b#{attr}\s*=\s*(.)/i
+                  rest_value = (idx = %w{' "}.index($1) and q = $1) ? $' : $1+$'
+                  re = ATTR_VALUE_RE[ idx || 2 ]
+                  if re.match(rest_value)
+                    rest_value = idx.nil? ? $& : $&.chop
+                    if attr == 'class'
+                      rest_value = rest_value.split(/\s+/).find_all {|s| s=~/^w-/i}*' '
+                    end
                   end
-                elsif raw[3] =~ /#{prop}\s*=\s*#{q}([^#{q2}]+)#{q}/i
-                  pcs << "#{prop}=\"#{$1.gsub('"', '\\"')}\""
-                  break
                 end
-              end
-            end if tags[tag]
-            "<#{raw[1]}#{pcs.join " "}>"
+                if purple && rest_value.blank?
+                  rest_value = PurpleNumber.new if attr == PURPLE_ATTR
+                end
+                pcs << "#{attr}=#{q}#{rest_value}#{q}" unless rest_value.blank?
+                pcs
+              end * ' '
+            }>"
           else
             " "
           end
-        end
-        string.gsub!(/<\!--.*?-->/, '')
-        string
+        end.gsub(/<\!--.*?-->/, '')
       end
-    
-      def purple_number! string, tags=PURPLE_TAGS
-        string.gsub!( /<(\w+)([^>]*)>/ ) do
-          orig, tag, attrs = $&, $1.downcase, $2
-          if tags.include? tag
-            orig[-1,0] = %{ data-purple="#{PurpleNumber.new}"} unless attrs =~ /\bdata-purple\s*=/
-Rails.logger.warn "add purple #{tag}, #{orig.inspect}, #{orig.html_safe.inspect}"
-          end
-          orig.html_safe
-        end
-        string
-      end
-    
+
       def truncatewords_with_closing_tags(input, words = 25, truncate_string = "...")
         if input.nil? then return end
         wordlist = input.to_s.split
@@ -211,7 +210,7 @@ Rails.logger.warn "add purple #{tag}, #{orig.inspect}, #{orig.html_safe.inspect}
         wordstring.gsub! /<[\/]?p[^>]*>/, ' ' ## Also a hack -- get rid of <br>'s -- they make line view ugly.
         wordstring
       end
-    
+
     end
   end
 end

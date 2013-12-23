@@ -3,6 +3,8 @@ def clean_html?
   true
 end
 
+def purple?; true end
+
 format :html do
 
   view :show do |args|
@@ -29,26 +31,51 @@ format :html do
   end
 
   view :titled, :tags=>:comment do |args|
-    wrap :titled, args do
-      %{
-        #{ _render_header args.merge( :menu_default_hidden=>true ) }
-        #{ wrap_body( :content=>true ) { _render_core args } }
-        #{ optional_render :comment_box, args }
-      }
+    live_type = _optional_render :live, args
+    if live_type.nil?
+      wrap :titled, args do
+        %{
+          #{ _render_header args.merge( :menu_default_hidden=>true ) }
+          #{ wrap_body( :content=>true ) { _render_core args } }
+          #{ optional_render :comment_box, args }
+        }
+      end
+    else
+      r=wrap :live, args do
+        %{#{
+         %{<div class="live-title">#{
+             _render_title( args ) + live_type.html_safe
+           }#{
+           }</div>}
+         }#{
+          wrap_body :body_class=>'live-content', :content=>true do
+            _render_content args
+          end
+        }}
+      end
+Rails.logger.warn "live:\n#{r}\nlive end\n"; r
     end
   end
-  
+
+  view :live do |args|
+    no_type_change = (card.type_id == Card::CardtypeID and Card.search(:type_id=>card.id).present?) ? ' no-edit' : nil
+    %{<span class="live-type">
+       <span class="live-type-display">#{card.type_name}</span>
+       <span class="live-type-selection#{no_type_change}" style="display:none">#{
+          no_type_change ? "No type edit for #{card.name}: " : type_field(:class=>'type-field live-type-field')}</span>
+    </span>}
+  end
+
   view :labeled do |args|
     wrap :labeled, args do
       %{
         #{ _optional_render :menu, args }
-        <label>#{ _render_title args }</label>
+          <label>#{ _render_title args }</label>
         #{
           wrap_body :body_class=>'closed-content', :content=>true do
             _render_closed_content args
           end
-        }
-      }
+      }}
     end
   end
 

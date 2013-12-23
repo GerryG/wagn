@@ -133,6 +133,10 @@ class Card
       @@allowed_tags[k] << 'style' if Wagn::Conf[:allow_inline_styles]
     }
   
+    PURPLE_TAGS = %w{ 
+      i b pre caption strong em ol ul li p div h1 h2 h3 h4 h5 h6 span
+      table tr td th tbody thead tfoot }.to_set.freeze
+
     class << self
 
       ## Method that cleans the String of HTML tags
@@ -146,7 +150,7 @@ class Card
           tag = raw[2].downcase
           if tags.has_key? tag
             pcs = [tag]
-            tags[tag].each do |prop|
+            (tags[tag] << 'data-purple').each do |prop|
               ['"', "'", ''].each do |q|
                 q2 = ( q != '' ? q : '\s' )
                 if prop=='class'
@@ -169,6 +173,17 @@ class Card
         string
       end
     
+      def purple_number! string, tags=PURPLE_TAGS
+        string.gsub!( /<(\w+)([^>]*)>/ ) do
+          orig, tag, attrs = $&, $1.downcase, $2
+          if tags.include? tag
+            orig[-1,0] = %{ data-purple="#{PurpleNumber.new}"} unless attrs =~ /\bdata-purple\s*=/
+Rails.logger.warn "add purple #{tag}, #{orig.inspect}, #{orig.html_safe.inspect}"
+          end
+          orig.html_safe
+        end
+        string
+      end
     
       def truncatewords_with_closing_tags(input, words = 25, truncate_string = "...")
         if input.nil? then return end

@@ -19,3 +19,5 @@ tmp/*
 *.sqlite3
 *.DS_Store
 *.swp
+node_modules
+coffeelint.json

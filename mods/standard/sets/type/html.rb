@@ -12,6 +12,8 @@ def clean_html?
   false
 end
 
+def purple?; false end
+
 def chunk_list
   :references
 end

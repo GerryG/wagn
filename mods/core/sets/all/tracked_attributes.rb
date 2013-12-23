@@ -30,6 +30,7 @@ def set_content new_content
   if self.id #have to have this to create revision
     new_content ||= ''
     new_content = Card::Content.clean! new_content if clean_html?
+    new_content = Card::Content.purple_number! new_content if purple?
     clear_drafts if current_revision_id
     new_rev = Card::Revision.create :card_id=>self.id, :content=>new_content, :creator_id =>Account.current_id
     self.current_revision_id = new_rev.id

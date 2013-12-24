@@ -32,5 +32,5 @@ event :reset_style_for_scss, :after=>:store do
   Card::Set::Right::Style.delete_style_files
 end
 
-#def purple?; false end
+def purple?; false end
 

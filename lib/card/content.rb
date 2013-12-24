@@ -171,9 +171,7 @@ class Card
                     end
                   end
                 end
-                if purple && rest_value.blank?
-                  rest_value = PurpleNumber.new if attr == PURPLE_ATTR
-                end
+                rest_value = PurpleNumber.new if purple && rest_value.blank? && attr == PURPLE_ATTR
                 pcs << "#{attr}=#{q}#{rest_value}#{q}" unless rest_value.blank?
                 pcs
               end * ' '

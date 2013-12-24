@@ -31,7 +31,7 @@ format :html do
   end
 
   view :titled, :tags=>:comment do |args|
-    live_type = _optional_render :live, args
+    live_type = _optional_render :live, args, true
     if live_type.nil?
       wrap :titled, args do
         %{

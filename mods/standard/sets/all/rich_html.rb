@@ -31,51 +31,32 @@ format :html do
   end
 
   view :titled, :tags=>:comment do |args|
-    live_type = _optional_render :live, args, true
-    if live_type.nil?
-      wrap :titled, args do
-        %{
-          #{ _render_header args.merge( :menu_default_hidden=>true ) }
-          #{ wrap_body( :content=>true ) { _render_core args } }
-          #{ optional_render :comment_box, args }
-        }
-      end
-    else
-      r=wrap :live, args do
-        %{#{
-         %{<div class="live-title">#{
-             _render_title( args ) + live_type.html_safe
-           }#{
-           }</div>}
-         }#{
-          wrap_body :body_class=>'live-content', :content=>true do
-            _render_content args
-          end
-        }}
-      end
-Rails.logger.warn "live:\n#{r}\nlive end\n"; r
+    wrap :titled, args do
+      %{
+        #{ _render_header args.merge( :menu_default_hidden=>true ) }
+        #{ wrap_body( :content=>true ) { _render_core args } }
+        #{ optional_render :comment_box, args }
+      }
     end
   end
 
-  view :live do |args|
-    no_type_change = (card.type_id == Card::CardtypeID and Card.search(:type_id=>card.id).present?) ? ' no-edit' : nil
-    %{<span class="live-type">
-       <span class="live-type-display">#{card.type_name}</span>
-       <span class="live-type-selection#{no_type_change}" style="display:none">#{
-          no_type_change ? "No type edit for #{card.name}: " : type_field(:class=>'type-field live-type-field')}</span>
-    </span>}
+  view :type_select do |args|
+    %{ <script type="text/template" class="live-type-selection">
+      <span class="live-type-selection">#{ type_field :class=>'type-field live-type-field' }</span>
+    </script>}
   end
 
   view :labeled do |args|
     wrap :labeled, args do
       %{
         #{ _optional_render :menu, args }
-          <label>#{ _render_title args }</label>
+        <label>#{ _render_title args }</label>
         #{
           wrap_body :body_class=>'closed-content', :content=>true do
             _render_closed_content args
           end
-      }}
+        }
+      }
     end
   end
 
@@ -106,6 +87,7 @@ Rails.logger.warn "live:\n#{r}\nlive end\n"; r
       <h1 class="card-header">
         #{ args.delete :toggler }
         #{ _render_title args }
+        #{ _render_type args.merge( :type_class=>"type-hidden" )  }
         #{
           args[:custom_menu] or unless args[:hide_menu]                          # developer config
             _optional_render :menu, args, (args[:menu_default_hidden] || false)  # wagneer config
@@ -153,7 +135,12 @@ Rails.logger.warn "live:\n#{r}\nlive end\n"; r
 
   view :type do |args|
     klasses = ['cardtype']
-    klasses << 'default-type' if card.type_id==Card.default_type_id ? " default-type" : ''
+    klass = args[:type_class] and klasses << klass
+    case card.type_id
+      when Card.default_type_id; klasses << 'default-type'
+      when Card::CardtypeID
+        klasses << 'no-edit' if Card.search(:type_id=>card.id).present?
+    end
     link_to_page card.type_name, nil, :class=>klasses
   end
 

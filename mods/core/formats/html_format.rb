@@ -97,7 +97,7 @@ class Card::HtmlFormat < Card::Format
     div = %{<div id="#{card.cardname.url_key}" data-card-id="#{card.id}" data-card-name="#{h card.name}" style="#{h args[:style]}" class="#{classes*' '}" } +
       %{data-slot='#{html_escape_except_quotes slot_options( args )}'>#{yield}</div>}
 
-    if args[:wrap_comment] != 'false'
+    if wrap = args[:wrap_comment] and !%w{false no 0}.include( wrap )
       name = h card.name
       space = '  ' * @depth
       %{<!--\n\n#{ space }BEGIN SLOT: #{ name }\n\n-->#{ div }<!--\n\n#{space}END SLOT: #{ name }\n\n-->}

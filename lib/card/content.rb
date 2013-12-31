@@ -131,7 +131,7 @@ class Card
     PURPLE_ATTR = 'data-purple'
     PURPLE_TAGS = %w{
       i b pre caption strong em ol ul li p div h1 h2 h3 h4 h5 h6 span
-      table tr td th tbody thead tfoot }.to_set.freeze
+      table tr td th tfoot }.to_set.freeze
 
     PURPLE_TAGS.each {|k|
       ALLOWED_TAGS[k] << PURPLE_ATTR

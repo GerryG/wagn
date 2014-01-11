@@ -27,6 +27,10 @@
 #   from:
 # used to set ActionMailer defaults.  if a "from" value is specified, this
 
+# wrap_comments:
+#   debug
+# defaults to 'off', turned on in view option: 'wrap_comment'
+
 # smtp:
 # used to set Rails config.action_mailer.smtp_settings
 

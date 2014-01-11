@@ -103,7 +103,6 @@ class Card::HtmlFormat < Card::Format
     if wrap = args[:wrap_comment]
       wrap = %w{true yes 1}.include wrap
     end
-    Rails.logger.warn "wrapping? v:#{view} #{default_wrap.inspect}, #{wrap.inspect}, #{(default_wrap && wrap.nil? || wrap).inspect}"
     if default_wrap && wrap.nil? || wrap
       name = h card.name
       space = '  ' * @depth

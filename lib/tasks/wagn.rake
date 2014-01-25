@@ -225,7 +225,7 @@ namespace :wagn do
       require 'active_record/fixtures'
 #      require 'time'
 
-      ActiveRecord::Fixtures.create_fixtures 'db/bootstrap', WAGN_BOOTSTRAP_TABLES
+      ActiveRecord::Fixtures.create_fixtures File.expand_path('../../../db/bootstrap', __FILE__), WAGN_BOOTSTRAP_TABLES
 
     end
   end

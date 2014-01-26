@@ -128,14 +128,6 @@ class Card
       ALLOWED_TAGS['table'] += %w[ cellpadding align border cellspacing ]
     end
 
-    PURPLE_ATTR = 'data-purple'
-    PURPLE_TAGS = %w{
-      i b pre caption strong em ol ul li p div h1 h2 h3 h4 h5 h6 span
-      table tr td th tfoot }.to_set.freeze
-
-    PURPLE_TAGS.each {|k|
-      ALLOWED_TAGS[k] << PURPLE_ATTR
-    }
     ALLOWED_TAGS.each_key {|k|
       ALLOWED_TAGS[k] << 'class'
       ALLOWED_TAGS[k] << 'style' if Wagn::Conf[:allow_inline_styles]
@@ -152,7 +144,7 @@ class Card
 
       # this has been hacked for wagn to allow classes if
       # the class begins with "w-"
-      def clean!( string, purple=false, tags = ALLOWED_TAGS )
+      def clean!( string, tags = ALLOWED_TAGS )
         string.gsub( /<(\/*)(\w+)([^>]*)>/ ) do
           raw = $~
           tag = raw[2].downcase
@@ -172,7 +164,6 @@ class Card
                     end
                   end
                 end
-                rest_value = PurpleNumber.new if purple && rest_value.blank? && attr == PURPLE_ATTR
                 pcs << "#{attr}=#{q}#{rest_value}#{q}" unless rest_value.blank?
                 pcs
               end * ' '

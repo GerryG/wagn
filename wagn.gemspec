@@ -24,8 +24,8 @@ Gem::Specification.new do |s|
   [
     
     [ 'rails',        '~> 3.2.16' ],
-    [ 'smartname',    '0.2.3'     ],  #, :path=>'~/dev/smartname/main'
-    [ 'smartname',    :path=>'../smartname' ],
+    [ 'smartname',    '0.2.3.d'   ],  #, :path=>'~/dev/smartname/main'
+    #[ 'smartname',    :path=>'../smartname' ],
     
     [ 'htmlentities', '~> 4.3'    ],
     [ 'uuid',         '~> 2.3'    ],

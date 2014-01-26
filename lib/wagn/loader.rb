@@ -9,7 +9,7 @@ module Wagn
 
     def self.mod_dirs *args
       if @@mod_dirs.nil?
-        @@mod_dirs = [ 'core', *args ].map { |mod| "#{Rails.root}/mods/#{mod}" }
+        @@mod_dirs = [ 'core', *args ].map { |mod| "#{Wagn.gem_root}/mods/#{mod}" }
         Wagn::Conf[:mod_dirs].split( /,\s*/ ).each do |dirname|
           if Dir.exists? dirname
             Dir.entries( dirname ).sort.each do |filename|

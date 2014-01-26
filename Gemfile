@@ -1,6 +1,8 @@
 source 'http://rubygems.org'
 #source "http://gems.github.com"
 
+gemspec
+
 gem 'wagn', :path=>File.expand_path( '../', __FILE__ )
 
 gem 'dalli', :group => :memcache

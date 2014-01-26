@@ -97,12 +97,12 @@ class Card::HtmlFormat < Card::Format
     div = %{<div id="#{card.cardname.url_key}" data-card-id="#{card.id}" data-card-name="#{h card.name}" style="#{h args[:style]}" class="#{classes*' '}" } +
       %{data-slot='#{html_escape_except_quotes slot_options( args )}'>#{yield}</div>}
 
-    if args[:no_wrap_comment]
-      div
-    else
+    if args[:wrap_comment] != 'false'
       name = h card.name
       space = '  ' * @depth
       %{<!--\n\n#{ space }BEGIN SLOT: #{ name }\n\n-->#{ div }<!--\n\n#{space}END SLOT: #{ name }\n\n-->}
+    else
+      div
     end
   end
   
@@ -217,12 +217,14 @@ class Card::HtmlFormat < Card::Format
 
   def type_field args={}
     typelist = Account.createable_types
-    typelist << card.type_name if !card.new_card?
-    # current type should be an option on existing cards, regardless of create perms
+    no_current_type = args.delete :no_current_type
+    unless no_current_type || card.new_card? || typelist.include?( card.type_name )
+      # current type should be an option on existing cards, regardless of create perms
+      typelist = (typelist + card.type_name).sort
+    end
+    current_type = no_current_type ? nil : Card[ card ? card.type_id : Card.default_type_id ].name
 
-    options = options_from_collection_for_select(
-      typelist.uniq.sort.map { |name| [ name, name ] },
-      :first, :last, Card[ card ? card.type_id : Card.default_type_id ].name )
+    options = options_from_collection_for_select typelist, :to_s, :to_s, current_type
     template.select_tag 'card[type]', options, args
   end
 

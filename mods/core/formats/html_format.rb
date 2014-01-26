@@ -85,6 +85,8 @@ class Card::HtmlFormat < Card::Format
     JSON( options_hash )
   end
 
+  NO_WRAP_VIEWS = [:watch]
+
   def wrap view, args = {}
     classes = [
       ( 'card-slot' unless args[:no_slot] ),
@@ -97,7 +99,11 @@ class Card::HtmlFormat < Card::Format
     div = %{<div id="#{card.cardname.url_key}" data-card-id="#{card.id}" data-card-name="#{h card.name}" style="#{h args[:style]}" class="#{classes*' '}" } +
       %{data-slot='#{html_escape_except_quotes slot_options( args )}'>#{yield}</div>}
 
-    if wrap = args[:wrap_comment] and !%w{false no 0}.include( wrap )
+    default_wrap = Wagn::Conf[:wrap_comments] == 'debug' && !NO_WRAP_VIEWS.include?( view )
+    if wrap = args[:wrap_comment]
+      wrap = %w{true yes 1}.include wrap
+    end
+    if default_wrap && wrap.nil? || wrap
       name = h card.name
       space = '  ' * @depth
       %{<!--\n\n#{ space }BEGIN SLOT: #{ name }\n\n-->#{ div }<!--\n\n#{space}END SLOT: #{ name }\n\n-->}

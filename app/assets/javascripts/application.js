@@ -13,6 +13,7 @@
 //= require jquery.autosize
 //= require tinymce
 //= require wagn_mod
+//= require live_edit_mod
 //= require wagn
 //= require wagn_menu
 //= require jquerymobile

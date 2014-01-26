@@ -1,17 +1,11 @@
-# -*- encoding : utf-8 -*-
 require File.expand_path('../boot', __FILE__)
-require 'rails/all'
 
-if defined?(Bundler)
-  # If you precompile assets before deploying to production, use this line
-  Bundler.require *Rails.groups(:assets => %w(development test))
-  # If you want your assets lazily compiled in production, use this line
-  # Bundler.require(:default, :assets, Rails.env)
-end
+require 'wagn/all'
 
 
-module Wagn
-  class Application < Rails::Application
+module WagnTest
+  class Application < Wagn::Application
+    
     # Settings in config/environments/* take precedence over those specified here.
     # Application configuration should go into files in config/initializers
     # -- all .rb files in that directory are automatically loaded.
@@ -32,6 +26,7 @@ module Wagn
     # config.i18n.default_locale = :de
 
     # Configure the default encoding used in templates for Ruby 1.9.
+    
     config.encoding = "utf-8"
 
     # Configure sensitive parameters which will be filtered from the log file.
@@ -52,21 +47,8 @@ module Wagn
       end
     config.cache_store = cache_store, *cache_args
 
-    if log_file = Wagn::Conf[:log_file]
-      config.paths['log'] = File.join( log_file )
-    end
-
-    if db_file = Wagn::Conf[:database_config_file]
-      config.paths['config/database'] = File.join( db_file )
-    end
-
-    if Wagn::Conf[:smtp]
-      config.action_mailer.smtp_settings = Wagn::Conf[:smtp].symbolize_keys
-    end
-
     # Custom directories with classes and modules you want to be autoloadable.
-    config.autoload_paths += Dir["#{config.root}/lib/**/"]
-    config.autoload_paths += Dir["#{config.root}/mods/standard/lib/**/"]
-    
+
+
   end
 end

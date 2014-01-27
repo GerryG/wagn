@@ -2,9 +2,7 @@
 
 ==READ ME FIRST!
 
-This gem is brand new and is EXPERIMENTAL.  So experimental, in fact, that none of the installation instructions below actually works yet.
-
-If you're curious to play around, feel free.  But if you actually want to install a wagn, try the documentation at http://wagn.org/get_started
+This gem is brand new and is EXPERIMENTAL. If you're curious to play around, feel free! But if you want to host a production site, try the documentation at http://wagn.org/get_started
 
 ==Basics
 
@@ -36,19 +34,19 @@ Watch carefully for errors!
   wagn new mysite
 
 
-===3. Set up database
+===3. create / seed database
 
-Edit the config/database.yml file as necessary.  The default configuration works if you have password-less root access to mysql.   More about database configuration at http://www.wagn.org/database_configuration.
+Edit the config/database.yml file as necessary. More about database configuration at http://www.wagn.org/database_configuration.
 
 Then run
 
   cd mysite
-  rake wagn:setup
+  rake wagn:create
   
 ..to create and seed the database
 
 
-===4. Start your server
+===4. start your server
 
 To fire up the default, built-in WEBrick server, just run:
 

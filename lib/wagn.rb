@@ -1,19 +1,19 @@
 # should be able to move these to more appropriate places
 
-require 'recaptcha'
-require 'airbrake'
-
-require 'smart_name'
-require 'htmlentities'
-require 'uuid'
-require 'RMagick'
-# require 'xmlscan'
-# require 'rubyzip'
-require 'coderay'
-require 'sass'
+WAGN_GEM_ROOT = File.expand_path('../..', __FILE__)
 
 module Wagn
-  mattr_reader :gem_root, :root
-  @@gem_root = File.expand_path('../..', __FILE__)
-  @@root ||= File.expand_path('')
+
+  def self.root
+    Rails.root
+  end
+  
+  def self.application
+    Rails.application
+  end
+      
+  def self.gem_root
+    WAGN_GEM_ROOT
+  end
+  
 end

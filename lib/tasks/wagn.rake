@@ -34,6 +34,8 @@ namespace :wagn do
   
   desc "install wagn configuration files"
   task :install do
+    puts "wagn:install is deprecated in favor of 'wagn new'"
+=begin    
     require 'erb'
     rails_root = File.expand_path('./') # must be run from rails root dir
     # not using Rails.root because this task is putting core files in place and
@@ -57,6 +59,7 @@ namespace :wagn do
     File.open File.join(config_dir, 'database.yml'), 'w' do |file|
       file.write ERB.new(dbfile).result(binding)
     end
+=end
   end
   
   desc "reset cache"
@@ -201,8 +204,8 @@ namespace :wagn do
 
     desc "copy files from template database to standard mod and update cards"
     task :mod_files => :environment do
-      template_files_dir = "#{Wagn.root}/files"
-      standard_files_dir = "#{Rails.root}/mods/standard/files"
+      template_files_dir = "#{Rails.root}/files"
+      standard_files_dir = "#{Wagn.gem_root}/mods/standard/files"
       
       #FIXME - this should delete old revisions
       
@@ -225,7 +228,7 @@ namespace :wagn do
       require 'active_record/fixtures'
 #      require 'time'
 
-      ActiveRecord::Fixtures.create_fixtures File.expand_path('../../../db/bootstrap', __FILE__), WAGN_BOOTSTRAP_TABLES
+      ActiveRecord::Fixtures.create_fixtures File.join( Wagn.gem_root, 'db/bootstrap'), WAGN_BOOTSTRAP_TABLES
 
     end
   end

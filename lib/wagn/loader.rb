@@ -5,22 +5,30 @@ module Wagn
   include Wagn::Exceptions
 
   module Loader
-    MODS = begin
-      builtins = [ 'core', 'standard' ].map { |mod| "#{Wagn.gem_root}/mods/#{mod}" }
-      addons = Wagn::Conf[:mod_dirs].split( /,\s*/ ).map do |dirname|
-        if Dir.exists? dirname
+    
+    def self.mod_dirs
+      @@mod_dirs ||= begin
+        (Wagn.paths['gem-mods'].existent + Wagn.paths['local-mods'].existent).map do |dirname|
           Dir.entries( dirname ).sort.map do |filename|
-            if filename !~ /^\./
-              "#{dirname}/#{filename}"
-            end
+            "#{dirname}/#{filename}" if filename !~ /^\./
           end
-        end
-      end.flatten.compact
-      builtins + addons
+        end.flatten.compact
+      end
+    end
+    
+    def mod_dirs
+      Loader.mod_dirs
+    end
+
+    def load_mods
+      mod_dirs
+      load_set_patterns
+      load_formats
+      load_sets
     end
 
     def load_set_patterns
-      MODS.each do |mod|
+      mod_dirs.each do |mod|
         dirname = "#{mod}/set_patterns"
         if Dir.exists? dirname
           Dir.entries( dirname ).sort.each do |filename|
@@ -42,19 +50,19 @@ module Wagn
 
     def load_formats
       #cheating on load issues now by putting all inherited-from formats in core mod.
-      MODS.each do |mod|
-        load_dir File.expand_path( "#{mod}/formats/*.rb", __FILE__ )
+      mod_dirs.each do |mod|
+        load_dir "#{mod}/formats/*.rb"
       end
     end
 
-    def load_chunks      
-      MODS.each do |mod|
-        load_dir File.expand_path( "#{mod}/chunks/*.rb", __FILE__ )
+    def load_chunks
+      mod_dirs.each do |mod|
+        load_dir "#{mod}/chunks/*.rb"
       end
     end
 
     def load_sets
-      MODS.each do |mod|
+      mod_dirs.each do |mod|
         if File.directory? mod
           load_implicit_sets "#{mod}/sets"
         else
@@ -93,18 +101,17 @@ module Wagn
       end
     end
 
-
     def self.load_layouts
-      hash = {}
-      MODS.each do |mod|
+      mod_dirs.inject({}) do |hash, mod|
         dirname = "#{mod}/layouts"
-        next unless File.exists? dirname
-        Dir.foreach( dirname ) do |filename|
-          next if filename =~ /^\./
-          hash[ filename.gsub /\.html$/, '' ] = File.read( [dirname, filename] * '/' )
+        if File.exists? dirname
+          Dir.foreach( dirname ) do |filename|
+            next if filename =~ /^\./
+            hash[ filename.gsub /\.html$/, '' ] = File.read( [dirname, filename] * '/' )
+          end
         end
+        hash
       end
-      hash
     end
 
     private

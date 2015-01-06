@@ -5,10 +5,10 @@ class WagnGenerator < Rails::Generators::AppBase
 
 #class WagnGenerator < Rails::Generators::AppGenerator
 
-  
-
   source_root File.expand_path('../templates', __FILE__)
   
+  argument :mount_point, :required=>false
+
   class_option :database, :type => :string, :aliases => "-d", :default => "mysql",
     :desc => "Preconfigure for selected database (options: #{DATABASES.join('/')})"
     
@@ -50,7 +50,6 @@ class WagnGenerator < Rails::Generators::AppBase
     end
   end
 
-  
   def rakefile
     template "Rakefile"
   end
@@ -92,6 +91,7 @@ class WagnGenerator < Rails::Generators::AppBase
 
     inside "config" do
       template "application.rb"
+      template 'routes.erb', "routes.rb"
       template "environment.rb"
       template "boot.rb"
       template "databases/#{options[:database]}.yml", "database.yml"  

@@ -1,6 +1,16 @@
 # -*- encoding : utf-8 -*-
 
 class Card
+  class << self
+    def config
+      Cardio.config
+    end
+
+    def paths
+      Cardio.paths
+    end
+  end
+
   module Loader
     
     class << self
@@ -33,8 +43,8 @@ class Card
     
       def mod_dirs
         @@mod_dirs ||= begin
-          mod_paths = [Cardio.paths['gem-mod']]
-          local_mod = Cardio.paths['local-mod'] and mod_paths += local_mod
+          mod_paths = [Card.paths['gem-mod']]
+          local_mod = Card.paths['local-mod'] and mod_paths << local_mod
           mod_paths.map do |paths|
             paths.existent.map do |dirname|
               Dir.entries( dirname ).sort.map do |filename|
@@ -49,7 +59,7 @@ class Card
         if rewrite_tmp_files?
           load_set_patterns_from_source
         end
-        load_dir "#{Cardio.paths['tmp/set_pattern'].first}/*.rb"
+        load_dir "#{Card.paths['tmp/set_pattern'].first}/*.rb"
       end
 
       def load_set_patterns_from_source
@@ -86,7 +96,7 @@ class Card
 
       def load_sets_by_pattern
         Card.set_patterns.reverse.map(&:pattern_code).each do |set_pattern|
-          pattern_tmp_dir = "#{Cardio.paths['tmp/set'].first}/#{set_pattern}"
+          pattern_tmp_dir = "#{Card.paths['tmp/set'].first}/#{set_pattern}"
           if rewrite_tmp_files?
             Dir.mkdir pattern_tmp_dir
             load_implicit_sets_from_source set_pattern
@@ -117,7 +127,7 @@ class Card
 
       def prepare_tmp_dir path
         if rewrite_tmp_files?
-          p = Cardio.paths[ path ]
+          p = Card.paths[ path ]
           if p.existent.first
             FileUtils.rm_rf p.first, :secure=>true
           end
@@ -129,7 +139,7 @@ class Card
         if defined?( @@rewrite )
           @@rewrite
         else
-          @@rewrite = !( Rails.env.production? and Cardio.paths['tmp/set'].existent.first )
+          @@rewrite = !( Rails.env.production? and Card.paths['tmp/set'].existent.first )
         end
       end
 

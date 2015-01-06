@@ -10,14 +10,15 @@ end
 
 RAILS_COMMANDS = %w( generate destroy plugin benchmarker profiler console server dbconsole application runner )
 ALIAS = {
-  "rs" => "rspec",
-  "cc" => "cucumber",
-  "g"  => "generate",
-  "d"  => "destroy",
-  "c"  => "console",
-  "s"  => "server",
-  "db" => "dbconsole",
-  "r"  => "runner"
+  'rs' => 'rspec',
+  'cc' => 'cucumber',
+  'g'  => 'generate',
+  'd'  => 'destroy',
+  'c'  => 'console',
+  's'  => 'server',
+  'db' => 'dbconsole',
+  'r'  => 'runner',
+  'l'  => 'load'
 }
 
 ARGV << '--help' if ARGV.empty?
@@ -36,19 +37,26 @@ def find_spec_file filename, base_dir
   end
 end
 
+LOAD_TASK= {
+  'seed' => 'create',
+  'reseed' => 'recreate',
+  'load' => 'seed'
+}
 
 if supported_rails_command? ARGV.first
   if ARGV.delete('--rescue')
     ENV["PRY_RESCUE_RAILS"]="1"
   end
   require 'wagn'
+  require 'generators/card'
   require 'rails/commands'
 else
   command = ARGV.shift
   command = ALIAS[command] || command
 
   case command
-  when 'seed'
+  when 'seed', 'reseed', 'load'
+    task = LOAD_TASKS[command]
     envs = ['production']
     parser = OptionParser.new do |parser|
       parser.banner = "Usage: wagn seed [options]\n\nCreate and seed the production database specified in config/database.yml\n\n"
@@ -67,8 +75,8 @@ else
     end
     parser.parse!(ARGV)
     envs.each do |env|
-      puts "env RAILS_ENV=#{env} bundle exec rake wagn:create"
-      puts `env RAILS_ENV=#{env} bundle exec rake wagn:create`
+      puts "env RAILS_ENV=#{env} bundle exec rake wagn:#{task}"
+      puts `env RAILS_ENV=#{env} bundle exec rake wagn:#{task}`
     end
   when 'update'
     load_rake_tasks
@@ -102,15 +110,16 @@ WAGN
     end
     parser.on('-k', '--decko-spec FILENAME(:LINE)', 'Run spec for a Wagn deck file') do |file|
       opts[:files] = find_spec_file( file, Decko.gem_root)
-      warn "files #{file}, #{Decko.gem_root}, #{opts[:files].inspect}"
     end
     parser.on('-c', '--core-spec FILENAME(:LINE)', 'Run spec for a Wagn core file') do |file|
       opts[:files] = find_spec_file( file, Cardio.gem_root)
     end
     parser.on('-m', '--mod MODNAME', 'Run all specs for a mod or matching a mod') do |file|
-      mod_path = "#{Cardio.gem_root}/mod/#{file}"
-      if File.exists? mod_path
+      if File.exists? mod_path = "mod/#{file}"
         opts[:files] = "#{Cardio.gem_root}/mod/#{file}"
+      elsif File.exists? mod_path = "#{Cardio.gem_root}/mod/#{file}"
+        opts[:files] = "#{Cardio.gem_root}/mod/#{file}"
+      elsif (opts[:files] = find_spec_file( file, "mod")).present?
       else
         opts[:files] = find_spec_file( file, "#{Cardio.gem_root}/mod")
       end

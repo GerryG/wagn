@@ -5,13 +5,13 @@ require 'card/version'
 
 class Card::Migration < ActiveRecord::Migration
   def self.paths type
-    Cardio.paths["db/migrate#{schema_suffix type}"].to_a
+    Card.paths["db/migrate#{schema_suffix type}"].to_a
   end
   
   def self.schema_suffix type
-    Card::Version.schema_suffix type
+    Cardio.schema_suffix type
   end
-  
+
   def self.schema_mode type
     new_suffix = Card::Migration.schema_suffix type
     original_suffix = ActiveRecord::Base.table_name_suffix

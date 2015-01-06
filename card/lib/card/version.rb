@@ -19,11 +19,7 @@ module Card::Version
     end
     
     def schema_suffix type
-      case type
-      when :core_cards then '_core_cards' # was _cards before !!!
-      when :deck_cards then '_deck_cards'
-      else ''
-      end
+      Cardio.schema_suffix type
     end
     
   end

@@ -5,7 +5,7 @@ WAGN_BOOTSTRAP_TABLES = %w{ cards card_actions card_acts card_changes card_refer
 
 namespace :wagn do
   desc "create a wagn database from scratch"
-  task :create do
+  task :recreate do
     puts "dropping"
     #fixme - this should be an option, but should not happen on standard creates!
     begin
@@ -14,6 +14,11 @@ namespace :wagn do
       puts "not dropped"
     end
 
+    Rake::Task['wagn:create'].invoke
+  end
+
+  desc "create a wagn database from scratch"
+  task :create do
     ENV['SCHEMA'] ||= "#{Cardio.gem_root}/db/schema.rb"
      
     puts "creating"
@@ -22,6 +27,11 @@ namespace :wagn do
     puts "loading schema"
     Rake::Task['db:schema:load'].invoke
     
+    Rake::Task['wagn:seed'].invoke
+  end
+
+  desc "Load bootstrap data into database"
+  task :seed do
     puts "update card_migrations"
     Rake::Task['wagn:assume_card_migrations'].invoke
     

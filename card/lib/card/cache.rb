@@ -16,7 +16,7 @@ class Card
   class Cache
 
     @@prepopulating     = [ 'test','cucumber' ].include? Rails.env
-    @@using_rails_cache = Rails.env =~ /^cucumber|test$/
+    @@using_rails_cache = Rails.env =~ /^cucumber|test$/ # why two versions of same test?
     @@prefix_root       = Cardio.config.database_configuration[Rails.env]['database']
     @@cache_by_class    = {}
 
@@ -25,7 +25,7 @@ class Card
     class << self
       def [] klass
         raise "nil klass" if klass.nil?
-        cache_by_class[klass] ||= new :class=>klass, :store=>(@@using_rails_cache ? nil : Cardio.config.cache)
+        cache_by_class[klass] ||= new :class=>klass, :store=>(@@using_rails_cache ? nil : Card.config.cache)
       end
 
       def renew

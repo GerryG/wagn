@@ -54,9 +54,8 @@ module Cardio
 
       add_gem_path paths, 'gem-mod',             :with => 'mod'
       add_gem_path paths, "db"
-      add_gem_path paths, "db/migrate"
+      add_gem_path paths, 'db/migrate'
       add_gem_path paths, "db/migrate_core_cards"
-      add_gem_path paths, 'db/migrate_deck_cards', :with=>'db/migrate_cards'
       add_gem_path paths, "db/seeds",            :with => "db/seeds.rb"
 
       add_gem_path paths, 'config/initializers', :glob => '**/*.rb'
@@ -78,8 +77,20 @@ module Cardio
       @@future_stamp ||= Time.local 2020,1,1,0,0,0
     end
 
+    def migration_paths type
+      paths["db/migrate#{schema_suffix type}"].to_a
+    end
+  
+    def schema_suffix type
+      case type
+      when :core_cards then '_core_cards'
+      when :deck_cards then '_deck_cards'
+      else ''
+      end
+    end
+
     def delete_tmp_files id=nil
-      dir = Cardio.paths['files'].existent.first + '/tmp'
+      dir = Card.paths['files'].existent.first + '/tmp'
       dir += "/#{id}" if id
       FileUtils.rm_rf dir, :secure=>true
     rescue

@@ -12,20 +12,11 @@ class Card::Migration < ActiveRecord::Migration
     Cardio.schema_suffix type
   end
 
-  def self.schema_mode type
-    new_suffix = Card::Migration.schema_suffix type
-    original_suffix = ActiveRecord::Base.table_name_suffix
-    
-    ActiveRecord::Base.table_name_suffix = new_suffix
-    yield
-    ActiveRecord::Base.table_name_suffix = original_suffix
-  end
-  
   
   
   def contentedly &block
     Card::Cache.reset_global
-    Card::Migration.schema_mode '' do
+    Cardio.schema_mode '' do
       Card::Auth.as_bot do
         ActiveRecord::Base.transaction do
           begin
@@ -55,17 +46,12 @@ class Card::Migration < ActiveRecord::Migration
     json = JSON.parse raw_json
     Card.merge_list json["card"]["value"], :output_file=>File.join(data_path,"unmerged_#{ filename }")
   end
-  
-    
-  def schema_mode
-    Card::Migration.schema_mode :deck_cards
-  end
-  
+
   def migration_paths
-    Card::Migration.paths :deck_cards
+    Cardio.paths :deck_cards
   end
-  
-  
+
+
   # Execute this migration in the named direction
   # copied from ActiveRecord to wrap "up" in "contentendly"
   def migrate(direction)

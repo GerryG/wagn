@@ -5,8 +5,13 @@ describe CardController do
   include Card::Location
   include Capybara::DSL
   describe "- route generation" do
+    routes { Decko::Engine.routes }
 
     it "should recognize type" do
+      all_routes = Rails.application.routes.routes
+
+   require 'rails/application/route_inspector'
+      #warn "rountes#{ENV['CONTROLLER']}:\n" + Rails::Application::RouteInspector.new.format(all_routes, ENV['CONTROLLER'])* "\n"
       expect({ :get => "/new/Phrase" }).to route_to( :controller => 'card', :action=>'read', :type=>'Phrase', :view=>'new' )
     end
 
@@ -49,6 +54,8 @@ describe CardController do
   end
 
   describe "#create" do
+    routes { Decko::Engine.routes }
+
     before do
       login_as 'joe_user'
     end
@@ -155,6 +162,8 @@ describe CardController do
   end
 
   describe "#read" do
+    routes { Decko::Engine.routes }
+
     it "works for basic request" do
       get :read, {:id=>'Sample_Basic'}
       expect(response.body.match(/\<body[^>]*\>/im)).to be_truthy
@@ -280,6 +289,8 @@ describe CardController do
   end
   
   describe "#asset" do 
+    routes { Decko::Engine.routes }
+
     it 'serves file' do
       filename = "asset-test.txt"
       args = { :id=>filename, :format=>'txt', :explicit_file=>true }
@@ -297,7 +308,9 @@ describe CardController do
       expect(response.status).to eq(404)
     end
   end
+
   describe "unit tests" do
+    routes { Decko::Engine.routes }
 
     before do
       @simple_card = Card['Sample Basic']

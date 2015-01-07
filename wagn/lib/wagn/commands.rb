@@ -17,8 +17,7 @@ ALIAS = {
   'c'  => 'console',
   's'  => 'server',
   'db' => 'dbconsole',
-  'r'  => 'runner',
-  'l'  => 'load'
+  'r'  => 'runner'
 }
 
 ARGV << '--help' if ARGV.empty?
@@ -37,7 +36,7 @@ def find_spec_file filename, base_dir
   end
 end
 
-LOAD_TASK= {
+LOAD_TASKS= {
   'seed' => 'create',
   'reseed' => 'recreate',
   'load' => 'seed'
@@ -47,8 +46,9 @@ if supported_rails_command? ARGV.first
   if ARGV.delete('--rescue')
     ENV["PRY_RESCUE_RAILS"]="1"
   end
-  require 'wagn'
-  require 'generators/card'
+  command = ARGV.first
+  command = ALIAS[command] || command
+  require 'generators/card' if command == 'generate' # without this, the card generators don't list with: wagn g --help
   require 'rails/commands'
 else
   command = ARGV.shift

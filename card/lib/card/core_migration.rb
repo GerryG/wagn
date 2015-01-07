@@ -2,11 +2,11 @@
 
 class Card::CoreMigration < Card::Migration
   def migration_paths
-    Card::Migration.paths :core_cards
+    Cardio.migration_paths :core_cards
   end
   
   def schema_mode
-    Card::Migration.schema_mode :core_cards
+    Cardio.schema_mode :core_cards
   end
   
   def import_json filename

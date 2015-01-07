@@ -1,4 +1,4 @@
-require_dependency 'decko/location'
+# -*- encoding : utf-8 -*-
 
 format :html do
   include Decko::Location

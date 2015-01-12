@@ -38,8 +38,8 @@ def find_spec_file filename, base_dir
 end
 
 LOAD_TASKS= {
-  'seed' => 'create',
-  'reseed' => 'recreate',
+  'reseed' => 'create',
+  'seed' => 'recreate',
   'load' => 'seed'
 }
 

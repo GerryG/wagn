@@ -75,9 +75,15 @@ else
       end
     end
     parser.parse!(ARGV)
-    envs.each do |env|
-      puts "env RAILS_ENV=#{env} bundle exec rake wagn:#{task}"
-      puts `env RAILS_ENV=#{env} bundle exec rake wagn:#{task}`
+    task_cmd="bundle exec rake wagn:#{task}"
+    if envs.blank?
+      puts task_cmd
+      puts `#{task_cmd}`
+    else
+      envs.each do |env|
+        puts "env RAILS_ENV=#{env} #{task_cmd}"
+        puts `env RAILS_ENV=#{env} #{task_cmd}`
+      end
     end
   when 'update'
     load_rake_tasks
@@ -209,6 +215,5 @@ WAGN
     exit(1)
   end
 end
-
 
 

@@ -14,7 +14,7 @@ A great pull request is:
 ==Developing Mods
 Mods (short for modules, modifications, modicums, modesty, whatever...) are the main mechanism for extending Wagn behaviors, and they're a great place to start learning how to contribute.
 
-Documentation is still sparse, but you can get a sense for how to start by reading lib/card/set.rb. 
+Documentation is still sparse, but you can get a sense for how to start by reading lib/card/set.rb.
 
 To install in a mod-developer friendly mode, try `wagn new mydeckname --mod-dev` (still uses standard gem installation).
 

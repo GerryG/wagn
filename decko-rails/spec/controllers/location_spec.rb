@@ -4,8 +4,6 @@
 describe CardController, "location test from old integration" do
   routes { Decko::Engine.routes }
 
-  include Card::Location
-
   before do
     login_as 'joe_user'
   end

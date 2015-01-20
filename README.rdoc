@@ -2,7 +2,7 @@
 
 ==Basics
 
-Wagn is an open web platform for building coherent web systems.
+Wagn is an open web platform for building coherent web systems. 
 
 Using simple wiki-inspired building blocks called cards, "Wagneers" construct sites ranging from simple content managers to custom project trackers to fully integrated web suites.  
 

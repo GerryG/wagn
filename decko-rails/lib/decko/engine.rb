@@ -44,6 +44,8 @@ module Decko
 
     initializer :connect_on_load do
       ActiveSupport.on_load(:active_record) do
+        pths = Wagn.paths['request_log'] and Decko::Engine.paths['request_log'] = pths
+        pths = Wagn.paths['log'] and Decko::Engine.paths['log'] = pths
         Cardio.card_config Rails.application.config, Decko::Engine.paths, Wagn.root, Rails.cache
         ActiveRecord::Base.establish_connection(Rails.env)
       end

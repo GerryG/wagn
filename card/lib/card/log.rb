@@ -6,7 +6,7 @@ class Card
 
     class Request
       def self.path
-        path = (Cardio.paths['request_log'] && Cardio.paths['request_log'].first) || File.dirname(Cardio.paths['log'].first)
+        path = (Card.paths['request_log'] && Card.paths['request_log'].first) || File.dirname(Card.paths['log'].first)
         filename = "#{Date.today}_#{Rails.env}.csv"
         File.join path, filename
       end
@@ -208,7 +208,7 @@ class Card
         end
         
         def new_entry args
-          args.delete(:details) unless Cardio.config.performance_logger[:details]
+          args.delete(:details) unless Card.config.performance_logger[:details]
           level = @@current_level
                   
           last_entry = @@active_entries.last
@@ -224,8 +224,8 @@ class Card
         end
         
         def finish_entry entry
-          min_time = Cardio.config.performance_logger[:min_time]
-          max_depth = Cardio.config.performance_logger[:max_depth]
+          min_time = Card.config.performance_logger[:min_time]
+          max_depth = Card.config.performance_logger[:max_depth]
           if (max_depth && entry.level > max_depth) || (min_time && entry.duration < min_time)
             entry.delete
           end
@@ -239,7 +239,7 @@ class Card
 
   class << self
     def with_logging method, message, opts, &block
-      if (pl_config=Cardio.config.performance_logger) && pl_config[:methods] && pl_config[:methods].include?(method)
+      if (pl_config=Card.config.performance_logger) && pl_config[:methods] && pl_config[:methods].include?(method)
         Card::Log::Performance.with_timer(method, message, opts) do
           block.call
         end

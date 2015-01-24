@@ -40,7 +40,7 @@ describe Card::Log::Performance do
   end
     
   it 'logs searches if enabled' do
-    Cardio.config.performance_logger = { :methods=>[:search]}
+    Card.config.performance_logger = { :methods=>[:search]}
     expect(Rails.logger).to receive(:wagn).with(/test/).once
     expect(Rails.logger).to receive(:wagn).with(/search\:/).at_least(1)
     test_log do
@@ -49,7 +49,7 @@ describe Card::Log::Performance do
   end
   
   it 'logs fetches if enabled' do
-    Cardio.config.performance_logger = { :methods=>[:fetch] }
+    Card.config.performance_logger = { :methods=>[:fetch] }
     expect(Rails.logger).to receive(:wagn).with(/test/).once
     expect(Rails.logger).to receive(:wagn).with(/fetch/).at_least(1)
     test_log do
@@ -58,7 +58,7 @@ describe Card::Log::Performance do
   end
   
   it 'logs views if enabled' do
-    Cardio.config.performance_logger = { :methods=>[:view]}
+    Card.config.performance_logger = { :methods=>[:view]}
     expect(Rails.logger).to receive(:wagn).with(/test/).once
     expect(Rails.logger).to receive(:wagn).with(/process: \*all/)
     expect(Rails.logger).to receive(:wagn).with(/view\:/)
@@ -68,7 +68,7 @@ describe Card::Log::Performance do
   end
   
   it 'logs events if enabled' do
-    Cardio.config.performance_logger = { :methods=>[:event]}
+    Card.config.performance_logger = { :methods=>[:event]}
     expect(Rails.logger).to receive(:wagn).with(/test/).once
     expect(Rails.logger).to receive(:wagn).with(/process: c1/).once
     expect(Rails.logger).to receive(:wagn).at_least(1).with(/    \|--\([\d.]+ms\) event\:/)
@@ -78,7 +78,7 @@ describe Card::Log::Performance do
   end
   
   it "doesn't log methods if disabled" do
-    Cardio.config.performance_logger = { :methods=>[]}
+    Card.config.performance_logger = { :methods=>[]}
     expect(Rails.logger).to receive(:wagn).with(/test/).once
     test_log do
       Card::Auth.as_bot { Card.fetch('c1').update_attributes!(:content=>'c1') }
@@ -89,7 +89,7 @@ describe Card::Log::Performance do
   end
   
   it 'creates tree for nested method calls' do
-    Cardio.config.performance_logger = { :methods=>[:view]}
+    Card.config.performance_logger = { :methods=>[:view]}
     expect(Rails.logger).to receive(:wagn).with(/test/).once
     expect(Rails.logger).to receive(:wagn).with(/  \|--\([\d.]+ms\) process: c1/)
     expect(Rails.logger).to receive(:wagn).with(/    \|--\([\d.]+ms\) view\: core/)

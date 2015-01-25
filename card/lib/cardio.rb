@@ -31,6 +31,8 @@ module Cardio
       config.no_authentication     = false
       config.files_web_path        = 'files'
 
+      config.max_char_count        = 200
+      config.max_depth             = 20
       config.email_defaults        = nil
 
       config.token_expiry          = 2.days

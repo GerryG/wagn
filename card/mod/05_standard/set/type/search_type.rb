@@ -161,6 +161,7 @@ format :html do
     if @depth > self.class.max_depth
       "..."
     else
+      # TODO: should fix these small issues, hard limit as a config param
       search_params[:limit] = 10 #not quite right, but prevents massive invisible lists.  
       # really needs to be a hard high limit but allow for lower ones.
       _render_core args.merge( :hide=>'paging', :item=>:link )

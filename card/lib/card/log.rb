@@ -79,7 +79,7 @@ class Card
                                   :context => nil
                                 }
 
-      SPECIAL_METHODS     = [:search, :view, :event]  # these methods have already a Wagn.with_logging block
+      SPECIAL_METHODS     = [:search, :view, :event]  # these methods have already a Card.with_logging block
                                                       # we don't have to monkey patch them, only turn the logging on with adding the symbol to the methods hash
 
 
@@ -162,7 +162,7 @@ class Card
 
 
         def watch_method method_name, method_type=:all, options={}
-          Wagn::Log::Performance.enable_method method_name
+          Card::Log::Performance.enable_method method_name
 
           if !SPECIAL_METHODS.include? method_name
             if method_type == :all || method_type == :singleton
@@ -236,7 +236,7 @@ class Card
           #   self.class.instance_variable_set(store_name, hash )
           #   end
           #   log_args = self.class.instance_variable_get store_name
-            Wagn::Log::Performance.with_timer(method_name, log_args) do
+            Card::Log::Performance.with_timer(method_name, log_args) do
               bind_block.call(self, args, &block)
             end
           end
@@ -450,7 +450,7 @@ class Card
 
   class << self
     def with_logging method, opts, &block
-      if (pl_config=Card.config.performance_logger) && pl_config[:methods] && pl_config[:methods].include?(method)
+      if Card::Log::Performance.enabled_method? method
         Card::Log::Performance.with_timer(method, opts) do
           block.call
         end
@@ -459,6 +459,5 @@ class Card
       end
     end
   end
-
 end
 

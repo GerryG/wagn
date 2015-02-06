@@ -4,8 +4,8 @@ require 'rails/application'
 WAGN_BOOTSTRAP_TABLES = %w{ cards card_actions card_acts card_changes card_references }
 
 def prepare_migration
-  Wagn::Cache.reset_global
-  Wagn.config.action_mailer.perform_deliveries = false
+  Card::Cache.reset_global
+  Cardio.config.action_mailer.perform_deliveries = false
   Card.reset_column_information
   Card::Reference.reset_column_information  # this is needed in production mode to insure core db 
                                             # structures are loaded before schema_mode is set
@@ -129,7 +129,7 @@ namespace :wagn do
   task :assume_card_migrations do
     require 'card/migration'
     Card::CoreMigration.schema_mode do
-      ActiveRecord::Schema.assume_migrated_upto_version Card::Version.schema(:core_cards), Card::CoreMigration.paths
+      ActiveRecord::Schema.assume_migrated_upto_version Cardio.schema(:core_cards), Cardio.paths
     end
   end
 
@@ -146,7 +146,7 @@ namespace :wagn do
       require 'card/migration'
 
       Card::Cache.reset_global
-      ENV['SCHEMA'] ||= "#{Wagn.gem_root}/db/schema.rb"
+      ENV['SCHEMA'] ||= "#{Cardio.gem_root}/db/schema.rb"
       prepare_migration
       paths = ActiveRecord::Migrator.migrations_paths = Card::CoreMigration.paths
     
@@ -173,8 +173,8 @@ namespace :wagn do
 
     desc 'write the version to a file (not usually called directly)' #maybe we should move this to a method?
     task :stamp, :type do |t, args|
-      ENV['SCHEMA'] ||= "#{Wagn.gem_root}/db/schema.rb"
-      Wagn.config.action_mailer.perform_deliveries = false
+      ENV['SCHEMA'] ||= "#{Cardio.gem_root}/db/schema.rb"
+      Cardio.config.action_mailer.perform_deliveries = false
 
       stamp_file = Cardio.schema_stamp_path( args[:type] )
 
@@ -278,7 +278,7 @@ namespace :wagn do
 
       WAGN_BOOTSTRAP_TABLES.each do |table|
         i = "000"
-        File.open("#{Wagn.gem_root}/db/bootstrap/#{table}.yml", 'w') do |file|
+        File.open("#{Cardio.gem_root}/db/bootstrap/#{table}.yml", 'w') do |file|
           data = ActiveRecord::Base.connection.select_all( "select * from #{table}" )
           file.write YAML::dump( data.inject({}) do |hash, record|
             record['trash'] = false if record.has_key? 'trash'
@@ -300,7 +300,7 @@ namespace :wagn do
 
       mod_name = '05_standard'
       template_files_dir = "#{Wagn.root}/files"
-      standard_files_dir = "#{Wagn.gem_root}/mod/#{mod_name}/file"
+      standard_files_dir = "#{Cardio.gem_root}/mod/#{mod_name}/file"
 
       FileUtils.remove_dir standard_files_dir, force=true
       FileUtils.cp_r template_files_dir, standard_files_dir

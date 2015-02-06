@@ -21,7 +21,6 @@ class Card
       end
       
       def load_chunks
-        warn "load chunks #{caller*"\n"}"
         mod_dirs.each do |mod|
           load_dir "#{mod}/chunk/*.rb"
         end

@@ -12,20 +12,20 @@ class Card
   end
 
   module Loader
-    
+
     class << self
       def load_mods
         load_set_patterns
         load_formats
         load_sets
       end
-      
+
       def load_chunks
         mod_dirs.each do |mod|
           load_dir "#{mod}/chunk/*.rb"
         end
       end
-            
+
       def load_layouts
         mod_dirs.inject({}) do |hash, mod|
           dirname = "#{mod}/layout"
@@ -40,7 +40,7 @@ class Card
       end
 
       private
-    
+
       def mod_dirs
         @@mod_dirs ||= begin
           mod_paths = [Card.paths['gem-mod']]
@@ -89,7 +89,7 @@ class Card
       def load_sets
         prepare_tmp_dir 'tmp/set'
         load_sets_by_pattern
-        Set.process_base_modules 
+        Set.process_base_modules
         Set.clean_empty_modules
       end
 
@@ -104,7 +104,7 @@ class Card
           if Dir.exists? pattern_tmp_dir
             load_dir "#{pattern_tmp_dir}/**/*.rb"
           end
-        end    
+        end
       end
 
       def load_implicit_sets_from_source set_pattern
@@ -112,7 +112,7 @@ class Card
         mod_dirs.each do |mod_dir|
           dirname = [mod_dir, 'set', set_pattern] * '/'
           next unless File.exists?( dirname )
-          
+
           old_pwd = Dir.pwd
           Dir.chdir dirname
           Dir.glob( "**/*.rb" ).sort.each do |anchor_path|
@@ -134,7 +134,7 @@ class Card
           Dir.mkdir p.first
         end
       end
-      
+
       def rewrite_tmp_files?
         if defined?( @@rewrite )
           @@rewrite
@@ -144,7 +144,6 @@ class Card
       end
 
       def load_dir dir
-        warn "load dir: #{dir}"
         Dir[dir].sort.each do |file|
 #          puts Benchmark.measure("from #load_dir: rd: #{file}") {
 warn "load file #{file}"

@@ -375,7 +375,7 @@ class Card
       
       opts ||= {}
       case
-      when opts.has_key?( :comment )                          ; opts[:comment]     # as in commented code
+      when opts.has_key?( :comment )                            ; opts[:comment]   # as in commented code
       when @mode == :closed && @char_count > Card.config.max_char_count   ; ''     # already out of view
       when opts[:inc_name]=='_main' && !Env.ajax? && @depth==0  ; expand_main opts
       else

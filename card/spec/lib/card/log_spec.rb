@@ -52,14 +52,11 @@ describe Card::Log::Performance do
     end
     with_logging { yield }
   end
-  
-  it 'logs views if enabled' do
-    Card.config.performance_logger = { :methods=>[:view]}
-    expect(Rails.logger).to receive(:wagn).with(/test/).once
-    expect(Rails.logger).to receive(:wagn).with(/process: \*all/)
-    expect(Rails.logger).to receive(:wagn).with(/view\:/)
-    test_log do
-      Card[:all].format.render_raw
+
+  def expect_logger_not_to_receive message
+    allow(Rails.logger).to receive(:wagn)
+    Array.wrap(message).each do |msg|
+      expect(Rails.logger).not_to receive(:wagn).with(msg)
     end
     with_logging { yield }
   end

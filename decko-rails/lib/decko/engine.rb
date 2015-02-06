@@ -53,8 +53,10 @@ module Decko
       ActiveSupport.on_load(:after_initialize) do
         warn "after init #{defined?(Card)}"
         begin
+          warn "Card #{Card.class}" if defined?(Card)
           require_dependency 'card' unless defined?(Card)
         rescue ActiveRecord::StatementInvalid => e
+          warn "after init #{Rails.env}, #{e.inspect}"
           Rails.logger.warn "database not available[#{Rails.env}] #{e}"
         end
       end

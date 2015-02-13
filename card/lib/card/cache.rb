@@ -15,8 +15,9 @@ class Card
 
   class Cache
 
-    @@prepopulating     = [ 'test','cucumber' ].include? Rails.env
-    @@using_rails_cache = Rails.env =~ /^cucumber|test$/ # why two versions of same test?
+    TEST_ENVS = %w{test cucumber}
+    @@prepopulating     = TEST_ENVS.include? Rails.env
+    @@using_rails_cache = TEST_ENVS.include? Rails.env
     @@prefix_root       = Cardio.config.database_configuration[Rails.env]['database']
     @@cache_by_class    = {}
 

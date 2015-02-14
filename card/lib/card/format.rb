@@ -71,10 +71,6 @@ class Card
         end
         ancestry
       end
-
-      def max_depth
-        @@max_depth ||= Card.config.max_depth
-      end
     end
 
     

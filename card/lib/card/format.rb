@@ -19,7 +19,6 @@ class Card
   
     class << self
       @@registered = []
-      @@max_depth = nil
 
       def register format
         @@registered << format.to_s

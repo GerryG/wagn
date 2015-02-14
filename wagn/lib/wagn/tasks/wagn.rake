@@ -5,7 +5,7 @@ WAGN_BOOTSTRAP_TABLES = %w{ cards card_actions card_acts card_changes card_refer
 
 def prepare_migration
   Card::Cache.reset_global
-  Cardio.config.action_mailer.perform_deliveries = false
+  Card.config.action_mailer.perform_deliveries = false
   Card.reset_column_information
   Card::Reference.reset_column_information  # this is needed in production mode to insure core db 
                                             # structures are loaded before schema_mode is set
@@ -100,7 +100,7 @@ namespace :wagn do
 
   desc "migrate structure and cards"
   task :migrate =>:environment do
-    ENV['SCHEMA'] ||= "#{Wagn.root}/db/schema.rb"
+    ENV['SCHEMA'] ||= "#{Cardio.gem_root}/db/schema.rb"
 
     stamp = ENV['STAMP_MIGRATIONS']
 
@@ -144,6 +144,8 @@ namespace :wagn do
 
     desc "migrate core cards"
     task :core_cards => :environment do
+      require 'card'
+      require 'card/reference'
       require 'card/migration'
 
       Card::Cache.reset_global
@@ -162,7 +164,8 @@ namespace :wagn do
       require 'card/migration'
 
       Card::Cache.reset_global
-      ENV['SCHEMA'] ||= "#{Rails.root}/db/schema.rb"
+      # maybe we should test for existance and use the Cardio based on if not there?
+      ENV['SCHEMA'] ||= "#{Cardio.gem_root}/db/schema.rb"
       prepare_migration
       paths = ActiveRecord::Migrator.migrations_paths = Card::Migration.paths(:deck_cards)
     

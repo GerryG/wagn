@@ -1,0 +1,8 @@
+# -*- encoding : utf-8 -*-
+
+require 'decko/engine'
+
+Rails.application.routes.draw do
+
+  mount Decko::Engine => '<%= mount_point %>/'
+end

@@ -1,0 +1,21 @@
+Description
+
+Examples
+  wagn generate card new cards pre_fix
+
+Creates:
+  config/new_routes.rb
+  db/migration/2015010112000000_create_cards_tables.rb
+
+
+  The table names with prefix 'pre_fix' (i.e. pre_fixcards, pre_fixcard_references ...)
+  The Decko::Engine routes will be mounted at /cards/
+
+  wagn generate card base
+
+Creates:
+  config/new_routes.rb
+  db/migration/2015010112000000_create_cards_tables.rb
+
+  The table names will not have a prefix (i.e. cards, card_references ...)
+  The Decko::Engine routes will be mounted at /

@@ -24,6 +24,9 @@ namespace :wagn do
       puts "not dropped"
     end
 
+    # Note Cardio based, but some use cases need this in app dir.  Solution?
+    ENV['SCHEMA'] ||= "#{Cardio.gem_root}/db/schema.rb"
+
     puts "creating"
     Rake::Task['db:create'].invoke
 
@@ -128,9 +131,7 @@ namespace :wagn do
   desc 'insert existing card migrations into schema_migrations_cards to avoid re-migrating'
   task :assume_card_migrations do
     require 'card/migration'
-    Card::CoreMigration.schema_mode do
-      ActiveRecord::Schema.assume_migrated_upto_version Cardio.schema(:core_cards), Cardio.paths
-    end
+    Card::CoreMigration.assume_migrated_upto_version
   end
 
   namespace :migrate do

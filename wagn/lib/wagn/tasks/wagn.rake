@@ -144,16 +144,14 @@ namespace :wagn do
 
     desc "migrate core cards"
     task :core_cards => :environment do
-      require 'card'
-      require 'card/reference'
-      require 'card/migration'
 
       Card::Cache.reset_global
       ENV['SCHEMA'] ||= "#{Cardio.gem_root}/db/schema.rb"
       prepare_migration
-      paths = ActiveRecord::Migrator.migrations_paths = Card::CoreMigration.paths
+      paths = ActiveRecord::Migrator.migrations_paths = Cardio.migration_paths(:core_cards)
     
-      Card::CoreMigration.schema_mode do
+      Cardio.schema_mode(:core_cards) do
+        require 'card/core_migration'
         ActiveRecord::Migration.verbose = ENV["VERBOSE"] ? ENV["VERBOSE"] == "true" : true
         ActiveRecord::Migrator.migrate paths, ENV["VERSION"] ? ENV["VERSION"].to_i : nil
       end
@@ -167,9 +165,10 @@ namespace :wagn do
       # maybe we should test for existance and use the Cardio based on if not there?
       ENV['SCHEMA'] ||= "#{Cardio.gem_root}/db/schema.rb"
       prepare_migration
-      paths = ActiveRecord::Migrator.migrations_paths = Card::Migration.paths(:deck_cards)
+      paths = ActiveRecord::Migrator.migrations_paths = Cardio.migration_paths(:deck_cards)
     
-      Card::Migration.schema_mode do
+      Cardio.schema_mode(:deck_cards) do
+        require 'card/migration'
         ActiveRecord::Migration.verbose = ENV["VERBOSE"] ? ENV["VERBOSE"] == "true" : true
         ActiveRecord::Migrator.migrate paths, ENV["VERSION"] ? ENV["VERSION"].to_i : nil
       end

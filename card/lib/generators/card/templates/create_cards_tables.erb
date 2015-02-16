@@ -1,0 +1,106 @@
+# encoding: UTF-8
+# This file is auto-generated from the current state of the database. Instead
+# of editing this file, please use the migrations feature of Active Record to
+# incrementally modify your database, and then regenerate this schema definition.
+#
+# Note that this schema.rb definition is the authoritative source for your
+# database schema. If you need to create the application database on another
+# system, you should be using db:schema:load, not running all the migrations
+# from scratch. The latter is a flawed and unsustainable approach (the more migrations
+# you'll amass, the slower it'll run and the greater likelihood for issues).
+#
+# It's strongly recommended to check this file into your version control system.
+
+
+class CreateCardTables < ActiveRecord::Migration
+  def change
+
+    create_table "<%= prefix %>card_actions", :force => true do |t|
+      t.integer "card_id"
+      t.integer "card_act_id"
+      t.integer "super_action_id"
+      t.integer "action_type"
+      t.boolean "draft"
+    end
+
+    add_index "<%= prefix %>card_actions", ["card_act_id"], :name => "<%= prefix %>card_actions_card_act_id_index"
+    add_index "<%= prefix %>card_actions", ["card_id"], :name => "<%= prefix %>card_actions_card_id_index"
+
+    create_table "<%= prefix %>card_acts", :force => true do |t|
+      t.integer  "card_id"
+      t.integer  "actor_id"
+      t.datetime "acted_at"
+      t.string   "ip_address"
+    end
+
+    add_index "<%= prefix %>card_acts", ["actor_id"], :name => "<%= prefix %>card_acts_actor_id_index"
+    add_index "<%= prefix %>card_acts", ["card_id"], :name => "<%= prefix %>card_acts_card_id_index"
+
+    create_table "<%= prefix %>card_changes", :force => true do |t|
+      t.integer "card_action_id"
+      t.integer "field"
+      t.text    "value"
+    end
+
+    add_index "<%= prefix %>card_changes", ["card_action_id"], :name => "<%= prefix %>card_changes_card_action_id_index"
+
+    create_table "<%= prefix %>card_references", :force => true do |t|
+      t.integer "referer_id",               :default => 0,  :null => false
+      t.string  "referee_key",              :default => "", :null => false
+      t.integer "referee_id"
+      t.string  "ref_type",    :limit => 1, :default => "", :null => false
+      t.integer "present"
+    end
+
+    add_index "<%= prefix %>card_references", ["referee_id"], :name => "<%= prefix %>card_references_referee_id_index"
+    add_index "<%= prefix %>card_references", ["referee_key"], :name => "<%= prefix %>card_references_referee_key_index"
+    add_index "<%= prefix %>card_references", ["referer_id"], :name => "<%= prefix %>card_references_referer_id_index"
+
+    create_table "<%= prefix %>card_revisions", :force => true do |t|
+      t.datetime "created_at", :null => false
+      t.integer  "card_id",    :null => false
+      t.integer  "creator_id", :null => false
+      t.text     "content",    :null => false
+    end
+
+    add_index "<%= prefix %>card_revisions", ["card_id"], :name => "<%= prefix %>revisions_card_id_index"
+    add_index "<%= prefix %>card_revisions", ["creator_id"], :name => "<%= prefix %>revisions_created_by_index"
+
+    create_table "<%= prefix %>cards", :force => true do |t|
+      t.string   "name",                :null => false
+      t.string   "key",                 :null => false
+      t.string   "codename"
+      t.integer  "left_id"
+      t.integer  "right_id"
+      t.datetime "created_at",          :null => false
+      t.datetime "updated_at",          :null => false
+      t.integer  "creator_id",          :null => false
+      t.integer  "updater_id",          :null => false
+      t.string   "read_rule_class"
+      t.integer  "read_rule_id"
+      t.integer  "references_expired"
+      t.boolean  "trash",               :null => false
+      t.integer  "type_id",             :null => false
+      t.text     "db_content"
+    end
+
+    add_index "<%= prefix %>cards", ["key"], :name => "<%= prefix %>cards_key_index", :unique => true
+    add_index "<%= prefix %>cards", ["left_id"], :name => "<%= prefix %>cards_left_id_index"
+    add_index "<%= prefix %>cards", ["name"], :name => "<%= prefix %>cards_name_index"
+    add_index "<%= prefix %>cards", ["read_rule_id"], :name => "<%= prefix %>cards_read_rule_id_index"
+    add_index "<%= prefix %>cards", ["right_id"], :name => "<%= prefix %>cards_right_id_index"
+    add_index "<%= prefix %>cards", ["type_id"], :name => "<%= prefix %>cards_type_id_index"
+
+    create_table "<%= prefix %>schema_migrations_core_cards", :id => false, :force => true do |t|
+      t.string "version", :null => false
+    end
+
+    add_index "<%= prefix %>schema_migrations_core_cards", ["version"], :name => "<%= prefix %>unique_schema_migrations_cards", :unique => true
+
+    create_table "schema_migrations_deck_cards", :id => false, :force => true do |t|
+      t.string "version", :null => false
+    end
+
+    add_index "<%= prefix %>schema_migrations_deck_cards", ["version"], :name => "<%= prefix %>unique_schema_migrations_deck_cards", :unique => true
+  end
+end

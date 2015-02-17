@@ -43,7 +43,6 @@ class WagnGenerator < Rails::Generators::AppBase
       @spec_path = 'mod/'
       @spec_helper_path = './spec/spec_helper'
       @simplecov_config = "card_simplecov_filters"
-      @gem_path = ask("Enter the path to your local wagn gem installation: ") unless @gem_path
       @spec_path = @gem_path
       @spec_helper_path = File.join @spec_path, 'spec', 'spec_helper'
       empty_directory 'spec'

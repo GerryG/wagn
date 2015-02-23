@@ -50,9 +50,8 @@ module Cardio
   
     def set_paths paths
       @@paths = paths
-      paths.add 'tmp/lib'
-      paths.add 'tmp/set'
-      paths.add 'tmp/set_pattern'
+      paths.add 'tmp/set',         :with => "#{root}/set"
+      paths.add 'tmp/set_pattern', :with => "#{root}/set_pattern"
 
       add_gem_path 'mod',      :with => 'mod'
       add_gem_path "db"
